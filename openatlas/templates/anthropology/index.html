@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title_name %} - {{ _('anthropological analyses')|uc_first }}{% endblock %}
+{% block breadcrumb %}
+    {{ [_('place')]|crumb }}
+{% endblock %}
+{% block content %}
+    <h1>{{ entity.name }}</h1>
+    <div class="toolbar">
+        {{ 'tools/anthropological'|manual }}
+    </div>
+{% endblock %}

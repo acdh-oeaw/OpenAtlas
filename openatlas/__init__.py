@@ -35,7 +35,7 @@ from openatlas.util import filters, processor
 from openatlas.views import (actor, admin, ajax, entity, event, export, file, hierarchy, index,
                              involvement, imports, link, login, member, model, note, object,
                              overlay, place, profile, reference, relation, search, source, sql,
-                             translation, types, user)
+                             translation, types, user, anthropology)
 #  Restful API import
 from openatlas.api import util  # contains routes for each version
 from openatlas.api.v02 import routes  # New routes

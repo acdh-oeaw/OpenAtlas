@@ -20,6 +20,7 @@
                 {% endif %}
                 {{ entity.id|bookmark_toggle }}
                 {{ entity|siblings_pager(structure) }}
+                {{ _('anthropological analyses')|button(url_for('anthropology_index', id_=entity.id)) }}
             </div>
             <h1>{{ entity.name }}</h1>
             {{ profile_image_id|display_profile_image }}
