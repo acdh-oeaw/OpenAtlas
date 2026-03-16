@@ -40,14 +40,8 @@ CREATE TRIGGER update_modified BEFORE UPDATE ON model.rights_holder_file FOR EAC
 
 ALTER TABLE IF EXISTS model.rights_holder_file OWNER to openatlas;
 
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_rights_holder_name') THEN
-        ALTER TABLE model.rights_holder ADD CONSTRAINT uq_rights_holder_name UNIQUE (name);
-    END IF;
-END $$;
-
+ALTER TABLE model.rights_holder DROP CONSTRAINT IF EXISTS uq_rights_holder_name;
+ALTER TABLE model.rights_holder ADD CONSTRAINT uq_rights_holder_name UNIQUE (name);
 
 INSERT INTO model.rights_holder (name, class)
 SELECT DISTINCT TRIM(name), 'person'
