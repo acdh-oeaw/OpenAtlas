@@ -23,17 +23,17 @@ CREATE TABLE IF NOT EXISTS model.rights_holder_file
     entity_id integer NOT NULL,
     rights_holder_id integer NOT NULL,
     description text NOT NULL,
+    created timestamp without time zone NOT NULL DEFAULT now(),
+    modified timestamp without time zone,
     CONSTRAINT rights_holder_file_pkey PRIMARY KEY (id),
     CONSTRAINT fk_entity FOREIGN KEY (entity_id)
         REFERENCES model.entity (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
+        ON UPDATE CASCADE
         ON DELETE CASCADE,
     CONSTRAINT fk_rights_holder FOREIGN KEY (rights_holder_id)
         REFERENCES model.rights_holder (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    created timestamp without time zone NOT NULL DEFAULT now(),
-    modified timestamp without time zone
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
 );
 
 CREATE TRIGGER update_modified BEFORE UPDATE ON model.rights_holder_file FOR EACH ROW EXECUTE PROCEDURE model.update_modified();

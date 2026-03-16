@@ -2553,7 +2553,7 @@ ALTER TABLE ONLY model.file_info
 --
 
 ALTER TABLE ONLY model.rights_holder_file
-    ADD CONSTRAINT fk_entity FOREIGN KEY (entity_id) REFERENCES model.entity(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_entity FOREIGN KEY (entity_id) REFERENCES model.entity(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2561,7 +2561,7 @@ ALTER TABLE ONLY model.rights_holder_file
 --
 
 ALTER TABLE ONLY model.rights_holder_file
-    ADD CONSTRAINT fk_rights_holder FOREIGN KEY (rights_holder_id) REFERENCES model.rights_holder(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_rights_holder FOREIGN KEY (rights_holder_id) REFERENCES model.rights_holder(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
