@@ -46,7 +46,7 @@ with app.test_request_context():
             kg_entity.link('P89', cadaster_hierarchy)
             kg_entity.link(
                 'P67',
-                cadaster_reference_system,
+                cadaster_reference_system,  # type: ignore
                 kg_name,
                 inverse=True)
 
@@ -57,6 +57,6 @@ with app.test_request_context():
             gst_entity.link('P89', kg_entity)
             gst_entity.link(
                 'P67',
-                cadaster_reference_system,
+                cadaster_reference_system,  # type: ignore
                 f'{kg_name}/{gst_name}',
                 inverse=True)

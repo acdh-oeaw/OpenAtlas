@@ -42,7 +42,7 @@ def prepare_cadasters() -> None:
             print('on no! ' + place.name)
             return
         place.name = name_parts[1]
-        place.cadaster_name = name_parts[0]
+        place.cadaster_name = name_parts[0]  # type: ignore
         cadaster_supers.add(name_parts[0])
     for item in cadaster_supers:
         entity = insert({
@@ -86,7 +86,7 @@ def link_cadasters() -> None:
             system.link('P67', entity, f'{parent.name}/{entity.name}')
 
 
-def feature_and_artifact_to_place():
+def feature_and_artifact_to_place() -> None:
     g.cursor.execute(
         "DELETE FROM model.entity WHERE openatlas_class_name = 'place';")
     g.cursor.execute(
@@ -97,7 +97,7 @@ def feature_and_artifact_to_place():
     g.cursor.execute("DELETE FROM model.link WHERE property_code = 'P46';")
 
 
-def clean_up():
+def clean_up() -> None:
     # Remove hierarchies that aren't needed anymore
     for id_ in [29, 81, 186, 189, 228, 229, 972]:
         hierarchy = g.types[id_]
@@ -148,8 +148,8 @@ with app.test_request_context():
     app.preprocess_request()
     system = Entity.get_by_id(11611)
     places = Entity.get_by_class('place', types=True, aliases=True)
-    cadaster_supers = set()
-    cadaster_mapping = {}
+    cadaster_supers = set()  # type: ignore
+    cadaster_mapping = {}  # type: ignore
     prepare_cadasters()
     insert_cadasters()
     link_cadasters()
