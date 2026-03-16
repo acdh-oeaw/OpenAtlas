@@ -88,15 +88,13 @@ def link_cadasters() -> None:
 
 def feature_and_artifact_to_place():
     g.cursor.execute(
-        # Todo: what about locations?
-        """
-        DELETE FROM model.entity WHERE openatlas_class_name = 'place';
-        """)
+        "DELETE FROM model.entity WHERE openatlas_class_name = 'place';")
     g.cursor.execute(
         """
         UPDATE model.entity SET openatlas_class_name = 'place'
         WHERE openatlas_class_name IN ('artifact', 'feature');
         """)
+    g.cursor.execute("DELETE FROM model.link WHERE property_code = 'P46';")
 
 
 def clean_up():

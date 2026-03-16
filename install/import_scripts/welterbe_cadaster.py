@@ -11,7 +11,7 @@ from openatlas.models.entity import Entity, insert
 # and store the needed CSV files in install/import_scripts/cadaster_data/
 
 # Change the ID for the correct cadaster hierarchy
-CADASTER_HIERARCHY_ID = 221484
+CADASTER_HIERARCHY_ID = 11622
 
 
 def import_csv_data() -> dict[str, set[str]]:
