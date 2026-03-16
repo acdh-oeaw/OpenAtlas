@@ -566,7 +566,6 @@ def get_entities_linked_to_type_recursive(
     for entity in g.types[id_].get_linked_entities(
             ['P2', 'P89'],
             inverse=True,
-            types=True,
             sort=True):
         data.append(entity)
     for sub_id in g.types[id_].subs:

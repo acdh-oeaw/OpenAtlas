@@ -412,7 +412,7 @@ class Entity:
         for entity in Entity.get_by_class(self.classes, types=True):
             linked = False
             to_check = entity
-            if self.name in ('Administrative unit', 'Historical place'):
+            if self.class_.name == 'administrative_unit':
                 to_check = entity.get_linked_entity_safe('P53', types=True)
             for type_ in to_check.types:
                 if type_.root[0] == self.id:
