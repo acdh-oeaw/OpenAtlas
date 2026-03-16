@@ -1,10 +1,6 @@
 """
 This script is for restructuring place hierarchies for the Welterbe project.
 Basically: Places -> Custom hierarchy cadaster, Feature and Artifacts -> Places
-* map actors
-* delete actors
-* check links (duplicates)
-* check place orphans
 """
 import time
 from typing import Any
@@ -139,6 +135,17 @@ def map_unesco_id() -> None:
     unesco_reference_system.remove_reference_system_class('feature')
 
 
+def link_property_type() -> None:
+    public_actor = Entity.get_by_id(563)
+    private_actor = Entity.get_by_id(564)
+    for place in public_actor.get_linked_entities('P52', inverse=True):
+        place.link('P2', Entity.get_by_id(11621))
+    public_actor.delete()
+    for place in private_actor.get_linked_entities('P52', inverse=True):
+        place.link('P2', Entity.get_by_id(11620))
+    private_actor.delete()
+
+
 with app.test_request_context():
     app.preprocess_request()
     system = Entity.get_by_id(11611)
@@ -150,6 +157,7 @@ with app.test_request_context():
     link_cadasters()
     feature_and_artifact_to_place()
     map_unesco_id()
+    link_property_type()
     clean_up()
 
 print(f'Execution time: {int(time.time() - start)} seconds')
