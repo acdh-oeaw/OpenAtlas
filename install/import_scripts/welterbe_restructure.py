@@ -1,6 +1,10 @@
 """
 This script is for restructuring place hierarchies for the Welterbe project.
 Basically: Places -> Custom hierarchy cadaster, Feature and Artifacts -> Places
+* map actors
+* delete actors
+* check links (duplicates)
+* check place orphans
 """
 import time
 from typing import Any
@@ -12,6 +16,7 @@ from psycopg2 import extras
 from openatlas import app
 from openatlas.models.entity import Entity, insert
 from openatlas.database import entity as db
+from openatlas.database.checks import delete_link_duplicates
 
 
 def connect() -> Any:
@@ -115,13 +120,23 @@ def clean_up():
             318, 313, 362, 334, 4465, 152, 335, 336, 539, 552, 565, 576, 587,
             598, 387, 420, 434, 425, 443, 453, 1593, 499, 463, 1863, 1903, 508,
             481, 472, 2967, 1663, 2957, 490, 1910, 518, 233, 238, 273, 4450,
-            306, 11328]:
+            306, 11328, 11288]:
         if 'artifact' in g.types[id_].classes:
             g.types[id_].remove_class('artifact')
         if 'feature' in g.types[id_].classes:
             g.types[id_].remove_class('feature')
         if 'place' not in g.types[id_].classes:
             db.add_classes_to_hierarchy(id_, ['place'])
+
+
+def map_unesco_id() -> None:
+    exact_id = 12
+    unesco_reference_system = Entity.get_by_id(159)
+    for place in Entity.get_by_class(['place']):
+        unesco_reference_system.link('P67', place, '806', type_id=exact_id)
+    delete_link_duplicates()
+    unesco_reference_system.remove_reference_system_class('artifact')
+    unesco_reference_system.remove_reference_system_class('feature')
 
 
 with app.test_request_context():
@@ -134,6 +149,7 @@ with app.test_request_context():
     insert_cadasters()
     link_cadasters()
     feature_and_artifact_to_place()
+    map_unesco_id()
     clean_up()
 
 print(f'Execution time: {int(time.time() - start)} seconds')
