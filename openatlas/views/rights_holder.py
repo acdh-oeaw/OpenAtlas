@@ -12,7 +12,7 @@ from wtforms.validators import InputRequired
 from openatlas import app
 from openatlas.display.tab import Tab
 from openatlas.display.table import entity_table
-from openatlas.display.util import required_group
+from openatlas.display.util import link, required_group
 from openatlas.display.util2 import sanitize, uc_first
 from openatlas.forms.display import display_form
 from openatlas.forms.field import SubmitField
@@ -27,7 +27,9 @@ class RightsHolderForm(FlaskForm):
         render_kw={'autofocus': True})
     role: Any = SelectField(
         _('type'),
-        choices=[('person', _('person')), ('group', _('group'))])
+        choices=[
+            ('person', uc_first(_('person'))),
+            ('group', uc_first(_('group')))])
     description = TextAreaField(_('info'))
     confirm_duplicate = HiddenField(default='false')
     save = SubmitField(_('save'))
@@ -36,6 +38,7 @@ class RightsHolderForm(FlaskForm):
 @app.route('/rights_holder/<int:id_>')
 @required_group('readonly')
 def rights_holder_view(id_: int) -> str | Response:
+    # todo: add edit and manual button
     rights_holder = RightsHolder.get_rights_holder_by_id(id_)
     if not rights_holder:
         abort(418)
@@ -63,9 +66,9 @@ def rights_holder_insert(
         origin_id: int | None = None,
         relation: str | None = None) -> str | Response:
     form: Any = RightsHolderForm()
-
+    origin = Entity.get_by_id(origin_id) if origin_id else None
     if form.validate_on_submit():
-        rights_holder_name = sanitize(form.name.data)
+        rights_holder_name = sanitize(form.name.data.strip())
         rights_holder_role = sanitize(form.role.data)
 
         already_confirmed = form.confirm_duplicate.data == 'true'
@@ -82,15 +85,13 @@ def rights_holder_insert(
             rights_holder = RightsHolder.insert_rights_holder({
                 'name': rights_holder_name,
                 'role': rights_holder_role,
-                'description': sanitize(form.description.data)})
-            if origin_id:
-                if relation in {'creator', 'license_holder'} \
-                        and Entity.get_by_id(origin_id):
-                    RightsHolder.insert_rights_holder_link(
-                        origin_id,
-                        rights_holder,
-                        relation)
-                    url = url_for('view', id_=origin_id)
+                'description': sanitize(form.description.data.strip())})
+            if origin and relation in {'creator', 'license_holder'}:
+                RightsHolder.insert_rights_holder_link(
+                    origin_id,
+                    rights_holder,
+                    relation)
+                url = url_for('view', id_=origin_id)
             flash(_('entity created'))
             return redirect(url)
 
@@ -106,6 +107,7 @@ def rights_holder_insert(
         title=_('rights holder'),
         crumbs=[
             [_('admin'), f'{url_for("admin_index")}#tab-rights-holder'],
+            link(origin) if origin else None,
             f'+ {uc_first(_("rights holder"))}'])
 
 
@@ -123,9 +125,9 @@ def rights_holder_update(
 
     if form.validate_on_submit():
         RightsHolder.update_rights_holder(id_, {
-            'name': sanitize(form.name.data),
+            'name': sanitize(form.name.data.strip()),
             'role': sanitize(form.role.data),
-            'description': sanitize(form.description.data)})
+            'description': sanitize(form.description.data.strip())})
         flash(_('updated'))
         return redirect(f'{url_for("admin_index")}#tab-rights-holder')
 
@@ -141,7 +143,10 @@ def rights_holder_update(
         title=_('rights holder'),
         crumbs=[
             [_('admin'), f'{url_for("admin_index")}#tab-rights-holder'],
-            f'{uc_first(_("rights holder"))}: {rights_holder.name}'])
+            link(
+                rights_holder,
+                url_for('rights_holder_view', id_=rights_holder.id)),
+            f'{uc_first(_('edit'))}'])
 
 
 @app.route('/rights_holder_delete/<int:id_>', methods=['GET', 'POST'])

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS model.rights_holder
 CREATE TRIGGER update_modified BEFORE UPDATE ON model.rights_holder FOR EACH ROW EXECUTE PROCEDURE model.update_modified();
 
 ALTER TABLE IF EXISTS model.rights_holder OWNER to openatlas;
-
+-- todo: make a unique constrain for entity_id, rights_holder_id and description
 CREATE TABLE IF NOT EXISTS model.rights_holder_file
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),

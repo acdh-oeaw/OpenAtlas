@@ -414,18 +414,19 @@ class Display:
         self.data.update(self.get_type_data())
         for name, attribute in self.entity.class_.attributes.items():
             if name in ['creator', 'license_holder']:
-                link_ = link(
-                    f'+ {name}',
-                    url_for(
-                        'rights_holder_insert',
-                        origin_id=self.entity.id,
-                        relation=name))
-                html = f'{link_}'
+                html = ''
                 if value := getattr(self.entity, name):
                     entries = [
                         link(rh, url_for('rights_holder_view', id_=rh.id))
                         for rh in value]
-                    html += f'<br>{str('<br>'.join(entries))}'
+                    html += f'{str('<br>'.join(entries))}<br>'
+                link_ = button(
+                    f'+ {uc_first(_(name.replace('_', ' ')))}',
+                    url_for(
+                        'rights_holder_insert',
+                        origin_id=self.entity.id,
+                        relation=name))
+                html += f'{link_}'
                 self.data[attribute['label']] = html
             if name in ['example_id', 'public', 'resolver_url', 'website_url']:
                 if value := getattr(self.entity, name):
