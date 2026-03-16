@@ -33,6 +33,27 @@ class RightsHolderForm(FlaskForm):
     save = SubmitField(_('save'))
 
 
+@app.route('/rights_holder/<int:id_>')
+@required_group('readonly')
+def rights_holder_view(id_: int) -> str | Response:
+    rights_holder = RightsHolder.get_rights_holder_by_id(id_)
+    if not rights_holder:
+        abort(418)
+    linked_files = RightsHolder.get_files_by_rights_holder_id(id_)
+    columns = [
+        'created', 'icon', 'name', 'license', 'public', 'creator',
+        'license_holder', 'size', 'extension', 'description']
+    files_table = entity_table(linked_files, columns=columns)
+    return render_template(
+        'rights_holder.html',
+        rights_holder=rights_holder,
+        files_table=files_table,
+        crumbs=[
+            [_('rights holder'),
+             f'{url_for("admin_index")}#tab-rights-holder'],
+            rights_holder.name])
+
+
 @app.route('/rights_holder_insert', methods=['GET', 'POST'])
 @app.route(
     '/rights_holder_insert/<int:origin_id>/<relation>',
@@ -130,24 +151,3 @@ def rights_holder_delete(id_: int) -> str | Response:
     RightsHolder.rights_holder_delete(id_)
     flash(_('entity deleted'))
     return redirect(f'{url_for("admin_index")}#tab-rights-holder')
-
-
-@app.route('/rights_holder/<int:id_>')
-@required_group('readonly')
-def rights_holder_view(id_: int) -> str | Response:
-    rights_holder = RightsHolder.get_rights_holder_by_id(id_)
-    if not rights_holder:
-        abort(418)
-    linked_files = RightsHolder.get_files_by_rights_holder_id(id_)
-    columns = [
-        'created', 'icon', 'name', 'license', 'public', 'creator',
-        'license_holder', 'size', 'extension', 'description']
-    files_table = entity_table(linked_files, columns=columns)
-    return render_template(
-        'rights_holder.html',
-        rights_holder=rights_holder,
-        files_table=files_table,
-        crumbs=[
-            [_('rights holder'),
-             f'{url_for("admin_index")}#tab-rights-holder'],
-            rights_holder.name])

@@ -193,7 +193,7 @@ def get_table_cell_content(
                 f'<a href="{url_for("view", id_=e.id)}">' \
                 f'{file_preview(e.id)}</a>'
         case 'license_holder':
-            lh = g.file_info.get(e.id, {}).get('creator', [])
+            lh = g.file_info.get(e.id, {}).get('license_holder', [])
             html = '<br>'.join([
                 link(rh, url_for('rights_holder_view', id_=rh.id))
                 for rh in lh])
