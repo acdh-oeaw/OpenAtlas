@@ -26,7 +26,7 @@ class RightsHolderTests(TestBaseCase):
         assert b'Test Creator' in rv.data
 
         rv = c.post(url_for('rights_holder_insert'), data=data)
-        assert b'Name-Role combination already exists' in rv.data
+        assert b'Duplicate found' in rv.data
 
         data['confirm_duplicate'] = 'true'
         rv = c.post(

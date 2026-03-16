@@ -75,7 +75,7 @@ def admin_index() -> str:
             buttons=[
                 manual('admin/rights_holder'),  # Todo: manual
                 button(
-                    f'+ {_('rights holder')}',
+                    f'+ {uc_first(_('rights holder'))}',
                     url_for('rights_holder_insert'))
                 if is_authorized('contributor') else ''])}
     if is_authorized('admin'):
@@ -194,11 +194,10 @@ def get_newsletter_button(users: list[User]) -> str:
 
 def get_rights_holder_table() -> Table:
     table = Table(['name', 'class'])
-    rights_holders = RightsHolder.get_rights_holder()
-    for holder in rights_holders:
+    for holder in RightsHolder.get_rights_holder():
         row = [
             link(holder, url_for('rights_holder_view', id_=holder.id)),
-            holder.class_.name,
+            uc_first(f'{_(holder.class_.name)}'),
             link(
                 _('edit'),
                 url_for('rights_holder_update', id_=holder.id)),

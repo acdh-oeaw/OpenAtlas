@@ -73,11 +73,6 @@ class Entity:
             self.license_holder = []
             if self.id in g.file_info:
                 self.public = g.file_info[self.id]['public']
-                # todo: remove old code if everything works
-                # self.creator = [
-                #    c.name for c in g.file_info[self.id]['creator']]
-                # self.license_holder = [
-                #    lh.name for lh in g.file_info[self.id]['license_holder']]
                 self.creator = g.file_info[self.id]['creator']
                 self.license_holder = g.file_info[self.id]['license_holder']
         if self.class_.name == 'reference_system' and 'website_url' in data:

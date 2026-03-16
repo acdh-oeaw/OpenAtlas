@@ -186,11 +186,11 @@ class Parser:
             case "created":
                 tag = "created"
                 value = format_date(e.created)
-            # todo: check if work
-            #case "creator":
-            #    tag = "creator"
-            #    if e.class_.name == "file" and g.file_info.get(e.id):
-            #        value = g.file_info[e.id]["creator"]
+            case "creator":
+                tag = "creator"
+                if e.class_.name == "file" and g.file_info.get(e.id):
+                    creators = g.file_info[e.id]["creator"]
+                    value = ', '.join([c.name for c in creators])
             case "content" | "description":
                 tag = "description"
                 value = (e.description or "").lower()
@@ -208,11 +208,11 @@ class Parser:
             case "icon":
                 tag = "icon"
                 value = file_preview(e.id)
-            # todo: check if work
-            #case "license_holder":
-            #    tag = "license_holder"
-            #    if e.class_.name == "file" and g.file_info.get(e.id):
-            #        value = g.file_info[e.id]["license_holder"]
+            case "license_holder":
+                tag = "license_holder"
+                if e.class_.name == "file" and g.file_info.get(e.id):
+                    lhs = g.file_info[e.id]["license_holder"]
+                    value = ', '.join([lh.name for lh in lhs])
             case "name":
                 tag = "name"
                 value = e.name.lower()

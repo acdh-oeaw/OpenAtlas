@@ -26,7 +26,7 @@ class RightsHolderForm(FlaskForm):
         [InputRequired()],
         render_kw={'autofocus': True})
     role: Any = SelectField(
-        _('role'),
+        _('type'),
         choices=[('person', _('person')), ('group', _('group'))])
     description = TextAreaField(_('info'))
     confirm_duplicate = HiddenField(default='false')
@@ -76,8 +76,7 @@ def rights_holder_insert(
         url = f'{url_for("admin_index")}#tab-rights-holder'
         if duplicate and not already_confirmed:
             form.name.errors.append(
-                _('This Name-Role combination already exists. '
-                  'If this is a different person, click "Save" to confirm.'))
+                _('Duplicate found. Click "Save" to confirm anyway.'))
             form.confirm_duplicate.data = 'true'
         else:
             rights_holder = RightsHolder.insert_rights_holder({
