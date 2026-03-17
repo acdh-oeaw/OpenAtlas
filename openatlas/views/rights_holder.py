@@ -82,19 +82,22 @@ def rights_holder_insert(
                 _('Duplicate found. Click "Save" to confirm anyway.'))
             form.confirm_duplicate.data = 'true'
         else:
-            rights_holder = RightsHolder.insert_rights_holder({
-                'name': rights_holder_name,
-                'role': rights_holder_role,
-                'description': sanitize(form.description.data.strip())})
-            if origin and relation in {'creator', 'license_holder'}:
-                RightsHolder.insert_rights_holder_link(
-                    origin_id,
-                    rights_holder,
-                    relation)
-                url = url_for('view', id_=origin_id)
-            flash(_('entity created'))
+            try:
+                rights_holder = RightsHolder.insert_rights_holder({
+                    'name': rights_holder_name,
+                    'role': rights_holder_role,
+                    'description': sanitize(form.description.data.strip())})
+                if origin and relation in {'creator', 'license_holder'}:
+                    RightsHolder.insert_rights_holder_link(
+                        origin_id,
+                        rights_holder,
+                        relation)
+                    url = url_for('view', id_=origin_id)
+                flash(_('entity created'))
+            except Exception:
+                flash(_('error transaction'), 'error')
+                return redirect(url)
             return redirect(url)
-
     return render_template(
         'tabs.html',
         tabs={

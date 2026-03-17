@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS model.rights_holder
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
     name text NOT NULL,
-    class text NOT NULL,
+    class text,
     description text,
     created timestamp without time zone NOT NULL DEFAULT now(),
     modified timestamp without time zone,
@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS model.rights_holder
 CREATE TRIGGER update_modified BEFORE UPDATE ON model.rights_holder FOR EACH ROW EXECUTE PROCEDURE model.update_modified();
 
 ALTER TABLE IF EXISTS model.rights_holder OWNER to openatlas;
--- todo: make a unique constrain for entity_id, rights_holder_id and description
 CREATE TABLE IF NOT EXISTS model.rights_holder_file
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
@@ -33,7 +32,8 @@ CREATE TABLE IF NOT EXISTS model.rights_holder_file
     CONSTRAINT fk_rights_holder FOREIGN KEY (rights_holder_id)
         REFERENCES model.rights_holder (id) MATCH SIMPLE
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT uq_rights_holder_file UNIQUE (entity_id, rights_holder_id, description)
 );
 
 CREATE TRIGGER update_modified BEFORE UPDATE ON model.rights_holder_file FOR EACH ROW EXECUTE PROCEDURE model.update_modified();
@@ -43,8 +43,8 @@ ALTER TABLE IF EXISTS model.rights_holder_file OWNER to openatlas;
 ALTER TABLE model.rights_holder DROP CONSTRAINT IF EXISTS uq_rights_holder_name;
 ALTER TABLE model.rights_holder ADD CONSTRAINT uq_rights_holder_name UNIQUE (name);
 
-INSERT INTO model.rights_holder (name, class)
-SELECT DISTINCT TRIM(name), 'person'
+INSERT INTO model.rights_holder (name)
+SELECT DISTINCT TRIM(name)
 FROM (
     SELECT creator AS name FROM model.file_info WHERE creator IS NOT NULL
     UNION
@@ -77,6 +77,8 @@ WHERE f.license_holder IS NOT NULL AND TRIM(f.license_holder) <> '';
 ALTER TABLE model.file_info
     DROP COLUMN creator,
     DROP COLUMN license_holder CASCADE;
+
+ALTER TABLE model.rights_holder ALTER COLUMN class SET NOT NULL;
 
 
 ALTER TABLE model.rights_holder

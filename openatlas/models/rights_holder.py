@@ -31,7 +31,6 @@ class RightsHolder:
 
     @staticmethod
     def insert_rights_holder(entry: dict[str, Any]) -> int:
-        # todo: make try except block
         return insert_rights_holder(entry)
 
     @staticmethod
