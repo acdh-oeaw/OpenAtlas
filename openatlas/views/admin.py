@@ -73,7 +73,7 @@ def admin_index() -> str:
             _('rights holder'),
             table=get_rights_holder_table(),
             buttons=[
-                manual('admin/rights_holder'),  # Todo: manual
+                manual('admin/rights_holder'),
                 button(
                     f'+ {uc_first(_('rights holder'))}',
                     url_for('rights_holder_insert'))
