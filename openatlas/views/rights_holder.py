@@ -137,7 +137,7 @@ def rights_holder_update(
             'name': sanitize(form.name.data.strip()),
             'role': sanitize(form.role.data),
             'description': sanitize(form.description.data.strip())})
-        flash(_('updated'))
+        flash(_('info update'))
         return redirect(f'{url_for("admin_index")}#tab-rights-holder')
 
     return render_template(
