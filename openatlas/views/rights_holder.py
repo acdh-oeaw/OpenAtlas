@@ -109,7 +109,6 @@ def rights_holder_insert(
         tabs={
             'rights_holder': Tab(
                 'rights_holder',
-                buttons=[manual('admin/rights_holder')],
                 content=display_form(
                     form,
                     'rights-holder-form',
@@ -146,7 +145,6 @@ def rights_holder_update(
         tabs={
             'rights_holder': Tab(
                 'rights_holder',
-                buttons=[manual('admin/rights_holder')],
                 content=display_form(
                     form,
                     'rights-holder-form',
