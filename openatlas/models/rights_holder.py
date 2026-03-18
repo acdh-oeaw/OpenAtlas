@@ -11,14 +11,34 @@ from openatlas.database.rights_holder import (
     get_rights_holders_by_entity_and_role, insert_rights_holder,
     insert_rights_holder_link, rights_holder_delete, update_rights_holder)
 from openatlas.models.entity import Entity
+from openatlas.models.openatlas_class import OpenatlasClass
 
 
 class RightsHolder(Entity):
 
     def __init__(self, data: dict[str, Any]) -> None:
-        if not data.get('openatlas_class_name'):
-            data['openatlas_class_name'] = 'actor'
+        is_actor = data.get('openatlas_class_name') == 'actor'
+        if is_actor:
+            data['openatlas_class_name'] = 'person'
+
         super().__init__(data)
+
+        if is_actor:
+            self.class_ = OpenatlasClass(
+                name='actor',
+                cidoc_class=g.cidoc_classes['E39'],
+                hierarchies=[],
+                reference_systems=[],
+                new_types_allowed=False,
+                standard_type_id=None,
+                write_access='',
+                attributes={},
+                relations={},
+                display={},
+                extra={})
+            self.cidoc_class = self.class_.cidoc_class
+            self.openatlas_class_name = 'actor'
+
 
     @staticmethod
     def get_rights_holder() -> list[RightsHolder]:

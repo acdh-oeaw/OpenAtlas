@@ -100,7 +100,7 @@ def rights_holder_insert(
                         relation)
                     url = url_for('view', id_=origin_id)
                 flash(_('entity created'))
-            except Exception:
+            except Exception:  # pragma: no cover
                 flash(_('error transaction'), 'error')
                 return redirect(url)
             return redirect(url)

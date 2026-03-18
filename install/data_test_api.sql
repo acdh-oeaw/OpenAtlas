@@ -195,11 +195,15 @@ VALUES
     ((SELECT id FROM model.entity WHERE name='Picture with a License'), TRUE),
     ((SELECT id FROM model.entity WHERE name='File not public'), FALSE);
 
+ALTER TABLE model.rights_holder
+    DROP CONSTRAINT IF EXISTS uq_rights_holder_name;
+
 INSERT INTO model.rights_holder (name, class, description)
 VALUES
-    ( 'https://viaf.org/viaf/95218067', 'person', 'John Ronald Reuel Tolkien' ),
-    ( 'Sam', 'person', 'This is Sam' ),
-    ('Sauron', 'person', 'This is Sauron');
+    ('https://viaf.org/viaf/95218067', 'person', 'John Ronald Reuel Tolkien'),
+    ('Sam', 'person', 'This is Sam'),
+    ('test', 'actor', 'test'),
+    ('Sauron', 'group', 'This is Sauron');
 
 INSERT INTO model.rights_holder_file (entity_id, rights_holder_id, description)
 VALUES
@@ -207,6 +211,7 @@ VALUES
     ((SELECT id FROM model.entity WHERE name='File without file'), (SELECT id FROM model.rights_holder WHERE name='Sam'), 'license_holder'),
     ((SELECT id FROM model.entity WHERE name='Picture with a License'), (SELECT id FROM model.rights_holder WHERE name='https://viaf.org/viaf/95218067'), 'creator'),
     ((SELECT id FROM model.entity WHERE name='Picture with a License'), (SELECT id FROM model.rights_holder WHERE name='Sauron'), 'license_holder'),
+    ((SELECT id FROM model.entity WHERE name='Picture with a License'), (SELECT id FROM model.rights_holder WHERE name='Sam'), 'license_holder'),
     ((SELECT id FROM model.entity WHERE name='File not public'), (SELECT id FROM model.rights_holder WHERE name='Sauron'), 'creator');
 
 UPDATE model.entity
