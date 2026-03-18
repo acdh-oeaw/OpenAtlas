@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from flask import g
@@ -9,25 +11,44 @@ from openatlas.database.rights_holder import (
     get_rights_holders_by_entity_and_role, insert_rights_holder,
     insert_rights_holder_link, rights_holder_delete, update_rights_holder)
 from openatlas.models.entity import Entity
+from openatlas.models.openatlas_class import OpenatlasClass
 
 
-class RightsHolder:
+class RightsHolder(Entity):
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        if not data.get('openatlas_class_name'):
+            data['openatlas_class_name'] = 'actor'
+        if 'actor' not in g.classes:
+            g.classes['actor'] = OpenatlasClass(
+                name='actor',
+                cidoc_class='E39',
+                hierarchies=[],
+                reference_systems=[],
+                new_types_allowed=False,
+                standard_type_id=None,
+                write_access='',
+                attributes={},
+                relations={},
+                display={},
+                extra={})
+        super().__init__(data)
 
     @staticmethod
-    def get_rights_holder() -> list[Entity]:
-        return [Entity(item) for item in get_rights_holder()]
+    def get_rights_holder() -> list[RightsHolder]:
+        return [RightsHolder(item) for item in get_rights_holder()]
 
     @staticmethod
     def get_rights_holders_by_entity_and_role(
             entity_id: int,
-            role: str) -> list[Entity]:
-        return [Entity(item) for item in
+            role: str) -> list[RightsHolder]:
+        return [RightsHolder(item) for item in
                 get_rights_holders_by_entity_and_role(entity_id, role)]
 
     @staticmethod
-    def get_rights_holder_by_id(id_: int) -> Entity | None:
+    def get_rights_holder_by_id(id_: int) -> RightsHolder | None:
         item = get_rights_holder_by_id(id_)
-        return Entity(item) if item else None
+        return RightsHolder(item) if item else None
 
     @staticmethod
     def insert_rights_holder(entry: dict[str, Any]) -> int:
@@ -46,10 +67,11 @@ class RightsHolder:
         return get_rights_holder_links()
 
     @staticmethod
-    def get_rights_holder_information() -> dict[int, dict[str, list[Entity]]]:
+    def get_rights_holder_information() -> dict[
+            int, dict[str, list[RightsHolder]]]:
         rights_holder_dict = {rh.id: rh for rh in g.rights_holder}
         rights_holder_links = RightsHolder.get_rights_holder_links()
-        result: dict[int, dict[str, list[Entity]]] = {}
+        result: dict[int, dict[str, list[RightsHolder]]] = {}
         for entity_id, links in rights_holder_links.items():
             result[entity_id] = {
                 'creator': [
@@ -74,6 +96,7 @@ class RightsHolder:
         delete_rights_holder_links(entity_id)
 
     @staticmethod
-    def get_files_by_rights_holder_id(rights_holder_id: int) -> list[Entity]:
+    def get_files_by_rights_holder_id(
+            rights_holder_id: int) -> list[Entity]:
         return Entity.get_by_ids(
             get_entity_ids_by_rights_holder(rights_holder_id))

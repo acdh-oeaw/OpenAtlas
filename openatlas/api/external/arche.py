@@ -68,8 +68,10 @@ def ensure_person_exist(
         if str(uri) not in ENTITIES_EMITTED:
             if entity and entity.class_.name == 'group':
                 graph.add((uri, RDF.type, ACDH.Organisation))
-            else:
+            elif entity and entity.class_.name == 'person':
                 graph.add((uri, RDF.type, ACDH.Person))
+            else:
+                graph.add((uri, RDF.type, ACDH.Agent))
             graph.add((uri, ACDH.hasTitle, Literal(name, lang="und")))
             graph.add((uri, ACDH.hasIdentifier, uri))
             ENTITIES_EMITTED.add(str(uri))
