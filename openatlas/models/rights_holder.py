@@ -11,7 +11,6 @@ from openatlas.database.rights_holder import (
     get_rights_holders_by_entity_and_role, insert_rights_holder,
     insert_rights_holder_link, rights_holder_delete, update_rights_holder)
 from openatlas.models.entity import Entity
-from openatlas.models.openatlas_class import OpenatlasClass
 
 
 class RightsHolder(Entity):
@@ -19,19 +18,6 @@ class RightsHolder(Entity):
     def __init__(self, data: dict[str, Any]) -> None:
         if not data.get('openatlas_class_name'):
             data['openatlas_class_name'] = 'actor'
-        if 'actor' not in g.classes:
-            g.classes['actor'] = OpenatlasClass(
-                name='actor',
-                cidoc_class='E39',
-                hierarchies=[],
-                reference_systems=[],
-                new_types_allowed=False,
-                standard_type_id=None,
-                write_access='',
-                attributes={},
-                relations={},
-                display={},
-                extra={})
         super().__init__(data)
 
     @staticmethod
