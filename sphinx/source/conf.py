@@ -12,7 +12,9 @@ project = 'OpenAtlas'
 author = 'The OpenAtlas team'
 language = 'en'
 pygments_style = 'sphinx'
-extensions: List[str] = ['sphinx.ext.extlinks']
+extensions: List[str] = [
+    'sphinx.ext.extlinks',
+    'sphinxcontrib.openapi']
 extlinks = {
     'cidoc_entity': (
         'https://www.cidoc-crm.org/Entity/%s/version-7.1',
