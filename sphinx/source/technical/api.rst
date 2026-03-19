@@ -213,5 +213,70 @@ If the API is set to public, no authentication is needed for GET requests.
 API Reference
 =============
 
-.. openapi:: ../../../openatlas/api/openapi.json
-   :group:
+.. dropdown:: Entity Endpoints
+   :open:
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /entity/{entityId}
+
+.. dropdown:: Entities Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /query/
+         /system_class/{system_class}
+         /view_class/{view_class}
+         /cidoc_class/{cidoc_class}
+         /latest/{limit}
+         /type_entities/{entityId}
+         /type_entities_all/{entityId}
+         /entities_linked_to_entity/{entityId}
+
+.. dropdown:: Type Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /type_overview/
+         /type_tree/
+         /type_by_view_class/
+
+.. dropdown:: Administrative Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /classes/
+         /openapi_schema/
+         /backend_details/
+         /system_class_count/
+         /licensed_file_overview/
+
+.. dropdown:: Image Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /display/{fileId}
+         /iiif_manifest/{version}/{fileId}
+
+.. dropdown:: Special Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /subunits/{entityId}
+         /geometric_entities/
+         /export_database/{format}
+
+.. dropdown:: Proposal Endpoints
+
+   .. openapi:: ../../../openatlas/api/openapi.json
+      :include:
+         /entity_presentation_view/{entityId}
+         /table_rows/
+         /linked_entities_by_properties_recursive/{entityId}
+         /class_mapping/
+         /properties/
+         /network_visualisation/
+         /ego_network_visualisation/{entityId}
+         /chained_events/{entityId}
+         /search/{system_class}
+         /files_of_entities/
