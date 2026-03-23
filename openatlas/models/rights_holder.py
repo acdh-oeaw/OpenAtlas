@@ -22,7 +22,7 @@ class RightsHolder():
         self.class_ = None
         self.created = None
         self.modified = None
-        self.aliases = {}
+        self.aliases: dict[Any, Any] = {}
         for name, value in data.items():
             setattr(self, name, value)
 

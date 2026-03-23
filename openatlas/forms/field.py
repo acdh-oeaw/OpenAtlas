@@ -173,8 +173,8 @@ class TableMultiField(HiddenField):
 
     def __init__(
             self,
-            entities: list[Entity | RightsHolder],
-            selection: Optional[list[Entity | RightsHolder]] = None,
+            entities: list[Entity] | list[RightsHolder],
+            selection: Optional[list[Entity] | list[RightsHolder]] = None,
             description: Optional[str] = None,
             **kwargs: Any) -> None:
         super().__init__(**kwargs)
