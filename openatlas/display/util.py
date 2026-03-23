@@ -27,6 +27,7 @@ from openatlas.models.content import get_translation
 from openatlas.models.dates import Dates, format_date
 from openatlas.models.entity import Entity, Link
 from openatlas.models.imports import Project
+from openatlas.models.rights_holder import RightsHolder
 from openatlas.models.user import User
 
 
@@ -461,6 +462,12 @@ def link(
                 if object_.class_.group['name'] == 'event' else ''),
             url_for('index', group=object_.class_.group['name']))
     elif isinstance(object_, Entity):
+        html = link(
+            object_.name,
+            url or url_for('view', id_=object_.id),
+            uc_first_=False,
+            external=external)
+    elif isinstance(object_, RightsHolder):
         html = link(
             object_.name,
             url or url_for('view', id_=object_.id),

@@ -8,7 +8,7 @@ def get_rights_holder() -> list[dict[str, Any]]:
         """
         SELECT id,
                name,
-               class as openatlas_class_name,
+               class as class_,
                description,
                created,
                modified
@@ -22,7 +22,7 @@ def get_rights_holder_by_id(id_: int) -> dict[str, Any] | None:
         """
         SELECT id,
                name,
-               class as openatlas_class_name,
+               class as class_,
                description,
                created,
                modified
@@ -90,7 +90,7 @@ def get_rights_holders_by_entity_and_role(
         """
         SELECT rh.id,
                rh.name,
-               rh.class as openatlas_class_name,
+               rh.class as class_,
                rh.description,
                rh.created,
                rh.modified

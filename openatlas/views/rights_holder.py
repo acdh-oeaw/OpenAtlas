@@ -69,7 +69,7 @@ def rights_holder_view(id_: int) -> str | Response:
     methods=['GET', 'POST'])
 @required_group('contributor')
 def rights_holder_insert(
-        origin_id: int | None = None,
+        origin_id: int = 0,
         relation: str | None = None) -> str | Response:
     form: Any = RightsHolderForm()
     origin = Entity.get_by_id(origin_id) if origin_id else None
@@ -80,7 +80,7 @@ def rights_holder_insert(
         already_confirmed = form.confirm_duplicate.data == 'true'
         duplicate = any(
             rh.name == rights_holder_name
-            and rh.class_.name == rights_holder_role
+            and rh.class_ == rights_holder_role
             for rh in g.rights_holder)
         url = f'{url_for("admin_index")}#tab-rights-holder'
         if duplicate and not already_confirmed:
@@ -130,7 +130,7 @@ def rights_holder_update(
 
     form: Any = RightsHolderForm(obj=rights_holder)
     if request.method == 'GET':
-        form.role.data = rights_holder.class_.name
+        form.role.data = rights_holder.class_
 
     if form.validate_on_submit():
         RightsHolder.update_rights_holder(id_, {

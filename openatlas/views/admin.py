@@ -197,7 +197,7 @@ def get_rights_holder_table() -> Table:
     for holder in RightsHolder.get_rights_holder():
         row = [
             link(holder, url_for('rights_holder_view', id_=holder.id)),
-            uc_first(f'{_(holder.class_.name)}'),
+            uc_first(f'{_(holder.class_) if holder.class_ else ''}'),
             link(
                 _('edit'),
                 url_for('rights_holder_update', id_=holder.id)),
