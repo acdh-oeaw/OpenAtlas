@@ -13,6 +13,7 @@ def get_rights_holder() -> list[dict[str, Any]]:
                created,
                modified
         FROM model.rights_holder
+        ORDER BY name;
         """)
     return list(g.cursor)
 
@@ -28,6 +29,7 @@ def get_rights_holder_by_id(id_: int) -> dict[str, Any] | None:
                modified
         FROM model.rights_holder
         WHERE id = %(id)s
+        ORDER BY name;
         """,
         {'id': id_})
     return g.cursor.fetchone()

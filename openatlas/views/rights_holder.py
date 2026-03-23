@@ -25,9 +25,11 @@ class RightsHolderForm(FlaskForm):
         _('name'),
         [InputRequired()],
         render_kw={'autofocus': True})
-    role: Any = SelectField(
-        _('type'),
+    class_: Any = SelectField(
+        _('class'),
+        validators=[InputRequired()],
         choices=[
+            ('', ''),
             ('person', uc_first(_('person'))),
             ('group', uc_first(_('group')))])
     description = TextAreaField(_('info'))
@@ -75,7 +77,7 @@ def rights_holder_insert(
     origin = Entity.get_by_id(origin_id) if origin_id else None
     if form.validate_on_submit():
         rights_holder_name = sanitize(form.name.data.strip())
-        rights_holder_role = sanitize(form.role.data)
+        rights_holder_role = sanitize(form.class_.data)
 
         already_confirmed = form.confirm_duplicate.data == 'true'
         duplicate = any(
@@ -115,7 +117,8 @@ def rights_holder_insert(
                     manual_page='admin/rights_holder'))},
         title=_('rights holder'),
         crumbs=[
-            [_('admin'), f'{url_for("admin_index")}#tab-rights-holder'],
+            [_('rights holder'),
+             f'{url_for("admin_index")}#tab-rights-holder'],
             link(origin) if origin else None,
             f'+ {uc_first(_("rights holder"))}'])
 
@@ -130,12 +133,12 @@ def rights_holder_update(
 
     form: Any = RightsHolderForm(obj=rights_holder)
     if request.method == 'GET':
-        form.role.data = rights_holder.class_
+        form.class_.data = rights_holder.class_
 
     if form.validate_on_submit():
         RightsHolder.update_rights_holder(id_, {
             'name': sanitize(form.name.data.strip()),
-            'role': sanitize(form.role.data),
+            'role': sanitize(form.class_.data),
             'description': sanitize(form.description.data.strip())})
         flash(_('info update'))
         return redirect(f'{url_for("admin_index")}#tab-rights-holder')
@@ -151,7 +154,8 @@ def rights_holder_update(
                     manual_page='admin/rights_holder'))},
         title=_('rights holder'),
         crumbs=[
-            [_('admin'), f'{url_for("admin_index")}#tab-rights-holder'],
+            [_('rights holder'),
+             f'{url_for("admin_index")}#tab-rights-holder'],
             link(
                 rights_holder,
                 url_for('rights_holder_view', id_=rights_holder.id)),
