@@ -228,7 +228,7 @@ def get_user_table(users: list[User]) -> Table:
             user.real_name,
             user.group,
             user.email if is_authorized('manager')
-                          or user.settings['show_email'] else '',
+            or user.settings['show_email'] else '',
             display_bool(user.settings['newsletter'], False),
             format_date(user.created),
             format_date(user.login_last_success),

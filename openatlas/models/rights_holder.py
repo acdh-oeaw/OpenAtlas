@@ -16,7 +16,6 @@ from openatlas.models.entity import Entity
 class RightsHolder():
 
     def __init__(self, data: dict[str, Any]) -> None:
-        #super().__init__(data)
         self.id = 0
         self.name = ''
         self.description = None
