@@ -3,10 +3,9 @@ This script is for restructuring type hierarchies for the Welterbe project.
 Basically some building levels types will be merged, see issue #2764
 
 # Todo
-* Remove duplicates
-* Own hierarchy for Nutzungsart (Nutzungsart aktuell)
-* Descriptions of sub types available?
+* Move "Nutzungsart" to "Nutzungsart aktuell"
 * Make categories unselectable?
+* Delete former custom types
 """
 
 import time
@@ -108,10 +107,12 @@ def clean_up():
 with app.test_request_context():
     app.preprocess_request()
     hierarchy = g.types[27145]
+    hierarchy_usage = g.types[11329]
     clean_up()
     mapping = {}
     get_mapping()
     insert_new_types()
     insert_new_type_links()
+    delete_link_duplicates()
 # pprint(mapping)
 print(f'Execution time: {int(time.time() - start)} seconds')
