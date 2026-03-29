@@ -47,52 +47,50 @@ def get_mapping() -> None:
             if type_.name not in mapping:
                 mapping[type_.name] = {'org_ids': [], 'subs': {}}
             mapping[type_.name]['org_ids'].append(id_)
-            for id_ in type_.subs:
-                sub = g.types[id_]
+            for sub_id in type_.subs:
+                sub = g.types[sub_id]
                 if sub.name not in mapping[type_.name]['subs']:
                     mapping[type_.name]['subs'][sub.name] = {'org_ids': []}
-                mapping[type_.name]['subs'][sub.name]['org_ids'].append(id_)
+                mapping[type_.name]['subs'][sub.name]['org_ids'].append(sub_id)
                 if sub.subs:
                     print(f'Warning: there are subs in {sub.id}')
 
 
 def insert_new_types() -> None:
-    for name in mapping:
+    for name, value in mapping.items():
         new_type = insert({
             'name': name,
             'description': '',
             'openatlas_class_name': 'type'})
         new_type.link('P127', hierarchy)
-        mapping[name]['new_id'] = new_type.id
-        for sub_name in mapping[name]['subs']:
+        value['new_id'] = new_type.id
+        for sub_name in value['subs']:
             new_sub = insert({
                 'name': sub_name,
                 'description': '',
                 'openatlas_class_name': 'type'})
             new_sub.link('P127', new_type)
-            mapping[name]['subs'][sub_name]['new_id'] = new_sub.id
+            value['subs'][sub_name]['new_id'] = new_sub.id
 
 
 def insert_new_type_links() -> None:
-    for name in mapping:
+    for name, value in mapping.items():
         g.cursor.execute(
             """
             UPDATE model.link
             SET range_id = %(new_id)s
             WHERE property_code = 'P2' AND range_id IN %(org_ids)s;
-            """, {
-                'new_id': mapping[name]['new_id'],
-                'org_ids': tuple(mapping[name]['org_ids'])})
-        for sub_name in mapping[name]['subs']:
+            """,
+            {'new_id': value['new_id'], 'org_ids': tuple(value['org_ids'])})
+        for sub_name in value['subs']:
             g.cursor.execute(
                 """
                 UPDATE model.link
                 SET range_id = %(new_id)s
                 WHERE property_code = 'P2' AND range_id IN %(org_ids)s;
                 """, {
-                    'new_id': mapping[name]['subs'][sub_name]['new_id'],
-                    'org_ids':
-                        tuple(mapping[name]['subs'][sub_name]['org_ids'])})
+                    'new_id': value['subs'][sub_name]['new_id'],
+                    'org_ids': tuple(value['subs'][sub_name]['org_ids'])})
     delete_link_duplicates()
 
 
@@ -137,7 +135,7 @@ with app.test_request_context():
     app.preprocess_request()
     hierarchy = g.types[27145]
     hierarchy_usage = g.types[11329]
-    mapping = {}
+    mapping: dict[Any, Any] = {}
     get_mapping()
     insert_new_types()
     insert_new_type_links()
