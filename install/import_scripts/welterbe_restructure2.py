@@ -74,7 +74,7 @@ def insert_new_types() -> None:
 
 
 def insert_new_type_links() -> None:
-    for name, value in mapping.items():
+    for value in mapping.values():
         g.cursor.execute(
             """
             UPDATE model.link
