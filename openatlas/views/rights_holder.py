@@ -49,7 +49,7 @@ def rights_holder_view(id_: int) -> str | Response:
         buttons.append(
             button(_('edit'), url_for('rights_holder_update', id_=id_)))
 
-    linked_files = RightsHolder.get_files_by_rights_holder_id(id_)
+    linked_files = Entity.get_files_by_rights_holder_id(id_)
     columns = [
         'created', 'icon', 'name', 'license', 'public', 'creator',
         'license_holder', 'size', 'extension', 'description']
