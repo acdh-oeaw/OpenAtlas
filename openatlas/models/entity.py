@@ -691,6 +691,7 @@ class Entity:
                     type_.root[-1],
                     type_.root)
                 type_.category = hierarchies[type_.root[0]]['category']
+                type_.multiple = hierarchies[type_.root[0]]['multiple']
                 continue
             type_.category = hierarchies[type_.id]['category']
             type_.multiple = hierarchies[type_.id]['multiple']
