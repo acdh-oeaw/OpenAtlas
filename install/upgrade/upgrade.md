@@ -22,10 +22,10 @@ No database update is required but an additional Python package is needed:
 
     sudo apt install python3-fiona
 
-Changed default <code>CORS_ALLOWANCE = '*'</code> to
-<code>CORS_ALLOWANCE = ''</code>. So if presentation sites have problems,
-please add <code>CORS_ALLOWANCE = '*'</code> or a specific IP to
-the <code>production.py</code>.
+Changed default `CORS_ALLOWANCE = '\*'` to
+`CORS_ALLOWANCE = ''`. So if presentation sites have problems,
+please add `CORS_ALLOWANCE = '\*'` or a specific IP to
+the `production.py`.
 
 ### 9.1.0 to 9.1.1
 A code base update (e.g. with git pull) and a webserver restart is sufficient.
