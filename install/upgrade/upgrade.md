@@ -22,6 +22,11 @@ No database update is required but an additional Python package is needed:
 
     sudo apt install python3-fiona
 
+Changed default <code>CORS_ALLOWANCE = '*'</code> to
+<code>CORS_ALLOWANCE = ''</code>. So if presentation sites have problems,
+please add <code>CORS_ALLOWANCE = '*'</code> or a specific IP to
+the <code>production.py</code>.
+
 ### 9.1.0 to 9.1.1
 A code base update (e.g. with git pull) and a webserver restart is sufficient.
 
@@ -73,7 +78,7 @@ Be aware, that the owner of the folders might not be www-data:
     sudo chown www-data files/export/arche/ files/export/rdf/ files/export/sql/
 
 #### Tests (Optional)
-For full test coverage, copy *ARCHE_METADATA* from 
+For full test coverage, copy *ARCHE_METADATA* from
 'instance/example_testing.py' to 'testing.py'.
 
 ### 8.13.0 to 8.14.0
