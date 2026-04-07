@@ -328,10 +328,7 @@ def get_fundkatalog_entries(
             if len(dim_tmp) == 2:
                 description_ = f'{dim_tmp[1].strip()}\n'
 
-        # todo: check out fundnummer with subcategories e.g. 1489/4. Add
-        #  for each a new artifact?
-
-        idendification = parse_find_entry(entry.identifications)
+        identification = parse_find_entry(entry.identifications)
         result_.append(KatalogEntity(
             id=entry.id,
             type=entry.type or 'Medaille',
@@ -344,9 +341,9 @@ def get_fundkatalog_entries(
             length=length.replace(',', '.'),
             height=height.replace(',', '.'),
             diameter=diameter.replace(',', '.'),
-            fndnr=idendification['fndnr'],
-            se=idendification['se'],
-            image_id=idendification['id']))
+            fndnr=identification['fndnr'],
+            se=identification['se'],
+            image_id=identification['id']))
     return result_
 
 
@@ -779,7 +776,6 @@ with (app.test_request_context()):
         fundkatalog_entries = get_fundkatalog_entries(result)
         for fundkatalog_entry in fundkatalog_entries:
             find_entity = added_finds[fundkatalog_entry.fndnr.split('/')[0]]
-            # todo: add count for name, so it should be name_1, name_2 etc.
             new_name = find_entity.name
             inser_data = {
                 'name': new_name,
