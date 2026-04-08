@@ -194,6 +194,7 @@ def get_newsletter_button(users: list[User]) -> str:
 
 def get_rights_holder_table() -> Table:
     table = Table(['name', 'class'])
+    file_count = RightsHolder.get_rights_holder_file_count()
     for holder in RightsHolder.get_rights_holder():
         row = [
             link(holder, url_for('rights_holder_view', id_=holder.id)),
@@ -206,7 +207,13 @@ def get_rights_holder_table() -> Table:
                 url_for('rights_holder_delete', id_=holder.id),
                 js=f"return confirm('{uc_first(
                     _('delete %(name)s?',
-                      name=holder.name.replace("'", "")))}?')")]
+                      name=holder.name.replace("'", "")))}?')"),
+            link(
+                str(file_count.get(holder.id, '')),
+                url_for(
+                    'rights_holder_view',
+                    id_=holder.id,
+                    _anchor='tab-files'))]
         table.rows.append(row)
     return table
 

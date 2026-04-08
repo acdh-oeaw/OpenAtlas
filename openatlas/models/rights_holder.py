@@ -53,8 +53,8 @@ class RightsHolder:
 
     @staticmethod
     def get_rights_holder_information() -> dict[
-            int,
-            dict[str, list[RightsHolder]]]:
+        int,
+        dict[str, list[RightsHolder]]]:
         rights_holder_dict = {rh.id: rh for rh in g.rights_holder}
         rights_holder_links = RightsHolder.get_rights_holder_links()
         result: dict[int, dict[str, list[RightsHolder]]] = {}
@@ -80,3 +80,7 @@ class RightsHolder:
     @staticmethod
     def delete_rights_holder_links(entity_id: int) -> None:
         db.delete_rights_holder_links(entity_id)
+
+    @staticmethod
+    def get_rights_holder_file_count() -> dict[int, int]:
+        return db.get_rights_holder_file_count()
