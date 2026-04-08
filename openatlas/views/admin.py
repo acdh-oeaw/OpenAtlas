@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import importlib
 import math
-import os
 import shutil
 from pathlib import Path
-from subprocess import run
 from typing import Any, Optional
 
 from flask import flash, g, render_template, request, url_for
@@ -397,12 +395,18 @@ def resize_images() -> Response:
 
 
 def get_disk_space_info() -> Optional[dict[str, Any]]:
+    def get_dir_size(path: Path) -> int:
+        return sum(
+            f.stat().st_size
+            for f in path.rglob('*')
+            if f.is_file() and not f.is_symlink())
+
     def upload_ident_with_iiif() -> bool:
         if not iiif_path:
             return False  # pragma: no cover
         return bool(app.config['UPLOAD_PATH'].resolve() == iiif_path.resolve())
 
-    paths = {
+    paths: dict[str, dict[str, Any]] = {
         'export': {
             'path': app.config['EXPORT_PATH'], 'size': 0, 'mounted': False},
         'upload': {
@@ -417,21 +421,13 @@ def get_disk_space_info() -> Optional[dict[str, Any]]:
         if not upload_ident_with_iiif():
             paths['iiif'] = {'path': iiif_path, 'size': 0, 'mounted': False}
     keys = []
-    for key, path in paths.items():
-        if os.access(path['path'], os.W_OK):
-            size = run(
-                ['du', '-sb', path['path']],
-                capture_output=True,
-                text=True,
-                check=True)
-            path['size'] = int(size.stdout.split()[0])
-            mounted = run(
-                ['df', path['path']],
-                capture_output=True,
-                text=True,
-                check=True)
-            path['mounted'] = '/mnt/' in mounted.stdout.split()[-1]
+    for key, path_info in paths.items():
+        try:
+            path_info['size'] = get_dir_size(path_info['path'])
+            path_info['mounted'] = path_info['path'].is_mount()
             keys.append(key)
+        except OSError:
+            continue
     files_size: Any = sum(paths[key]['size'] for key in keys) or 0.1
     stats = shutil.disk_usage(app.config['UPLOAD_PATH'])
     percent: dict[str, int | Any] = {
