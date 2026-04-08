@@ -33,8 +33,8 @@ def current_date_for_filename() -> str:
 
 
 def sql_export(format_: str, postfix: Optional[str] = '') -> bool:
-    file = app.config['SQL_PATH'] \
-           / f'{current_date_for_filename()}_export{postfix}.{format_}'
+    dump_file = app.config['SQL_PATH'] \
+        / f'{current_date_for_filename()}_export{postfix}.{format_}'
     command: list[Any] = ['pg_dump']
     if format_ == 'dump':
         command.append('-Fc')
@@ -43,7 +43,7 @@ def sql_export(format_: str, postfix: Optional[str] = '') -> bool:
         '-d', app.config['DATABASE_NAME'],
         '-U', app.config['DATABASE_USER'],
         '-p', str(app.config['DATABASE_PORT']),
-        '-f', file])
+        '-f', dump_file])
     try:
         with subprocess.Popen(
                 command,
@@ -53,12 +53,23 @@ def sql_export(format_: str, postfix: Optional[str] = '') -> bool:
                     'SYSTEMROOT': os.environ.get('SYSTEMROOT', '')}) \
                 as sub_process:
             sub_process.wait()
-        with open(os.devnull, 'w', encoding='utf8') as null:
-            with subprocess.Popen(
-                    ['7z', 'a', f'{file}.7z', file],
-                    stdout=null) as sub_process:
-                sub_process.wait()
-        file.unlink()
+
+        if shutil.which('7z'):
+            archive_file = f'{dump_file}.7z'
+            with open(os.devnull, 'w', encoding='utf8') as null:
+                with subprocess.Popen(
+                        ['7z', 'a', archive_file, dump_file],
+                        stdout=null) as sub_process:
+                    sub_process.wait()
+        else:
+            archive_file = f'{dump_file}.zip'
+            with zipfile.ZipFile(
+                    archive_file,
+                    'w',
+                    compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.write(dump_file, arcname=dump_file.name)
+
+        dump_file.unlink()
     except Exception:  # pragma: no cover
         return False
     return True

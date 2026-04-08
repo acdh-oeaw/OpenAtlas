@@ -423,7 +423,7 @@ def get_disk_space_info() -> dict[str, Any] | None:
     project_size = sum(info['size'] for info in paths.values())
     try:
         disk = shutil.disk_usage(app.config['UPLOAD_PATH'])
-    except (FileNotFoundError, PermissionError, OSError):
+    except (FileNotFoundError, PermissionError, OSError):  #pragma: no cover
         return None
     other_size = max(0, disk.used - project_size)
 
