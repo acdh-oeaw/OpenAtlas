@@ -743,13 +743,15 @@ def insert_reference_system(data: dict[str, Any]) -> None:
             name,
             website_url,
             resolver_url,
-            identifier_example)
+            identifier_example,
+            api)
         VALUES (
             %(entity_id)s,
             %(name)s,
             %(website_url)s,
             %(resolver_url)s,
-            %(identifier_example)s);
+            %(identifier_example)s,
+            %(api));
         """,
         data)
 
@@ -762,12 +764,14 @@ def update_reference_system(data: dict[str, Any]) -> None:
             name,
             website_url,
             resolver_url,
-            identifier_example
+            identifier_example,
+            api
         ) = (
             %(name)s,
             %(website_url)s,
             %(resolver_url)s,
-            %(identifier_example)s
+            %(identifier_example)s,
+            %(api)
         ) WHERE entity_id = %(entity_id)s;
         """,
         data)
@@ -821,6 +825,7 @@ def get_reference_systems() -> list[dict[str, Any]]:
             rs.resolver_url,
             rs.identifier_example,
             rs.system,
+            rs.api,
             array_to_json(
                 array_agg((t.range_id, t.description))
                     FILTER (WHERE t.range_id IS NOT NULL)
@@ -839,6 +844,7 @@ def get_reference_systems() -> list[dict[str, Any]]:
             rs.website_url,
             rs.resolver_url,
             rs.identifier_example,
+            rs.api,
             rs.system,
             rs.entity_id;
         """)

@@ -7,7 +7,8 @@ from flask_babel import gettext as _
 from flask_wtf import FlaskForm
 from werkzeug.utils import secure_filename
 from wtforms import (
-    BooleanField, HiddenField, SelectMultipleField, StringField, widgets)
+    BooleanField, HiddenField, SelectField, SelectMultipleField, StringField,
+    widgets)
 
 from openatlas import app
 from openatlas.database.connect import Transaction
@@ -40,6 +41,15 @@ def get_entity_form(
     add_reference_systems(Form, entity.class_)
     for key, value in entity.class_.attributes.items():
         match key:
+            case 'api':
+                setattr(
+                    Form,
+                    key,
+                    SelectField(
+                        value['label'],
+                        choices=[('', '')] + [
+                            (name, name) for name
+                            in app.config['EXTERNAL_API']]))
             case 'creator' | 'example_id' | 'license_holder' | \
                  'resolver_url' | 'website_url':
                 setattr(

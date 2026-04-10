@@ -144,6 +144,8 @@ def get_table_cell_content(
         overlays: dict[int, Overlay]) -> str:
     html: str | None = 'no table function'
     match name:
+        case 'api':
+            html = e.api
         case 'begin':
             html = table_date('first', e, range_, item)
         case 'checkbox':

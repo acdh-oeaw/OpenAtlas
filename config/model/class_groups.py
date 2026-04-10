@@ -48,7 +48,7 @@ class_groups = {
         'classes': ['reference_system'],
         'table_columns': [
             'name', 'count', 'website_url', 'resolver_url', 'example_id',
-            'default_precision', 'description']},
+            'default_precision', 'api', 'description']},
     'source': {
         'name': 'source',
         'label': _('source'),
