@@ -17,6 +17,11 @@ then run the database upgrade script, then restart Apache:
     sudo python3 install/upgrade/database_upgrade.py
     sudo service apache2 restart
 
+### 9.2.x to 9.3.0
+No database update is required but an additional Python package is needed:
+
+    sudo apt install python3-magic
+
 ### 9.1.x to 9.2.0
 No database update is required but an additional Python package is needed:
 
