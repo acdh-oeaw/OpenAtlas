@@ -48,6 +48,15 @@ def rights_holder_view(id_: int) -> str | Response:
     if is_authorized('contributor'):
         buttons.append(
             button(_('edit'), url_for('rights_holder_update', id_=id_)))
+    if is_authorized('editor'):
+        buttons.append(
+            button(
+                _('delete'),
+                url_for('rights_holder_delete', id_=id_),
+                onclick=f"return confirm('{
+                    uc_first(_(
+                        'delete %(name)s?',
+                        name=rights_holder.name.replace("'", "")))}?')"))
 
     linked_files = Entity.get_files_by_rights_holder_id(id_)
     columns = [
