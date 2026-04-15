@@ -198,20 +198,24 @@ def get_rights_holder_table() -> Table:
             link(holder, url_for('rights_holder_view', id_=holder.id)),
             uc_first(f'{_(holder.class_) if holder.class_ else ''}'),
             link(
-                _('edit'),
-                url_for('rights_holder_update', id_=holder.id)),
-            link(
-                _('delete'),
-                url_for('rights_holder_delete', id_=holder.id),
-                js=f"return confirm('{uc_first(
-                    _('delete %(name)s?',
-                      name=holder.name.replace("'", "")))}?')"),
-            link(
                 str(file_count.get(holder.id, '')),
                 url_for(
                     'rights_holder_view',
                     id_=holder.id,
                     _anchor='tab-files'))]
+        if is_authorized('contributor'):
+            row.append(
+                link(
+                    _('edit'),
+                    url_for('rights_holder_update', id_=holder.id)))
+        if is_authorized('editor'):
+            row.append(
+                link(
+                    _('delete'),
+                    url_for('rights_holder_delete', id_=holder.id),
+                    js=f"return confirm('{uc_first(
+                        _('delete %(name)s?',
+                          name=holder.name.replace("'", "")))}?')"))
         table.rows.append(row)
     return table
 
@@ -397,7 +401,7 @@ def newsletter() -> str | Response:
                 link_ = f'{request.scheme}://{request.headers['Host']}'
                 link_ += url_for('index_unsubscribe', code=code)
                 if send_mail(
-                        form.subject.data,
+                        str(form.subject.data),
                         f'{form.body.data}\n\n'
                         f'{_('To unsubscribe use the link below.')}\n\n'
                         f'{link_}',
@@ -460,7 +464,7 @@ def get_disk_space_info() -> dict[str, Any] | None:
     project_size = sum(info['size'] for info in paths.values())
     try:
         disk = shutil.disk_usage(app.config['UPLOAD_PATH'])
-    except (FileNotFoundError, PermissionError, OSError):  #pragma: no cover
+    except (FileNotFoundError, PermissionError, OSError):  # pragma: no cover
         return None
     other_size = max(0, disk.used - project_size)
 
