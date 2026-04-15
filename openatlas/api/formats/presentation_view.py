@@ -55,14 +55,15 @@ def get_file_dict(
     url = 'N/A'
     mime_type = None
     if path := get_file_path(link.domain.id):
-        url_for('api.display', filename=path.stem, _external=True)
+        url = url_for('api.display', filename=path.stem, _external=True)
         mime_type, _ = mimetypes.guess_type(path)
     data = {
         'id': link.domain.id,
         'title': link.domain.name,
         'license': get_license_name(link.domain),
-        'creator': link.domain.creator,
-        'licenseHolder': link.domain.license_holder,
+        'creator': ', '.join([rh.name for rh in link.domain.creator]),
+        'licenseHolder': ', '.join([
+            rh.name for rh in link.domain.license_holder]),
         'publicShareable': link.domain.public,
         'mimetype': mime_type,
         'fromSuperEntity': root,

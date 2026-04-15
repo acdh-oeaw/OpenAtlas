@@ -65,7 +65,6 @@ def type_delete_recursive(id_: int) -> str | Response:
                 link(Entity.get_by_id(row['domain_id'])),
                 link(Entity.get_by_id(row['range_id']))])
     else:
-
         entities = []
         for item in get_entities_linked_to_type_recursive(type_.id, []):
             if item.class_.name != 'administrative_unit':
@@ -73,7 +72,6 @@ def type_delete_recursive(id_: int) -> str | Response:
                     if item.class_.name == 'object_location' else item
                 entities.append(item)
         tabs['entities'].table = entity_table(entities)
-
 
     crumbs = [[_('type'), url_for('index', group='type')]]
     if root:
@@ -159,7 +157,7 @@ def show_multiple_linked_entities(id_: int) -> str:
         multiple_linked_entities,
         columns=['name', 'class', 'begin', 'end', 'description'])
     tabs = {
-        'untyped': Tab(
+        'multiple_linked': Tab(
             'multiple_linked',
             _('multiple linked entities'),
             table=table,

@@ -1,11 +1,17 @@
 import itertools
+import json
+import os
+import tempfile
 import zipfile
 from io import BytesIO
 from itertools import groupby
 from typing import Any, Iterator
 
+import fiona
+import numpy as np
 import pandas as pd
-from flask import Response, jsonify, request, url_for
+from flask import (
+    Response, after_this_request, jsonify, request, send_file, url_for)
 from flask_restful import marshal
 
 from openatlas import app
@@ -127,6 +133,12 @@ class Endpoint:
             return Response(
                 rdf_output(self.generator_entities, self.parser.format),
                 mimetype=app.config['RDF_FORMATS'][self.parser.format])
+        if self.parser.format == 'gpkg':
+            return send_file(
+                self.write_gpkg(),
+                as_attachment=True,
+                download_name='openatlas_export.gpkg',
+                mimetype='application/geopackage+sqlite3')
         result = self.get_json_output()
         if self.parser.download == 'true':
             return download(result, self.get_entities_template(result))
@@ -251,7 +263,7 @@ class Endpoint:
         match self.parser.format:
             case 'geojson':
                 self.formated_entities = [self.get_geojson()]
-            case 'geojson-v2':
+            case 'geojson-v2' | 'gpkg':
                 self.formated_entities = [self.get_geojson_v2()]
             case 'loud':
                 parsed_context = parse_loud_context()
@@ -261,8 +273,8 @@ class Endpoint:
                     for item in self.entities_with_links.values()]
             case 'lp' | 'lpx':
                 self.formated_entities = [
-                    self.get_linked_places_entity(_id)
-                    for _id in self.entities_with_links]
+                    self.get_linked_places_entity(id_)
+                    for id_ in self.entities_with_links]
             case _ if self.parser.format in app.config['RDF_FORMATS']:
                 license_links = get_license_ids_with_links()
                 parsed_context = parse_loud_context()
@@ -345,11 +357,11 @@ class Endpoint:
         self.get_entities_formatted()
         return self.generator_entities
 
-    def get_linked_places_entity(self, _id: int) -> dict[str, Any]:
-        entity = self.entities_with_links[_id]['entity']
-        links = self.entities_with_links[_id]['links']
-        links_inverse = self.entities_with_links[_id]['links_inverse']
-        geometry = self.entities_with_links[_id]['geometry']
+    def get_linked_places_entity(self, id_: int) -> dict[str, Any]:
+        entity = self.entities_with_links[id_]['entity']
+        links = self.entities_with_links[id_]['links']
+        links_inverse = self.entities_with_links[id_]['links_inverse']
+        geometry = self.entities_with_links[id_]['geometry']
         crm = f'crm:{entity.cidoc_class.code} {entity.cidoc_class.i18n['en']}'
         feature = {
             '@id': url_for('api.entity', id_=entity.id, _external=True),
@@ -386,3 +398,83 @@ class Endpoint:
             'type': 'FeatureCollection',
             '@context': app.config['API_CONTEXT']['LPF'],
             'features': [replace_empty_list_values_in_dict_with_none(feature)]}
+
+    def write_gpkg(self) -> str:
+        fd, path = tempfile.mkstemp(suffix='.gpkg')
+        os.close(fd)
+
+        if os.path.exists(path):
+            os.remove(path)
+
+        @after_this_request
+        def remove_file(response: Any) -> Any:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:  # pragma: no cover
+                pass
+            return response
+
+        features = self.formated_entities[0].get('features', [])
+        schema_properties = {}
+
+        for feat in features:
+            propeties = feat.get('properties', {})
+
+            types = propeties.get('types')
+            if types and \
+                    isinstance(types, list) and \
+                    isinstance(types[0], dict):
+                schema_properties['main_type'] = 'str'
+
+            for key, property_ in propeties.items():
+                if property_ is None:
+                    continue
+                if isinstance(property_, int):
+                    property_type = 'int'
+                else:
+                    property_type = 'str'
+
+                if key not in schema_properties:
+                    schema_properties[key] = property_type
+                elif schema_properties[key] != \
+                        property_type:  # pragma: no cover
+                    schema_properties[key] = 'str'
+        schema_properties = dict(sorted(schema_properties.items()))
+        schema = {'geometry': 'Unknown', 'properties': schema_properties}
+
+        with fiona.open(
+                path,
+                mode='w',
+                driver='GPKG',
+                schema=schema,
+                crs='EPSG:4326',
+                layer='openatlas_export') as layer:
+
+            for feat in features:
+                propeties = feat.get('properties', {})
+                sanitized_props = {}
+                main_type_value = None
+                types = propeties.get('types')
+                if types and \
+                        isinstance(types, list) and \
+                        isinstance(types[0], dict):
+                    main_type_value = types[0].get('typeName')
+                for key in schema_properties:
+                    if key == 'main_type':
+                        sanitized_props[key] = main_type_value
+                        continue
+                    property_ = propeties.get(key)
+                    if property_ is None:
+                        sanitized_props[key] = None
+                        continue
+                    if isinstance(property_, (list, dict)):
+                        sanitized_props[key] = json.dumps(property_)
+                    elif isinstance(property_, np.datetime64):
+                        sanitized_props[key] = str(property_)
+                    else:
+                        sanitized_props[key] = property_
+                layer.write({
+                    'geometry': feat['geometry'],
+                    'properties': sanitized_props})
+        return path
