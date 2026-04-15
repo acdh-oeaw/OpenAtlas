@@ -15,6 +15,7 @@ def index_changelog() -> str:
 
 
 versions = {
+    '9.3.0': ['TBA', {}],
     '9.2.0': ['2026-04-15', {
         'feature': {
             '2570': 'Improved tracking of file creator and license holder',
