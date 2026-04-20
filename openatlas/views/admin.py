@@ -35,6 +35,7 @@ from openatlas.models.content import get_content, update_content
 from openatlas.models.dates import format_date
 from openatlas.models.entity import Entity
 from openatlas.models.imports import Project
+from openatlas.models.rights_holder import RightsHolder
 from openatlas.models.settings import update_settings
 from openatlas.models.user import User
 
@@ -64,7 +65,17 @@ def admin_index() -> str:
                 button(_('activity'), url_for('user_activity')),
                 get_newsletter_button(users),
                 button(_('user'), url_for('user_insert'))
-                if is_authorized('manager') else ''])}
+                if is_authorized('manager') else '']),
+        'rights_holder': Tab(
+            'rights_holder',
+            _('rights holder'),
+            table=get_rights_holder_table(),
+            buttons=[
+                manual('admin/rights_holder'),
+                button(
+                    f'+ {uc_first(_('rights holder'))}',
+                    url_for('rights_holder_insert'))
+                if is_authorized('contributor') else ''])}
     if is_authorized('admin'):
         tabs['general'] = Tab(
             'general',
@@ -160,11 +171,11 @@ def get_test_mail_form() -> str:
         body = (_(
             'This test mail was sent by %(username)s',
             username=current_user.username) +
-            f' {_('at')} {request.headers['Host']}')
+                f' {_('at')} {request.headers['Host']}')
         if send_mail(subject, body, form.receiver.data):  # type: ignore
             flash(
                 _('A test mail was sent to %(email)s.',
-                    email=form.receiver.data),
+                  email=form.receiver.data),
                 'info')
     elif request.method == 'GET':
         form.receiver.data = current_user.email
@@ -177,6 +188,37 @@ def get_newsletter_button(users: list[User]) -> str:
             if user.settings['newsletter']:
                 return button(_('newsletter'), url_for('newsletter'))
     return ''
+
+
+def get_rights_holder_table() -> Table:
+    table = Table(['name', 'class', 'count', 'description'])
+    file_count = RightsHolder.get_rights_holder_file_count()
+    for holder in RightsHolder.get_rights_holder():
+        row = [
+            link(holder, url_for('rights_holder_view', id_=holder.id)),
+            uc_first(f'{_(holder.class_) if holder.class_ else ''}'),
+            link(
+                str(file_count.get(holder.id, '')),
+                url_for(
+                    'rights_holder_view',
+                    id_=holder.id,
+                    _anchor='tab-files')),
+            holder.description]
+        if is_authorized('contributor'):
+            row.append(
+                link(
+                    _('edit'),
+                    url_for('rights_holder_update', id_=holder.id)))
+        if is_authorized('editor'):
+            row.append(
+                link(
+                    _('delete'),
+                    url_for('rights_holder_delete', id_=holder.id),
+                    js=f"return confirm('{uc_first(
+                        _('delete %(name)s?',
+                          name=holder.name.replace("'", "")))}?')"))
+        table.rows.append(row)
+    return table
 
 
 def get_user_table(users: list[User]) -> Table:
@@ -269,7 +311,7 @@ def settings(category: str) -> str | Response:
         content=display_form(
             form,
             manual_page='admin/' +
-            category.replace('frontend', 'presentation_site')),
+                        category.replace('frontend', 'presentation_site')),
         title=_('admin'),
         crumbs=[
             [_('admin'), f'{url_for('admin_index')}#tab-{tab}'],
@@ -360,7 +402,7 @@ def newsletter() -> str | Response:
                 link_ = f'{request.scheme}://{request.headers['Host']}'
                 link_ += url_for('index_unsubscribe', code=code)
                 if send_mail(
-                        form.subject.data,
+                        str(form.subject.data),
                         f'{form.body.data}\n\n'
                         f'{_('To unsubscribe use the link below.')}\n\n'
                         f'{link_}',
@@ -423,7 +465,7 @@ def get_disk_space_info() -> dict[str, Any] | None:
     project_size = sum(info['size'] for info in paths.values())
     try:
         disk = shutil.disk_usage(app.config['UPLOAD_PATH'])
-    except (FileNotFoundError, PermissionError, OSError):  #pragma: no cover
+    except (FileNotFoundError, PermissionError, OSError):  # pragma: no cover
         return None
     other_size = max(0, disk.used - project_size)
 

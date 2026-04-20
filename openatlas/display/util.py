@@ -28,6 +28,7 @@ from openatlas.models.content import get_translation
 from openatlas.models.dates import Dates, format_date
 from openatlas.models.entity import Entity, Link
 from openatlas.models.imports import Project
+from openatlas.models.rights_holder import RightsHolder
 from openatlas.models.user import User
 
 
@@ -464,29 +465,35 @@ def link(
     elif isinstance(object_, Entity):
         html = link(
             object_.name,
-            url_for('view', id_=object_.id),
+            url or url_for('view', id_=object_.id),
+            uc_first_=False,
+            external=external)
+    elif isinstance(object_, RightsHolder):
+        html = link(
+            object_.name,
+            url or url_for('view', id_=object_.id),
             uc_first_=False,
             external=external)
     elif isinstance(object_, CidocClass):
         html = link(
             object_.code,
-            url_for('cidoc_class_view', code=object_.code),
+            url or url_for('cidoc_class_view', code=object_.code),
             external=external)
     elif isinstance(object_, CidocProperty):
         html = link(
             object_.code,
-            url_for('property_view', code=object_.code),
+            url or url_for('property_view', code=object_.code),
             external=external)
     elif isinstance(object_, Project):
         html = link(
             object_.name,
-            url_for('import_project_view', id_=object_.id),
+            url or url_for('import_project_view', id_=object_.id),
             uc_first_=False,
             external=external)
     elif isinstance(object_, User):
         html = link(
             object_.username,
-            url_for('user_view', id_=object_.id),
+            url or url_for('user_view', id_=object_.id),
             class_='' if object_.active else 'text-muted',
             uc_first_=False,
             external=external)
@@ -602,6 +609,8 @@ def convert_image_to_iiif(id_: int, path: Optional[Path] = None) -> bool:
         return False
     source = str(path or get_file_path(id_))
     target = str(get_iiif_file_path(id_))
+    env = os.environ.copy()
+    env["VIPS_WARNING"] = "0"
     command = [
         vips_path,
         'tiffsave',
@@ -613,7 +622,13 @@ def convert_image_to_iiif(id_: int, path: Optional[Path] = None) -> bool:
         '--tile-width', '128',
         '--tile-height', '128']
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        subprocess.run(
+            command,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            env=env,
+            text=True)
     except subprocess.CalledProcessError as e:  # pragma: no cover
         error_msg = e.stderr.strip() if e.stderr else "Unknown vips error"
         g.logger.log(
@@ -629,13 +644,15 @@ def convert_image_to_iiif(id_: int, path: Optional[Path] = None) -> bool:
         return False
     return True
 
+
 def get_binary_path(name: str, required: bool = False) -> str | None:
     binary_path = shutil.which(name)
     if not binary_path:  # pragma: no cover
-        msg = f"{_("system tool not found")}: {name}"
+        msg = f'{_('system tool not found')}: {name}'
         flash(msg, 'error' if required else 'warning')
         return None
     return binary_path
+
 
 def hierarchy_crumbs(entity: Entity) -> list[str]:
     crumbs: list[Any] = [link(entity, index=True)]

@@ -360,18 +360,12 @@ def update_file_info(data: dict[str, Any]) -> None:
         """
         INSERT INTO model.file_info (
             entity_id,
-            public,
-            creator,
-            license_holder
+            public
         ) VALUES (
             %(entity_id)s,
-            %(public)s,
-            %(creator)s,
-            %(license_holder)s
+            %(public)s
         ) ON CONFLICT (entity_id) DO UPDATE SET
-            public = %(public)s,
-            creator = %(creator)s,
-            license_holder = %(license_holder)s;
+            public = %(public)s
         """,
         data)
 
@@ -379,13 +373,10 @@ def update_file_info(data: dict[str, Any]) -> None:
 def get_file_info() -> dict[int, dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT entity_id, public, creator, license_holder
+        SELECT entity_id, public
         FROM model.file_info;
         """)
-    return {
-        row["entity_id"]: {
-            key: row[key] for key in ("public", "license_holder", "creator")}
-        for row in g.cursor}
+    return {row['entity_id']: {'public': row['public']} for row in g.cursor}
 
 
 def get_entity_ids_with_links(
@@ -771,7 +762,7 @@ def update_reference_system(data: dict[str, Any]) -> None:
             %(website_url)s,
             %(resolver_url)s,
             %(identifier_example)s,
-            %(api)
+            %(api)s
         ) WHERE entity_id = %(entity_id)s;
         """,
         data)

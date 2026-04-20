@@ -8,13 +8,17 @@ from flask import g, request
 from werkzeug.exceptions import abort
 
 from openatlas import app
-from openatlas.database import entity as db, link as db_link
+from openatlas.database import (
+    entity as db,
+    link as db_link,
+    rights_holder as db_rights_holder)
 from openatlas.database.connect import Transaction
 from openatlas.display.util2 import convert_size, sanitize
 from openatlas.models.annotation import AnnotationText
 from openatlas.models.dates import Dates
 from openatlas.models.gis import delete_gis_by_entity, insert_gis
 from openatlas.models.overlay import Overlay
+from openatlas.models.rights_holder import RightsHolder
 
 
 class Entity:
@@ -69,8 +73,8 @@ class Entity:
                     setattr(self, name, value)
         if self.class_.name == 'file':
             self.public = False
-            self.creator = None
-            self.license_holder = None
+            self.creator = []
+            self.license_holder = []
             if self.id in g.file_info:
                 self.public = g.file_info[self.id]['public']
                 self.creator = g.file_info[self.id]['creator']
@@ -213,9 +217,21 @@ class Entity:
     def save_file_info(self, data: dict[str, Any]) -> None:
         db.update_file_info({
             'entity_id': self.id,
-            'creator': data.get('creator'),
-            'license_holder': data.get('license_holder'),
             'public': data.get('public', False)})
+        RightsHolder.delete_rights_holder_links(self.id)
+        if data.get('creator'):
+            for creator_id in ast.literal_eval(data['creator']):
+                RightsHolder.insert_rights_holder_link(
+                    self.id,
+                    creator_id,
+                    'creator')
+        if data.get('license_holder'):
+            for license_holder_id in ast.literal_eval(
+                    data['license_holder']):
+                RightsHolder.insert_rights_holder_link(
+                    self.id,
+                    license_holder_id,
+                    'license_holder')
 
     def update(self, data: dict[str, Any]) -> None:
         data['id'] = self.id
@@ -784,6 +800,12 @@ class Entity:
             if system.system:
                 setattr(g, system.name.lower(), system)
         return systems
+
+    @staticmethod
+    def get_files_by_rights_holder_id(
+            rights_holder_id: int) -> list[Entity]:
+        return Entity.get_by_ids(
+            db_rights_holder.get_entity_ids_by_rights_holder(rights_holder_id))
 
 
 def insert(data: dict[str, Any]) -> Entity:
