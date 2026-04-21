@@ -32,7 +32,7 @@ class RightsHolderForm(FlaskForm):
             ('', ''),
             ('person', uc_first(_('person'))),
             ('group', uc_first(_('group')))])
-    description = TextAreaField(_('info'))
+    description = TextAreaField(_('description'))
     confirm_duplicate = HiddenField(default='false')
     save = SubmitField(_('save'))
 
@@ -87,14 +87,12 @@ def rights_holder_insert(
     if form.validate_on_submit():
         rights_holder_name = sanitize(form.name.data.strip())
         rights_holder_role = sanitize(form.class_.data)
-
-        already_confirmed = form.confirm_duplicate.data == 'true'
         duplicate = any(
             rh.name == rights_holder_name
             and rh.class_ == rights_holder_role
             for rh in g.rights_holder)
         url = f'{url_for("admin_index")}#tab-rights-holder'
-        if duplicate and not already_confirmed:
+        if duplicate and not form.confirm_duplicate.data == 'true':
             form.name.errors.append(
                 _('Duplicate found. Click "Save" to confirm anyway.'))
             form.confirm_duplicate.data = 'true'

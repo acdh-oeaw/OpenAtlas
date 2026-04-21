@@ -191,7 +191,7 @@ def get_newsletter_button(users: list[User]) -> str:
 
 
 def get_rights_holder_table() -> Table:
-    table = Table(['name', 'class'])
+    table = Table(['name', 'class', 'count', 'description'])
     file_count = RightsHolder.get_rights_holder_file_count()
     for holder in RightsHolder.get_rights_holder():
         row = [
@@ -202,7 +202,8 @@ def get_rights_holder_table() -> Table:
                 url_for(
                     'rights_holder_view',
                     id_=holder.id,
-                    _anchor='tab-files'))]
+                    _anchor='tab-files')),
+            holder.description]
         if is_authorized('contributor'):
             row.append(
                 link(
