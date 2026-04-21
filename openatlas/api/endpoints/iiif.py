@@ -15,7 +15,7 @@ from openatlas.api.resources.error import (
     DisplayFileNotFoundError, IIIFMetadataNotFound)
 from openatlas.api.resources.parser import iiif
 from openatlas.api.resources.util import get_license_name, get_license_url
-from openatlas.display.util import check_iiif_file_exist
+from openatlas.display.image_processing import check_iiif_file_exist
 from openatlas.models.annotation import AnnotationImage
 from openatlas.models.entity import Entity
 
