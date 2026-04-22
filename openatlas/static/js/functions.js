@@ -252,27 +252,21 @@ async function ajaxAPICall(props, id){
 }
 
 async function ajaxWikidataInfo(data) {
-  ajaxAPICall({
-    type: 'post',
-    url: '/ajax/info/wikidata',
-    data: 'id_=' + data
-  }, "wikidata")
+  ajaxAPICall(
+    {type: 'post', url: '/ajax/api/wikidata', data: 'id_=' + data},
+    "wikidata")
 }
 
 async function ajaxGeonamesInfo(data) {
-  ajaxAPICall({
-    type: 'post',
-    url: '/ajax/info/geonames',
-    data: 'id_=' + data,
-  }, "geonames")
+  ajaxAPICall(
+    {type: 'post', url: '/ajax/api/geonames', data: 'id_=' + data},
+    "geonames")
 }
 
 async function ajaxGndInfo(data) {
-  ajaxAPICall({
-    type: 'post',
-    url: '/ajax/info/gnd',
-    data: 'id_=' + data
-  }, "gnd");
+  ajaxAPICall(
+    {type: 'post', url: '/ajax/api/gnd', data: 'id_=' + data},
+    "gnd");
 }
 
 async function ajaxCadasterInfo(data) {
