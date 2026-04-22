@@ -69,19 +69,20 @@ def reference_systems(entity: Entity) -> str:
                 class="circle bg-gray fw-bold text-black-50"
                 style="height: 16px; font-size: 12px;">{system.name.upper()[0]}
             </div>"""
-        if system.name in ['GeoNames', 'GND', 'Wikidata', 'Cadaster']:
-            name = system.name.lower()
+        if system.api:
             show = f'<span id="show">{uc_first(_('show info'))}</span>'
             hide = '<span id="hide" class="d-none">' + \
                 f'{uc_first(_('hide info'))}</span>'
             show_info_button += f"""
-                <button id="{name}-switch"
+                <button id="{system.api}-switch"
                   class="mt-1 me-1 {app.config["CSS"]["button"]["secondary"]}"
-                  onclick="ajax{uc_first(name)}Info('{link_.description}')"
+                  onclick=
+                  "ajax{uc_first(system.api)}Info('{link_.description}')"
                     >{show}{hide}
                 </button>"""
-            info_div = f'<div id="{name}-info-div" class="mt-2"></div>'
-            logo = f"""<img src="/static/images/logos/{system.name}.svg" alt=""
+            info_div = f'<div id="{system.api}-info-div" class="mt-2"></div>'
+            logo = f"""
+                <img src="/static/images/logos/{system.api}.svg" alt=""
                 class="rounded-circle object-fit-cover my-1" width="16">"""
         entry = f"""
             <li class="list-group-item bg-transparent">
