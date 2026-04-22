@@ -4,7 +4,7 @@ from flask import Response, g, jsonify, request
 from flask_babel import gettext as _
 
 from openatlas import app
-from openatlas.api.external.cadaster import fetch_cadaster
+from openatlas.api.external.cadaster import Cadaster
 from openatlas.api.external.geonames import GeoNames
 from openatlas.api.external.gnd import GND
 from openatlas.api.external.wikidata import Wikidata
@@ -59,15 +59,10 @@ def ajax_create_entity() -> str:
 
 @app.route('/ajax/api/<api>', methods=['POST'])
 @required_group('readonly')
-def ajax_gnd_info(api: str) -> str:
+def ajax_external_api(api: str) -> str:
     apis = {
+        'cadaster': Cadaster,
         'geonames': GeoNames,
         'gnd': GND,
         'wikidata': Wikidata}
     return display_info(apis[api].get_info(request.form['id_']))
-
-
-@app.route('/ajax/info/cadaster', methods=['POST'])
-@required_group('readonly')
-def ajax_cadaster_info() -> str:
-    return display_info(fetch_cadaster(request.form['id_']))

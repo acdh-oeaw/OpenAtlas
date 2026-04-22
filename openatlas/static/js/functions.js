@@ -252,29 +252,36 @@ async function ajaxAPICall(props, id){
 }
 
 async function ajaxWikidataInfo(data) {
-  ajaxAPICall(
-    {type: 'post', url: '/ajax/api/wikidata', data: 'id_=' + data},
+  ajaxAPICall({
+        type: 'post',
+        url: '/ajax/api/wikidata',
+        data: 'id_=' + data},
     "wikidata")
 }
 
 async function ajaxGeonamesInfo(data) {
-  ajaxAPICall(
-    {type: 'post', url: '/ajax/api/geonames', data: 'id_=' + data},
+  ajaxAPICall({
+        type: 'post',
+        url: '/ajax/api/geonames',
+        data: 'id_=' + data},
     "geonames")
 }
 
 async function ajaxGndInfo(data) {
-  ajaxAPICall(
-    {type: 'post', url: '/ajax/api/gnd', data: 'id_=' + data},
+  ajaxAPICall({
+        type: 'post',
+        url: '/ajax/api/gnd',
+        data: 'id_=' + data},
     "gnd");
 }
 
 async function ajaxCadasterInfo(data) {
   ajaxAPICall({
     type: 'post',
-    url: '/ajax/info/cadaster',
+    url: '/ajax/api/cadaster',
     data: 'id_=' + data
-  }, "cadaster");
+  }
+  , "cadaster");
 }
 
 async function ajaxAddType(data, fieldId, typeId, multiple=false) {
