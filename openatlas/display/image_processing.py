@@ -17,13 +17,13 @@ from openatlas.display.util2 import get_file_path
 from openatlas.models.entity import Entity
 
 
-def get_actual_mime(path: Path) -> str:
-    if not path.is_file():
+def get_actual_mime(path: Path | None) -> str:
+    if path is None or not path.is_file():
         return ''
     return magic.from_file(str(path), mime=True)
 
 
-def is_supported_image(path: Path) -> bool:
+def is_supported_image(path: Path | None) -> bool:
     return get_actual_mime(path).startswith('image/')
 
 
