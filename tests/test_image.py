@@ -5,7 +5,7 @@ from typing import Any
 from flask import g, url_for
 
 from openatlas import app
-from openatlas.display.image_processing import _safe_resize_image
+from openatlas.display.image_processing import safe_resize_image
 from openatlas.display.util import profile_image
 from openatlas.models.entity import Entity
 from tests.base import TestBaseCase, get_hierarchy, insert
@@ -75,7 +75,7 @@ class ImageTest(TestBaseCase):
             copyfile(
                 Path(app.root_path) / 'static' / 'manifest.json',
                 Path(app.config['UPLOAD_PATH'] / f'{file_json.id}.json'))
-            _safe_resize_image(str(file2.id), '.png', size="???")
+            safe_resize_image(str(file2.id), '.png', size="???")
             profile_image(file_pathless)
 
         rv = c.get(url_for('view', id_=file_json.id))

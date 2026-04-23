@@ -6,88 +6,128 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+import magic
 from flask import flash, g
 from flask_babel import gettext as _
+from wand.exceptions import BlobError, CoderError
 from wand.image import Image
 
 from openatlas import app
 from openatlas.display.util2 import get_file_path
 from openatlas.models.entity import Entity
 
-# Todo: Refactor resize image
+
+def get_actual_mime(path: Path) -> str:
+    if not path.is_file():
+        return ''
+    return magic.from_file(str(path), mime=True)
+
+
+def is_supported_image(path: Path) -> bool:
+    return get_actual_mime(path).startswith('image/')
+
 
 def resize_image(filename: str) -> None:
-    file_format = '.' + filename.split('.', 1)[1].lower()
+    p = Path(filename)
+    file_format = p.suffix.lower()
     if file_format in g.display_file_ext:
-        for size in app.config['IMAGE_SIZE'].values():
-            _safe_resize_image(
-                filename.rsplit('.', 1)[0].lower(),
-                file_format, size)
+        path = Path(app.config['UPLOAD_PATH']) / filename
+        if is_supported_image(path):
+            for size in app.config['IMAGE_SIZE'].values():
+                safe_resize_image(p.stem.lower(), file_format, size, True)
 
 
-def _safe_resize_image(name: str, file_format: str, size: str) -> bool:
+def safe_resize_image(
+        name: str,
+        file_format: str,
+        size: str,
+        is_image: bool = False) -> bool:
     try:
-        if _check_if_folder_exist(size, app.config['RESIZED_IMAGES']):
-            return _image_resizing(name, file_format, size)
+        if check_if_folder_exist(size, app.config['RESIZED_IMAGES']):
+            return image_resizing(name, file_format, size, is_image)
         return False  # pragma: no cover
     except OSError as e:  # pragma: no cover
         g.logger.log(
-            'info',
+            'error',
             'image processing',
             'failed to save resized image',
             e)
         return False
 
 
-def _image_resizing(name: str, format_: str, size: str) -> bool:
-    filename = Path(app.config['UPLOAD_PATH']) / f'{name}{format_}[0]'
-    with Image(filename=filename) as src:
-        if format_ in app.config['PROCESSABLE_EXT']:
-            format_ = app.config['PROCESSED_EXT']  # pragma: no cover
-        with src.convert(format_.replace('.', '')) as img:
-            img.transform(resize=f"{size}x{size}>")
-            img.compression_quality = 75
-            img.save(
-                filename=Path(
-                    app.config['RESIZED_IMAGES']) / size / f'{name}{format_}')
-            return True
+def image_resizing(
+        name: str,
+        format_: str,
+        size: str,
+        is_image: bool = False) -> bool:
+    source_path = Path(app.config['UPLOAD_PATH']) / f'{name}{format_}'
+    if not is_image and not is_supported_image(source_path):
+        return False
+    filename = f'{source_path}[0]'
+    try:
+        with Image(filename=filename) as src:
+            ext = format_
+            if format_ in app.config['PROCESSABLE_EXT']:
+                ext = app.config['PROCESSED_EXT']  # pragma: no cover
+            with src.convert(ext.replace('.', '')) as img:
+                img.transform(resize=f"{size}x{size}>")
+                img.compression_quality = 75
+                img.save(
+                    filename=Path(
+                        app.config['RESIZED_IMAGES']) / size / f'{name}{ext}')
+                return True
+    except (BlobError, CoderError) as e:
+        g.logger.log(
+            'error',
+            'image processing',
+            f'failed to resize image {name}{format_}',
+            e)
+        return False
 
 
 def check_processed_image(filename: str) -> bool:
-    file_format = '.' + filename.split('.', 1)[1].lower()
+    p = Path(filename)
+    file_format = p.suffix.lower()
     check = False
     try:
         if file_format in g.display_file_ext:
-            check = _loop_through_processed_folders(
-                filename.rsplit('.', 1)[0].lower(),
-                file_format)
+            path = Path(app.config['UPLOAD_PATH']) / filename
+            if is_supported_image(path):
+                check = _loop_through_processed_folders(
+                    p.stem.lower(),
+                    file_format,
+                    True)
     except OSError as e:  # pragma: no cover
         g.logger.log(
-            'info',
+            'error',
             'image processing',
             'failed to validate file as image',
             e)
     return check
 
 
-def _loop_through_processed_folders(name: str, file_format: str) -> bool:
+def _loop_through_processed_folders(
+        name: str,
+        file_format: str,
+        is_image: bool = False) -> bool:
     ext = file_format
     if file_format in app.config['PROCESSABLE_EXT']:
         ext = app.config['PROCESSED_EXT']  # pragma: no cover
     for size in app.config['IMAGE_SIZE'].values():
         path = Path(app.config['RESIZED_IMAGES']) / size / f'{name}{ext}'
         if not path.is_file() \
-                and not _safe_resize_image(name, file_format, size):
+                and not safe_resize_image(name, file_format, size, is_image):
             return False  # pragma: no cover
     return True
 
 
-def _check_if_folder_exist(folder: str, path: str) -> bool:
+def check_if_folder_exist(folder: str, path: str) -> bool:
     folder_to_check = Path(path) / folder
-    return True if folder_to_check.is_dir() else _create_folder(folder_to_check)
+    return True if folder_to_check.is_dir() \
+        else create_folder(folder_to_check)
 
 
-def _create_folder(folder: Path) -> bool:  # pragma: no cover
+def create_folder(folder: Path) -> bool:  # pragma: no cover
     try:
         folder.mkdir()
         return True
@@ -100,7 +140,7 @@ def delete_orphaned_resized() -> None:
     for size in app.config['IMAGE_SIZE'].values():
         path = Path(app.config['RESIZED_IMAGES']) / size
         for file in path.glob('**/*'):
-            file_name = file.name.rsplit('.', 1)[0].lower()
+            file_name = file.stem.lower()
             if not file_name.isdigit() or int(file_name) not in g.files:
                 file.unlink()
 
@@ -137,7 +177,10 @@ def convert_image_to_iiif(id_: int, path: Optional[Path] = None) -> bool:
     vips_path = get_binary_path('vips', required=True)
     if not vips_path:  # pragma: no cover
         return False
-    source = str(path or get_file_path(id_))
+    source_path = path or get_file_path(id_)
+    if not source_path or not is_supported_image(source_path):
+        return False
+    source = str(source_path)
     target = str(get_iiif_file_path(id_))
     env = os.environ.copy()
     env["VIPS_WARNING"] = "0"
