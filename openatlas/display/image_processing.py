@@ -76,7 +76,7 @@ def image_resizing(
                     filename=Path(
                         app.config['RESIZED_IMAGES']) / size / f'{name}{ext}')
                 return True
-    except (BlobError, CoderError) as e:
+    except (BlobError, CoderError) as e:  # pragma: no cover
         g.logger.log(
             'error',
             'image processing',
@@ -93,7 +93,7 @@ def check_processed_image(filename: str) -> bool:
         if file_format in g.display_file_ext:
             path = Path(app.config['UPLOAD_PATH']) / filename
             if is_supported_image(path):
-                check = _loop_through_processed_folders(
+                check = loop_through_processed_folders(
                     p.stem.lower(),
                     file_format,
                     True)
@@ -106,7 +106,7 @@ def check_processed_image(filename: str) -> bool:
     return check
 
 
-def _loop_through_processed_folders(
+def loop_through_processed_folders(
         name: str,
         file_format: str,
         is_image: bool = False) -> bool:
@@ -179,7 +179,7 @@ def convert_image_to_iiif(id_: int, path: Optional[Path] = None) -> bool:
         return False
     source_path = path or get_file_path(id_)
     if not source_path or not is_supported_image(source_path):
-        return False
+        return False  # pragma: no cover
     source = str(source_path)
     target = str(get_iiif_file_path(id_))
     env = os.environ.copy()
