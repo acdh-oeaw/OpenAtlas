@@ -105,7 +105,7 @@ def fetch_top_level(
                     'openatlas_class_name': 'type',
                     'name': entry['label'],
                     'description': '' if vocabulary else \
-                        f'Automatically imported from {details["title"]}' })
+                        f'Automatically imported from {details["title"]}'})
                 if vocabulary:
                     top_concept.link('P127', vocabulary)
                 else:
@@ -188,18 +188,16 @@ def get_external_references_from_mapping(
         # Add addtional reference systems if available
         match mapping['vocabName']:
             case 'www.wikidata.org':
-                link_name = mapping['hrefLink'].rsplit('/', 1)[-1]
-                out.append((
-                    link_name,
-                    get_reference_system_by_name('Wikidata'),
-                    match_type))
+                link_name = str(mapping['hrefLink'].rsplit('/', 1)[-1])
+                if ref_system := get_reference_system_by_name('Wikidata'):
+                    out.append((link_name, ref_system, match_type))
     return out
 
 
 def get_pref_label(label: str, id_: str, uri: str) -> str:
     if not label:
-       req = vocabs_requests(id_, 'label', {'uri': uri})
-       label = req['prefLabel']
+        req = vocabs_requests(id_, 'label', {'uri': uri})
+        label = req['prefLabel']
     return label
 
 
