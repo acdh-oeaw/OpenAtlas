@@ -76,8 +76,10 @@ def reference_systems(entity: Entity) -> str:
             show_info_button += f"""
                 <button id="{system.id}-switch"
                   class="mt-1 me-1 {app.config["CSS"]["button"]["secondary"]}"
-                  onclick=
-                  "ajaxApiInfo('{system.api}', '{system.id}', '{link_.description}')"
+                  onclick="ajaxApiInfo(
+                        '{system.api}',
+                        '{system.id}',
+                        '{link_.description}')"
                     >{show}{hide}
                 </button>"""
             info_div = f'<div id="{system.id}-info-div" class="mt-2"></div>'
