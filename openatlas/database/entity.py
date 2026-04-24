@@ -742,7 +742,7 @@ def insert_reference_system(data: dict[str, Any]) -> None:
             %(website_url)s,
             %(resolver_url)s,
             %(identifier_example)s,
-            %(api));
+            %(api)s);
         """,
         data)
 

@@ -229,17 +229,17 @@ async function ajaxAPICall(props, id){
    if ($(`#${id}-switch #hide`).hasClass("d-none")){
     if ($(`#${id}-info-div`).html().length > 0){
       $(`#${id}-info-div`).show();
-          $(`#${id}-switch #show`).addClass("d-none")
-          $(`#${id}-switch #hide`).removeClass("d-none")
+      $(`#${id}-switch #show`).addClass("d-none")
+      $(`#${id}-switch #hide`).removeClass("d-none")
     }
     else{
       $.ajax({
         ...props,
         success: function (info) {
-            $(`#${id}-info-div`).html(info);
-            $(`#${id}-info-div`).show();
-            $(`#${id}-switch #show`).addClass("d-none")
-            $(`#${id}-switch #hide`).removeClass("d-none")
+          $(`#${id}-info-div`).html(info);
+          $(`#${id}-info-div`).show();
+          $(`#${id}-switch #show`).addClass("d-none")
+          $(`#${id}-switch #hide`).removeClass("d-none")
         }
       });
     }
@@ -251,37 +251,12 @@ async function ajaxAPICall(props, id){
   }
 }
 
-async function ajaxWikidataInfo(data) {
+async function ajaxApiInfo(api, system_id, data) {
   ajaxAPICall({
-        type: 'post',
-        url: '/ajax/api/wikidata',
-        data: 'id_=' + data},
-    "wikidata")
-}
-
-async function ajaxGeonamesInfo(data) {
-  ajaxAPICall({
-        type: 'post',
-        url: '/ajax/api/geonames',
-        data: 'id_=' + data},
-    "geonames")
-}
-
-async function ajaxGndInfo(data) {
-  ajaxAPICall({
-        type: 'post',
-        url: '/ajax/api/gnd',
-        data: 'id_=' + data},
-    "gnd");
-}
-
-async function ajaxCadasterInfo(data) {
-  ajaxAPICall({
-    type: 'post',
-    url: '/ajax/api/cadaster',
-    data: 'id_=' + data
-  }
-  , "cadaster");
+      type: 'post',
+      url: '/ajax/api/' + api,
+      data: 'id_=' + data},
+    system_id)
 }
 
 async function ajaxAddType(data, fieldId, typeId, multiple=false) {

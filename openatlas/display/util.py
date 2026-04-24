@@ -74,13 +74,13 @@ def reference_systems(entity: Entity) -> str:
             hide = '<span id="hide" class="d-none">' + \
                 f'{uc_first(_('hide info'))}</span>'
             show_info_button += f"""
-                <button id="{system.api}-switch"
+                <button id="{system.id}-switch"
                   class="mt-1 me-1 {app.config["CSS"]["button"]["secondary"]}"
                   onclick=
-                  "ajax{uc_first(system.api)}Info('{link_.description}')"
+                  "ajaxApiInfo('{system.api}', '{system.id}', '{link_.description}')"
                     >{show}{hide}
                 </button>"""
-            info_div = f'<div id="{system.api}-info-div" class="mt-2"></div>'
+            info_div = f'<div id="{system.id}-info-div" class="mt-2"></div>'
             logo = f"""
                 <img src="/static/images/logos/{system.api}.svg" alt=""
                 class="rounded-circle object-fit-cover my-1" width="16">"""
