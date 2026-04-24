@@ -2,7 +2,9 @@ from typing import Any, Optional
 
 from flask import g
 
-from openatlas.api.import_scripts.util import get_exact_match, vocabs_requests
+from openatlas.api.import_scripts.util import (
+    get_exact_match, get_match_types, get_reference_system_by_name,
+    vocabs_requests)
 from openatlas.models.entity import Entity, insert
 
 
@@ -128,22 +130,60 @@ def import_children(
         if super_:
             child = insert({
                 'openatlas_class_name': 'type',
-                'name': entry['prefLabel']})  # Switch if bug is solved
-            # get_pref_label(entry['prefLabel'], id_, entry['uri'])
+                'name': get_pref_label(entry['prefLabel'], id_, entry['uri'])})
             child.link('P127', super_)
             ref.link('P67', child, name, type_id=exact_match_id)
+            ext_ref_systems = get_external_references_from_mapping(
+                id_,
+                entry['uri'],
+                lang)
+            for link, system, type_ in ext_ref_systems:
+                child.link(
+                    'P67',
+                    system,
+                    description=link,
+                    type_id=type_.id,
+                    inverse=True)
         entry['subs'] = import_children(entry['uri'], id_, lang, ref, child)
         children.append(entry)
     return children
 
 
-# Skosmos API has a problem, this code will work if bug is closed
-#
-# def get_pref_label(label: str, id_: str, uri: str) -> str:
-#     if not label:
-#         req = vocabs_requests(id_, 'label', {'uri': uri})
-#         label = req['prefLabel']
-#     return label
+def get_external_references_from_mapping(
+        id_: str,
+        uri: str,
+        lang: str) -> list[tuple[str, Entity, Entity]]:
+    req = vocabs_requests(
+        id_,
+        'mappings',
+        {'uri': uri, 'lang': lang, 'external': 'true'})
+    out = []
+    for mapping in req.get('mappings', []):
+        type_ = mapping['type'][0]
+        if 'exactMatch' in type_:
+            type_ = 'exact_match'
+        else:
+            type_ = 'close_match'
+        match_type = get_match_types().get(type_)
+        if not match_type:
+            continue
+
+        # Add addtional reference systems if available
+        match mapping['vocabName']:
+            case 'www.wikidata.org':
+                link_name = mapping['hrefLink'].rsplit('/', 1)[-1]
+                out.append((
+                    link_name,
+                    get_reference_system_by_name('Wikidata'),
+                    match_type))
+    return out
+
+
+def get_pref_label(label: str, id_: str, uri: str) -> str:
+    if not label:
+       req = vocabs_requests(id_, 'label', {'uri': uri})
+       label = req['prefLabel']
+    return label
 
 
 def get_vocabs_reference_system(details: dict[str, Any], ) -> Entity:
