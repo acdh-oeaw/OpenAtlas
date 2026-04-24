@@ -81,31 +81,48 @@ def fetch_top_level(
     req = vocabs_requests(id_, 'topConcepts', {'lang': form_data['language']})
     count = []
     duplicates = []
+    vocabulary = None
+    if form_data['vocabulary']:
+        if Entity.check_hierarchy_exists(details['title']):
+            return [], [details['title']]
+        vocabulary = insert({
+            'openatlas_class_name': 'type',
+            'name': details['title'],
+            'description':
+                f'Automatically imported from {details['title']}'})
+        Entity.insert_hierarchy(
+            vocabulary,
+            'custom', form_data['classes'],
+            form_data['multiple'])
     if ref := get_vocabs_reference_system(details):
         for entry in req['topconcepts']:
-            if entry['uri'] in form_data['top_concepts'] \
-                    and not Entity.check_hierarchy_exists(entry['label']):
-                hierarchy = insert({
+            if entry['uri'] in form_data['top_concepts']:
+                if not vocabulary and \
+                        Entity.check_hierarchy_exists(entry['label']):
+                    duplicates.append(entry['label'])
+                    continue
+                top_concept = insert({
                     'openatlas_class_name': 'type',
                     'name': entry['label'],
-                    'description':
-                        f'Automatically imported from {details["title"]}'})
-                Entity.insert_hierarchy(
-                    hierarchy,
-                    'custom', form_data['classes'],
-                    form_data['multiple'])
+                    'description': '' if vocabulary else \
+                        f'Automatically imported from {details["title"]}' })
+                if vocabulary:
+                    top_concept.link('P127', vocabulary)
+                else:
+                    Entity.insert_hierarchy(
+                        top_concept,
+                        'custom', form_data['classes'],
+                        form_data['multiple'])
                 exact_match_id = get_exact_match().id
                 name = entry['uri'].rsplit('/', 1)[-1]
-                ref.link('P67', hierarchy, name, type_id=exact_match_id)
+                ref.link('P67', top_concept, name, type_id=exact_match_id)
                 entry['subs'] = import_children(
                     entry['uri'],
                     id_,
                     form_data['language'],
                     ref,
-                    hierarchy)
+                    top_concept)
                 count.append(entry)
-            if Entity.check_hierarchy_exists(entry['label']):
-                duplicates.append(entry['label'])
     return count, duplicates
 
 
