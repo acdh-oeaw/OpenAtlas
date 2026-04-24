@@ -22,7 +22,7 @@ from openatlas.api.external.arche_class import ArcheFileMetadata
 from openatlas.api.formats.rdf import rdf_export_to_file
 from openatlas.api.resources.api_entity import ApiEntity
 from openatlas.api.resources.util import filter_by_type, get_reference_systems
-from openatlas.display.util import get_binary_path
+from openatlas.display.image_processing import get_binary_path
 from openatlas.models.entity import Entity
 
 

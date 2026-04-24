@@ -12,8 +12,10 @@ from openatlas import app
 from openatlas.display.display import Display
 from openatlas.display.table import entity_table
 from openatlas.display.util import (
-    button, check_iiif_file_exist, get_chart_data, get_iiif_file_path,
-    hierarchy_crumbs, link, reference_systems, required_group)
+    button, get_chart_data, hierarchy_crumbs, link, reference_systems,
+    required_group)
+from openatlas.display.image_processing import (
+    check_iiif_file_exist, get_iiif_file_path)
 from openatlas.display.util2 import (
     get_file_path, is_authorized, manual, sanitize)
 from openatlas.forms.entity_form import get_entity_form, process_form
