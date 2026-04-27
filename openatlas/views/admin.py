@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import os
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from wtforms.validators import InputRequired
 
 from openatlas import app
 from openatlas.display.image_processing import (
-    check_iiif_file_exist, create_resized_images)
+    check_iiif_file_exist, create_resized_images, get_binary_path)
 from openatlas.display.tab import Tab
 from openatlas.display.table import Table
 from openatlas.display.util import (
@@ -437,16 +438,38 @@ def resize_images() -> Response:
 
 
 def get_disk_space_info() -> dict[str, Any] | None:
+    du_path = get_binary_path('du')
+
     def get_dir_size(path: str) -> int:
+        if du_path:
+            try:
+                rv = subprocess.run(
+                    [du_path, '-sb', path],
+                    capture_output=True,
+                    text=True,
+                    check=False)
+                if rv.stdout:
+                    return int(rv.stdout.split()[0])
+            except (ValueError, IndexError, OSError):  # pragma: no cover
+                pass
+        return get_dir_size_iterative(path)
+
+    def get_dir_size_iterative(path: str) -> int:  # pragma: no cover
         total_size = 0
         try:
-            for entry in os.scandir(path):
-                if entry.is_dir(follow_symlinks=False):
-                    total_size += get_dir_size(entry.path)
-                elif entry.is_file(follow_symlinks=False):
-                    total_size += entry.stat().st_size
-        except (OSError, FileNotFoundError):
-            return 0
+            total_size += os.lstat(path).st_size
+        except (OSError, PermissionError):
+            pass
+        try:
+            for root, dirs, files in os.walk(path):
+                for name in files + dirs:
+                    try:
+                        total_size += os.lstat(
+                            os.path.join(root, name)).st_size
+                    except (OSError, PermissionError):
+                        continue
+        except (OSError, PermissionError):
+            pass
         return total_size
 
     paths = {
