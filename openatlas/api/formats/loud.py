@@ -174,12 +174,13 @@ def get_loud_entities(
                 property_['classified_as'] = get_type_property(standard_type)
             if link_.description:
                 property_['content'] = link_.description
-                if link_.domain.cidoc_class.code == 'E32':
-                    system = g.reference_systems[link_.domain.id]
-                    match_case = to_camel_case(
-                        g.types[link_.type.id].name).replace(' ', '_')
-                    property_[f"skos:{match_case}"] = \
-                        f'{system.resolver_url or ''}{link_.description}'
+            if link_.description and link_.domain.cidoc_class.code == 'E32':
+                property_['content'] = link_.description
+                system = g.reference_systems[link_.domain.id]
+                match_case = to_camel_case(
+                    g.types[link_.type.id].name).replace(' ', '_')
+                property_[f"skos:{match_case}"] = \
+                    f'{system.resolver_url or ''}{link_.description}'
             if link_.domain.class_.name == 'external_reference':
                 property_ = {
                     "type": "LinguisticObject",
@@ -250,6 +251,12 @@ def get_loud_entities(
                 link_.domain.id):
             file_links.append(link_)
             continue
+        elif link_.property.code == 'P67' and \
+                link_.domain.cidoc_class.code == 'E32':
+            property_name = 'equivalent'
+            if g.types.get(link_.type.id) and \
+                    'close' in g.types[link_.type.id].name:
+                property_name = 'related'
         else:
             property_name = get_loud_property_name(loud, link_, inverse=True)
 
@@ -271,6 +278,16 @@ def get_loud_entities(
         properties_set.update(get_file_dimensions(entity))
         properties_set.update(get_digital_object_details(entity, license_url))
 
+    properties_set['identified_by'].append({
+            "type": "Name",
+            "content": entity.name})
+    # This needs to be replaced by UUID
+    properties_set['identified_by'].append({
+            "type": "Identifier",
+            "content": url_for(
+                'api.entity',
+                id_=entity.id,
+                _external=True)})
     return ({'@context': app.config['API_CONTEXT']['LOUD']} |
             base_entity_dict(entity) |
             properties_set)
@@ -289,10 +306,7 @@ def base_entity_dict(entity: Entity) -> dict[str, Any]:
             _external=True),
         'type': type_,
         '_label': entity.name,
-        'content': entity.description,
-        'identified_by': [{
-            "type": "Name",
-            "content": entity.name}]} | timespan
+        'content': entity.description} | timespan
 
 
 def get_loud_property_name(
