@@ -130,18 +130,11 @@ def get_loud_entities(
                 relationship['classified_as'] = [
                     get_type_property(g.types[link_.type.id])]
             property_ = [relationship]
-        if code_ in ['OA8', 'OA9']:
-            property_ = {
-                'type': 'BeginningOfExistence'
-                if code_ == 'OA8' else 'EndOfExistence',
-                '_label':
-                    ('Birth of ' if code_ == 'OA8' else 'Death of ') +
-                    link_.domain.name,
-                'took_place_at': [property_]}
         if code_ == 'P1':
             del property_['_label']
             del property_['id']
             property_['content'] = link_.range.name
+
         return property_
 
     def get_domain_links() -> dict[str, Any]:
@@ -170,18 +163,11 @@ def get_loud_entities(
             if link_.domain.class_.name == 'file':
                 property_['type'] = 'DigitalObject'
             if standard_type := get_standard_type_loud(link_.domain.types):
-                property_['classified_as'] = get_type_property(standard_type)
+                property_['classified_as'] = [get_type_property(standard_type)]
             if link_.description:
                 property_['content'] = link_.description
             if link_.description and link_.domain.cidoc_class.code == 'E32':
                 pass
-                # property_['type'] = 'Identifier'
-                # property_['content'] = link_.description
-                # system = g.reference_systems[link_.domain.id]
-                # match_case = to_camel_case(
-                #     g.types[link_.type.id].name).replace(' ', '_')
-                # property_[f"skos:{match_case}"] = \
-                #     f'{system.resolver_url or ''}{link_.description}'
             if link_.domain.class_.name == 'external_reference':
                 property_ = {
                     "type": "LinguisticObject",
@@ -207,20 +193,12 @@ def get_loud_entities(
                 relationship['classified_as'] = [
                     get_type_property(g.types[link_.type.id])]
             property_ = [relationship]
-        if code_ in ['OA8', 'OA9']:
-            property_ = {
-                'type': 'BeginningOfExistence'
-                if code_ == 'OA8' else 'EndOfExistence',
-                '_label':
-                    ('Birth of ' if code_ == 'OA8' else 'Death of ') +
-                    link_.domain.name,
-                'took_place_at': [property_]}
         return property_
 
     properties_set = defaultdict(list)
     for link_ in data['links']:
         if link_.property.code in ['OA8', 'OA9']:
-            property_name = 'brought_into_existence_by'
+            continue
         elif link_.property.code == 'OA7':
             property_name = 'participated_in'
         elif link_.property.code == 'P67':
@@ -241,9 +219,7 @@ def get_loud_entities(
     file_links = []
     for link_ in data['links_inverse']:
         if link_.property.code in ['OA8', 'OA9']:
-            property_name = 'brought_into_existence_by'
-            if link_.property.code == 'OA9':
-                property_name = 'taken_out_of_existence_by'
+            continue
         elif link_.property.code == 'OA7':
             property_name = 'participated_in'
         elif link_.domain.class_.name == 'external_reference':
@@ -312,16 +288,14 @@ def get_loud_entities(
             "id": "https://vocab.getty.edu/aat/300435416",
             "type": "Type",
             "_label": "Description"}]})
+
     return ({'@context': app.config['API_CONTEXT']['LOUD']} |
             base_entity_dict(entity) |
+            get_loud_timespan(entity, data['links']) |
             properties_set)
 
 
 def base_entity_dict(entity: Entity) -> dict[str, Any]:
-    timespan = {}
-    if entity.class_.name not in ['Person', 'Group'] and \
-            (entity.dates.first or entity.dates.last):
-        timespan = get_loud_timespan(entity)
     type_ = remove_spaces_dashes(entity.cidoc_class.i18n['en'])
     if entity.class_.name == 'file':
         type_ = 'DigitalObject'
@@ -331,7 +305,7 @@ def base_entity_dict(entity: Entity) -> dict[str, Any]:
             id_=entity.id,
             _external=True),
         'type': type_,
-        '_label': entity.name} | timespan
+        '_label': entity.name}
 
 
 def get_loud_property_name(
@@ -386,47 +360,105 @@ def get_loud_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
     return subject_of
 
 
-def get_loud_timespan(entity: Entity) -> dict[str, Any]:
-    timespan = {'timespan': (
-            {'type': 'TimeSpan'} |
-            get_loud_begin_dates(entity) |
-            get_loud_end_dates(entity))}
-    if not isinstance(entity, Link):
-        if remove_spaces_dashes(entity.cidoc_class.i18n['en']) == 'Person':
-            born, death = {}, {}
-            if entity.dates.begin_from:
-                born = {'born': {
-                    'type': 'Birth',
-                    '_label': f'Birth of {entity.name}',
-                    'timespan':
-                        {'type': 'TimeSpan'} |
-                        get_loud_begin_dates(entity)}}
-            if entity.dates.end_from:
-                death = {'death_of': {
-                    'type': 'Death',
-                    '_label': f'Death of {entity.name}',
-                    'timespan':
-                        {'type': 'TimeSpan'} |
-                        get_loud_end_dates(entity)}}
-            timespan = born | death
-        if remove_spaces_dashes(entity.cidoc_class.i18n['en']) == 'Group':
-            formed, dissolved = {}, {}
-            if entity.dates.begin_from:
-                formed = {'formed_by': {
-                    'type': 'Formation',
-                    '_label': f'Founding of {entity.name}',
-                    'timespan':
-                        {'type': 'TimeSpan'} |
-                        get_loud_begin_dates(entity)}}
-            if entity.dates.end_from:
-                dissolved = {'dissolved_by': {
-                    'type': 'Dissolution',
-                    '_label': f'Dissolution of {entity.name}',
-                    'timespan':
-                        {'type': 'TimeSpan'} |
-                        get_loud_end_dates(entity)}}
-            timespan = formed | dissolved
-    return timespan
+def get_loud_person_timespan(
+        entity: Entity,
+        links_: list[Link] | None) -> dict[str, Any]:
+    result = {}
+    birth_event: dict[str, Any] = {
+        'type': 'Birth',
+        '_label': f'Birth of {entity.name}'}
+    has_birth_data = False
+    if entity.dates.begin_from or entity.dates.begin_to:
+        birth_event['timespan'] = (
+                {'type': 'TimeSpan'} | get_loud_begin_dates(entity))
+        has_birth_data = True
+
+    death_event: dict[str, Any] = {
+        'type': 'Death',
+        '_label': f'Death of {entity.name}'}
+    has_death_data = False
+    if entity.dates.end_from or entity.dates.end_to:
+        death_event['timespan'] = (
+                {'type': 'TimeSpan'} | get_loud_end_dates(entity))
+        has_death_data = True
+
+    if links_:
+        for link_ in links_:
+            place = {
+                'id': url_for(
+                    'api.entity',
+                    id_=link_.range.id,
+                    _external=True),
+                'type': 'Place',
+                '_label': link_.range.name}
+            if link_.property.code == 'OA8':
+                birth_event['took_place_at'] = [place]
+                has_birth_data = True
+            elif link_.property.code == 'OA9':
+                death_event['took_place_at'] = [place]
+                has_death_data = True
+    if has_birth_data:
+        result['born'] = birth_event
+    if has_death_data:
+        result['died_in'] = death_event
+    return result
+
+
+def get_loud_group_timespan(
+        entity: Entity,
+        links_: list[Link] | None) -> dict[str, Any]:
+    res = {}
+    form: dict[str, Any] = {
+        'type': 'Formation',
+        '_label': f'Formation of {entity.name}'}
+    has_formation = False
+    if entity.dates.begin_from or entity.dates.begin_to:
+        form['timespan'] = (
+                {'type': 'TimeSpan'} | get_loud_begin_dates(entity))
+        has_formation = True
+
+    diss: dict[str, Any] = {
+        'type': 'Dissolution',
+        '_label': f'Dissolution of {entity.name}'}
+    has_dissolution = False
+    if entity.dates.end_from or entity.dates.end_to:
+        diss['timespan'] = (
+                {'type': 'TimeSpan'} | get_loud_end_dates(entity))
+        has_dissolution = True
+    if links_:
+        for lnk in links_:
+            place = {
+                'id': url_for('api.entity', id_=lnk.range.id, _external=True),
+                'type': 'Place',
+                '_label': lnk.range.name}
+            if lnk.property.code == 'OA8':
+                form['took_place_at'] = [place]
+                has_formation = True
+            elif lnk.property.code == 'OA9':
+                diss['took_place_at'] = [place]
+                has_dissolution = True
+
+    if has_formation:
+        res['formed_by'] = form
+    if has_dissolution:
+        res['dissolved_by'] = diss
+    return res
+
+
+def get_loud_timespan(
+        entity: Entity,
+        links_: list[Link] | None = None) -> dict[str, Any]:
+    if entity.class_.name == 'person':
+        return get_loud_person_timespan(entity, links_)
+    elif entity.class_.name == 'group':
+        return get_loud_group_timespan(entity, links_)
+    else:
+        if not entity.dates.dates_available():
+            return {}
+        return {'timespan': (
+                {'type': 'TimeSpan'} |
+                get_loud_begin_dates(entity) |
+                get_loud_end_dates(entity))}
 
 
 def get_loud_begin_dates(entity: Entity) -> dict[str, Any]:
