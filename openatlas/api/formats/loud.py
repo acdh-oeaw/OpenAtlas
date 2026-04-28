@@ -138,6 +138,10 @@ def get_loud_entities(
                     ('Birth of ' if code_ == 'OA8' else 'Death of ') +
                     link_.domain.name,
                 'took_place_at': [property_]}
+        if code_ == 'P1':
+            del property_['_label']
+            del property_['id']
+            property_['content'] = link_.range.name
         return property_
 
     def get_domain_links() -> dict[str, Any]:
@@ -314,8 +318,10 @@ def get_loud_entities(
 
 
 def base_entity_dict(entity: Entity) -> dict[str, Any]:
-    timespan = get_loud_timespan(entity) \
-        if entity.dates.first or entity.dates.last else {}
+    timespan = {}
+    if entity.class_.name not in ['Person', 'Group'] and \
+            (entity.dates.first or entity.dates.last):
+        timespan = get_loud_timespan(entity)
     type_ = remove_spaces_dashes(entity.cidoc_class.i18n['en'])
     if entity.class_.name == 'file':
         type_ = 'DigitalObject'
