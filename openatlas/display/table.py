@@ -149,7 +149,7 @@ def get_table_cell_content(
     html: str | None = 'no table function'
     match name:
         case 'begin':
-            html = table_date('first', e, range_, item)
+            html = table_date('first', e, range_, item, relation)
         case 'checkbox':
             html = f"""
                 <input
@@ -322,21 +322,20 @@ def table_date(
         mode: str,
         e: Entity,
         range_: Entity | None,
-        item: Link | Entity | None) -> str:
+        item: Link | Entity | None,
+        relation: Relation | None = None) -> str:
     html = getattr(e.dates, mode)
-    if range_ \
-            and range_.class_.group \
-            and item \
-            and not (html := getattr(item.dates, mode)):
-        if e.class_.group['name'] == 'actor' \
-                and range_.class_.group['name'] == 'event' \
-                and getattr(range_.dates, mode):
-            html = getattr(range_.dates, mode)
-        elif e.class_.group['name'] == 'event' \
-                and range_.class_.group['name'] == 'actor' \
-                and getattr(e.dates, mode):
-            html = getattr(e.dates, mode)
-        html = f'<span class="text-muted">{html}</span>' if html else ''
+    if relation and 'dates' in relation.additional_fields and item:
+        if not (html := getattr(item.dates, mode)) and range_:
+            if e.class_.group['name'] == 'actor' \
+                    and range_.class_.group['name'] == 'event' \
+                    and getattr(range_.dates, mode):
+                html = getattr(range_.dates, mode)
+            elif e.class_.group['name'] == 'event' \
+                    and range_.class_.group['name'] == 'actor' \
+                    and getattr(e.dates, mode):
+                html = getattr(e.dates, mode)
+            html = f'<span class="text-muted">{html}</span>' if html else ''
     return html
 
 
