@@ -6,8 +6,9 @@ from flask import g, url_for
 
 from openatlas import app
 from openatlas.api.resources.util import (
-    date_to_str, get_crm_code, get_crm_relation, get_iiif_manifest_and_path,
-    get_license_type, remove_spaces_dashes, to_camel_case)
+    date_to_utc_iso_str, get_crm_code, get_crm_relation,
+    get_iiif_manifest_and_path,
+    get_license_type, remove_spaces_dashes)
 from openatlas.display.util2 import get_file_path
 from openatlas.models.entity import Entity, Link
 from openatlas.models.gis import get_wkt_by_id
@@ -118,12 +119,6 @@ def get_loud_entities(
                 get_type_property(g.types[link_.type.id])]
         if code_ == 'P67' and link_.description:
             property_['content'] = link_.description
-            if link_.domain.cidoc_class.code == 'E32':
-                system = g.reference_systems[link_.domain.id]
-                match_case = to_camel_case(
-                    g.types[link_.type.id].name).replace(' ', '_')
-                property_[f"skos:{match_case}"] = \
-                    f'{system.resolver_url or ''}{link_.description}'
         if code_ == 'OA7':
             relationship = {
                 'type': 'Event',
@@ -175,12 +170,14 @@ def get_loud_entities(
             if link_.description:
                 property_['content'] = link_.description
             if link_.description and link_.domain.cidoc_class.code == 'E32':
-                property_['content'] = link_.description
-                system = g.reference_systems[link_.domain.id]
-                match_case = to_camel_case(
-                    g.types[link_.type.id].name).replace(' ', '_')
-                property_[f"skos:{match_case}"] = \
-                    f'{system.resolver_url or ''}{link_.description}'
+                pass
+                # property_['type'] = 'Identifier'
+                # property_['content'] = link_.description
+                # system = g.reference_systems[link_.domain.id]
+                # match_case = to_camel_case(
+                #     g.types[link_.type.id].name).replace(' ', '_')
+                # property_[f"skos:{match_case}"] = \
+                #     f'{system.resolver_url or ''}{link_.description}'
             if link_.domain.class_.name == 'external_reference':
                 property_ = {
                     "type": "LinguisticObject",
@@ -251,12 +248,6 @@ def get_loud_entities(
                 link_.domain.id):
             file_links.append(link_)
             continue
-        elif link_.property.code == 'P67' and \
-                link_.domain.cidoc_class.code == 'E32':
-            property_name = 'equivalent'
-            if g.types.get(link_.type.id) and \
-                    'close' in g.types[link_.type.id].name:
-                property_name = 'related'
         else:
             property_name = get_loud_property_name(loud, link_, inverse=True)
 
@@ -264,6 +255,28 @@ def get_loud_entities(
             for geom in get_wkt_by_id(link_.range.id):
                 base_property = get_domain_links() | geom
                 properties_set[property_name].append(base_property)
+        elif link_.property.code == 'P67' and \
+                link_.domain.cidoc_class.code == 'E32':
+            match_property = 'equivalent'
+            if g.types.get(link_.type.id) and \
+                    'close' in g.types[link_.type.id].name:
+                match_property = 'related'
+            system = g.reference_systems[link_.domain.id]
+            properties_set[match_property].append({
+                "id": f'{system.resolver_url or ''}{link_.description}',
+                "type": entity.cidoc_class.name})
+            properties_set['identified_by'].append({
+                "type": "Identifier",
+                "content": link_.description,
+                "_label": f"{link_.domain.name} Identifier",
+                "classified_as": [{
+                    "id": "https://vocab.getty.edu/aat/300404620",
+                    "type": "Type",
+                    "_label": "Authority Control Number"}],
+                "part_of": [{
+                    "id": system.website_url,
+                    "type": "Set",
+                    "_label": link_.domain.name}]})
         else:
             base_property = get_domain_links()
             properties_set[property_name].append(base_property)
@@ -279,15 +292,22 @@ def get_loud_entities(
         properties_set.update(get_digital_object_details(entity, license_url))
 
     properties_set['identified_by'].append({
-            "type": "Name",
-            "content": entity.name})
+        "type": "Name",
+        "content": entity.name})
     # This needs to be replaced by UUID
     properties_set['identified_by'].append({
-            "type": "Identifier",
-            "content": url_for(
-                'api.entity',
-                id_=entity.id,
-                _external=True)})
+        "type": "Identifier",
+        "content": url_for(
+            'api.entity',
+            id_=entity.id,
+            _external=True)})
+    properties_set['referred_to_by'].append({
+        "type": "LinguisticObject",
+        "content": entity.description,
+        "classified_as": [{
+            "id": "https://vocab.getty.edu/aat/300435416",
+            "type": "Type",
+            "_label": "Description"}]})
     return ({'@context': app.config['API_CONTEXT']['LOUD']} |
             base_entity_dict(entity) |
             properties_set)
@@ -305,8 +325,7 @@ def base_entity_dict(entity: Entity) -> dict[str, Any]:
             id_=entity.id,
             _external=True),
         'type': type_,
-        '_label': entity.name,
-        'content': entity.description} | timespan
+        '_label': entity.name} | timespan
 
 
 def get_loud_property_name(
@@ -405,17 +424,19 @@ def get_loud_timespan(entity: Entity) -> dict[str, Any]:
 
 
 def get_loud_begin_dates(entity: Entity) -> dict[str, Any]:
-    return {
-        'begin_of_the_begin': date_to_str(entity.dates.begin_from),
-        'end_of_the_begin': date_to_str(entity.dates.begin_to),
+    data = {
+        'begin_of_the_begin': date_to_utc_iso_str(entity.dates.begin_from),
+        'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
         'beginning_is_qualified_by': entity.dates.begin_comment}
+    return {k: v for k, v in data.items() if v is not None}
 
 
 def get_loud_end_dates(entity: Entity) -> dict[str, Any]:
-    return {
-        'begin_of_the_end': date_to_str(entity.dates.end_from),
-        'end_of_the_end': date_to_str(entity.dates.end_to),
+    data = {
+        'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
+        'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
         'end_is_qualified_by': entity.dates.end_comment}
+    return {k: v for k, v in data.items() if v is not None}
 
 
 def get_type_property(type_: Entity) -> dict[str, Any]:

@@ -216,6 +216,16 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
+# Forces 'Z' (UTC) for LOD data.
+def date_to_utc_iso_str(date: Any) -> str | None:
+    if not date:
+        return None
+    date_str = str(date)
+    if not date_str.endswith('Z'):
+        return f'{date_str}Z'
+    return date_str
+
+
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:
     property_ = f' {link_.property.i18n['en']}'
     if inverse and link_.property.i18n_inverse['en']:
@@ -243,6 +253,10 @@ def get_crm_code(link_: Link, inverse: bool = False) -> str:
     code = link_.range.cidoc_class.code
     if inverse:
         code = link_.domain.cidoc_class.code
+
+    if name == 'Appellation':
+        name = 'Linguistic Appellation'
+        code = 'E33 E41'
     return f'crm:{code} {name}'
 
 
