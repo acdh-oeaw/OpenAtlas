@@ -276,13 +276,13 @@ class Endpoint:
                     self.get_linked_places_entity(id_)
                     for id_ in self.entities_with_links]
             case _ if self.parser.format in app.config['RDF_FORMATS']:
-                license_links = get_license_ids_with_links()
+                type_references = get_type_references()
                 parsed_context = parse_loud_context()
                 self.generator_entities = (
                     get_loud_entities(
                         item,
                         parsed_context,
-                        license_links)
+                        type_references)
                     for item in self.entities_with_links.values())
 
     def get_geojson(self) -> dict[str, Any]:

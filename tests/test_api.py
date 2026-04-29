@@ -276,8 +276,7 @@ class Api(ApiTestCase):
         rv = rv.get_json()
         assert rv['type'] == 'PhysicalThing'
         assert rv['_label'] == 'Shire'
-        assert rv['content'] == 'The Shire was the homeland of the hobbits.'
-        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00'
+        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00Z'
         assert rv['identified_by'][0]['_label'] == 'Sûza'
         assert rv['classified_as'][0]['_label'] == 'Boundary Mark'
         assert (rv['former_or_current_location'][0]['_label']

@@ -140,7 +140,6 @@ def get_loud_entities(
                     get_type_property(g.types[link_.type.id], type_references)]
             property_ = relationship
         if code_ == 'P1':
-            del property_['_label']
             del property_['id']
             property_['content'] = link_.range.name
 
@@ -193,6 +192,10 @@ def get_loud_entities(
                     "_label": "Edition"})
             if link_.domain.class_.name == 'external_reference':
                 property_ = {
+                    "id": url_for(
+                        'api.entity',
+                        id_=link_.domain.id,
+                        _external=True),
                     "type": "LinguisticObject",
                     "digitally_carried_by": [{
                         "type": "DigitalObject",
@@ -201,7 +204,7 @@ def get_loud_entities(
                             "type": "Type",
                             "_label": "Web Page"}],
                         "format": "text/html",
-                        "_label": link_.description,
+                        "_label": link_.domain.name,
                         "access_point": [{
                             "id": link_.domain.name,
                             "type": "DigitalObject"}]}]}
@@ -267,7 +270,7 @@ def get_loud_entities(
             system = g.reference_systems[link_.domain.id]
             properties_set[match_property].append({
                 "id": f'{system.resolver_url or ''}{link_.description}',
-                "type": entity.cidoc_class.name})
+                "type": entity.cidoc_class.name.replace(' ', '')})
             properties_set['identified_by'].append({
                 "type": "Identifier",
                 "content": link_.description,
@@ -330,10 +333,12 @@ def get_loud_entities(
 
     properties_set['identified_by'].append({
         "type": "Name",
+        "_label": entity.name,
         "content": entity.name})
     # This needs to be replaced by UUID
     properties_set['identified_by'].append({
         "type": "Identifier",
+        "_label": "System Identifier",
         "content": url_for(
             'api.entity',
             id_=entity.id,
@@ -560,8 +565,9 @@ def get_type_property(
         if not validators.url(url):
             continue
         match_property = 'equivalent'
-        if g.types.get(type_link.type.id) and \
-                'close' in g.types[type_link.type.id].name:
+        if type_link.type \
+                and g.types.get(type_link.type.id) \
+                and 'close' in g.types[type_link.type.id].name:
             match_property = 'related'
         if match_property not in external_references:
             external_references[match_property] = []
