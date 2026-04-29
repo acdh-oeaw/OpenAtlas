@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any, Optional
 
 from flask import g, json, url_for
@@ -38,14 +39,17 @@ def get_license_url(entity: Entity) -> Optional[str]:
     return url
 
 
-def get_license_ids_with_links() -> dict[int, str]:
-    type_ids = Entity.get_hierarchy('License').get_sub_ids_recursive()
-    license_links = Entity.get_links_of_entities(type_ids, 'P67', inverse=True)
-    url_dict = {}
-    for link_ in license_links:
-        if link_.domain.class_.name == "external_reference":
-            url_dict[link_.range.id] = link_.domain.name
-    return url_dict
+def get_type_references() -> dict[int, list[Link]]:
+    type_links = Entity.get_links_of_entities(
+        list(g.types.keys()),
+        'P67',
+        inverse=True)
+    out: dict[int, list[Link]] = defaultdict(list)
+    for link_ in type_links:
+        if link_.domain.class_.name in \
+                ['external_reference', 'reference_system']:
+            out[link_.range.id].append(link_)
+    return out
 
 
 def to_camel_case(i: str) -> str:

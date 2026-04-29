@@ -2,6 +2,7 @@ import mimetypes
 from collections import defaultdict
 from typing import Any, Optional
 
+import validators
 from flask import g, url_for
 
 from openatlas import app
@@ -39,7 +40,7 @@ def get_file_dimensions(entity: Entity) -> dict[str, Any]:
 
 def get_digital_object_details(
         entity: Entity,
-        license_url: dict[int, str]) -> dict[str, Any]:
+        type_references: dict[int, list[Link]]) -> dict[str, Any]:
     mime_type, _ = mimetypes.guess_type(g.files[entity.id])
     file_ = get_file_path(entity.id)
     digital_object: dict[str, Any] = {
@@ -80,11 +81,18 @@ def get_digital_object_details(
                     _external=True),
                 "type": "Name",
                 "content": license_.name}]}
-        if url := license_url.get(license_.id):
-            subject_to['classified_as'] = [{
+        classified_as = []
+        for type_link in type_references.get(license_.id, []):
+            url = type_link.domain.name
+            if type_link.domain.class_.name == 'reference_system':
+                system = g.reference_systems[type_link.domain.id]
+                url = f'{system.resolver_url or ''}{type_link.description}'
+            classified_as.append({
                 "id": url,
                 "type": "Type",
-                "_label": license_.name}]
+                "_label": license_.name})
+        if classified_as:
+            subject_to['classified_as'] = classified_as
         digital_object.update({'subject_to': [subject_to]})
     return digital_object
 
@@ -92,7 +100,7 @@ def get_digital_object_details(
 def get_loud_entities(
         data: dict[str, Any],
         loud: dict[str, str],
-        license_url: dict[int, str]) -> Any:
+        type_references: dict[int, list[Link]]) -> Any:
     entity = data['entity']
 
     def get_range_links() -> dict[str, Any]:
@@ -104,7 +112,7 @@ def get_loud_entities(
             'type': loud[get_crm_code(link_).replace(' ', '_')],
             '_label': link_.range.name}
         if link_.dates.begin_from or link_.dates.end_from:
-            property_['timespan'] = get_loud_timespan(link_)
+            property_ = property_ | get_loud_timespan(link_)
         code_ = link_.property.code
         if code_ == 'P2':
             if link_.description:
@@ -113,10 +121,11 @@ def get_loud_entities(
                     'type': "MeasurementUnit",
                     '_label': link_.range.description}
             super_type = g.types[g.types[link_.range.id].root[-1]]
-            property_['part_of'] = [get_type_property(super_type)]
+            property_['part_of'] = [
+                get_type_property(super_type, type_references)]
         elif link_.type:
             property_['classified_as'] = [
-                get_type_property(g.types[link_.type.id])]
+                get_type_property(g.types[link_.type.id], type_references)]
         if code_ == 'P67' and link_.description:
             property_['content'] = link_.description
         if code_ == 'OA7':
@@ -128,8 +137,8 @@ def get_loud_entities(
                 'had_participant': [property_]}
             if link_.type:
                 relationship['classified_as'] = [
-                    get_type_property(g.types[link_.type.id])]
-            property_ = [relationship]
+                    get_type_property(g.types[link_.type.id], type_references)]
+            property_ = relationship
         if code_ == 'P1':
             del property_['_label']
             del property_['id']
@@ -146,7 +155,7 @@ def get_loud_entities(
             'type': loud[get_crm_code(link_, True).replace(' ', '_')],
             '_label': link_.domain.name}
         if link_.dates.begin_from or link_.dates.end_from:
-            property_['timespan'] = get_loud_timespan(link_)
+            property_ = property_ | get_loud_timespan(link_)
         code_ = link_.property.code
         if code_ == 'P2':
             if link_.description:
@@ -155,19 +164,33 @@ def get_loud_entities(
                     'type': "MeasurementUnit",
                     '_label': link_.domain.description}
             super_type = g.types[g.types[link_.range.id].root[-1]]
-            property_['part_of'] = [get_type_property(super_type)]
+            property_['part_of'] = [
+                get_type_property(super_type, type_references)]
         elif link_.type:
             property_['classified_as'] = [
-                get_type_property(g.types[link_.type.id])]
+                get_type_property(g.types[link_.type.id], type_references)]
         if code_ == 'P67':
+            property_['classified_as'] = []
             if link_.domain.class_.name == 'file':
                 property_['type'] = 'DigitalObject'
             if standard_type := get_standard_type_loud(link_.domain.types):
-                property_['classified_as'] = [get_type_property(standard_type)]
+                property_['classified_as'].append(
+                    get_type_property(standard_type, type_references))
+
             if link_.description:
                 property_['content'] = link_.description
             if link_.description and link_.domain.cidoc_class.code == 'E32':
                 pass
+            if link_.domain.class_.name == 'bibliography':
+                property_['classified_as'].append({
+                    "id": "https://vocab.getty.edu/aat/300026652",
+                    "type": "Type",
+                    "_label": "Bibliography"})
+            if link_.domain.class_.name == 'edition':
+                property_['classified_as'].append({
+                    "id": "https://vocab.getty.edu/aat/300404319",
+                    "type": "Type",
+                    "_label": "Edition"})
             if link_.domain.class_.name == 'external_reference':
                 property_ = {
                     "type": "LinguisticObject",
@@ -191,7 +214,7 @@ def get_loud_entities(
                 'had_participant': [property_]}
             if link_.type:
                 relationship['classified_as'] = [
-                    get_type_property(g.types[link_.type.id])]
+                    get_type_property(g.types[link_.type.id], type_references)]
             property_ = [relationship]
         return property_
 
@@ -257,19 +280,53 @@ def get_loud_entities(
                     "id": system.website_url,
                     "type": "Set",
                     "_label": link_.domain.name}]})
+        elif link_.property.code == 'P107':
+            properties_set['member_of'].append({
+                'id': url_for(
+                    'api.entity',
+                    id_=link_.domain.id,
+                    _external=True),
+                'type': loud[get_crm_code(link_, True).replace(' ', '_')],
+                '_label': link_.domain.name})
+            if link_.type or link_.dates.dates_available():
+                carried_out = {
+                    "type": "Activity",
+                    "carried_out_on_behalf_of": [{
+                        'id': url_for(
+                            'api.entity',
+                            id_=link_.domain.id,
+                            _external=True),
+                        'type': loud[get_crm_code(
+                            link_, True).replace(' ', '_')],
+                        '_label': link_.domain.name}]}
+                label = f"Membership in {link_.domain.name}"
+                if link_.type:
+                    if type_ := g.types.get(link_.type.id):
+                        label = f"Role as {type_.name} at {link_.domain.name}"
+                    if type_ := get_type_property(
+                            g.types[link_.type.id],
+                            type_references):
+                        carried_out['classified_as'] = [type_]
+
+                carried_out['_label'] = label
+                if link_.dates.dates_available():
+                    carried_out = carried_out | get_loud_timespan(link_)
+                properties_set['carried_out'].append(carried_out)
         else:
             base_property = get_domain_links()
             properties_set[property_name].append(base_property)
 
     if file_links:
         properties_set['representation'].extend(
-            get_loud_representations(file_links, license_url))
+            get_loud_representations(file_links, type_references))
         properties_set['subject_of'].extend(
             get_loud_iiif_subject_of(file_links))
 
     if entity.class_.name == 'file' and g.files.get(entity.id):
         properties_set.update(get_file_dimensions(entity))
-        properties_set.update(get_digital_object_details(entity, license_url))
+        properties_set.update(get_digital_object_details(
+            entity,
+            type_references))
 
     properties_set['identified_by'].append({
         "type": "Name",
@@ -320,7 +377,7 @@ def get_loud_property_name(
 
 def get_loud_representations(
         image_links: list[Link],
-        license_url: dict[int, str]) -> list[dict[str, Any]]:
+        type_references: dict[int, list[Link]]) -> list[dict[str, Any]]:
     representation = []
     for link_ in image_links:
         entity = link_.domain
@@ -331,7 +388,7 @@ def get_loud_representations(
                 _external=True),
             '_label': entity.name,
             'type': 'DigitalObject'}
-        image.update(get_digital_object_details(entity, license_url))
+        image.update(get_digital_object_details(entity, type_references))
         representation.append({
             'type': 'VisualItem',
             'digitally_shown_by': [image]})
@@ -343,13 +400,15 @@ def get_loud_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
     subject_of = []
     for link_ in image_links:
         entity = link_.domain
-        if iiif := get_iiif_manifest_and_path(entity.id):
+        manifest_path = get_iiif_manifest_and_path(entity.id)
+        if (manifest_path.get('IIIFManifest')
+                and manifest_path.get('IIIFBasePath')):
             subject_of.append({
                 "type": "LinguisticObject",
                 "digitally_carried_by": [{
                     "type": "DigitalObject",
                     "access_point": [{
-                        "id": iiif['IIIFManifest'],
+                        "id": manifest_path['IIIFManifest'],
                         "type": "DigitalObject"}],
                     "conforms_to": [{
                         "id": "https://iiif.io/api/presentation/2.0/",
@@ -448,20 +507,20 @@ def get_loud_group_timespan(
 def get_loud_timespan(
         entity: Entity,
         links_: list[Link] | None = None) -> dict[str, Any]:
-    if entity.class_.name == 'person':
-        return get_loud_person_timespan(entity, links_)
-    elif entity.class_.name == 'group':
-        return get_loud_group_timespan(entity, links_)
-    else:
-        if not entity.dates.dates_available():
-            return {}
-        return {'timespan': (
-                {'type': 'TimeSpan'} |
-                get_loud_begin_dates(entity) |
-                get_loud_end_dates(entity))}
+    if not isinstance(entity, Link):
+        if entity.class_.name == 'person':
+            return get_loud_person_timespan(entity, links_)
+        elif entity.class_.name == 'group':
+            return get_loud_group_timespan(entity, links_)
+    if not entity.dates.dates_available():
+        return {}
+    return {'timespan': (
+            {'type': 'TimeSpan'} |
+            get_loud_begin_dates(entity) |
+            get_loud_end_dates(entity))}
 
 
-def get_loud_begin_dates(entity: Entity) -> dict[str, Any]:
+def get_loud_begin_dates(entity: Entity | Link) -> dict[str, Any]:
     data = {
         'begin_of_the_begin': date_to_utc_iso_str(entity.dates.begin_from),
         'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
@@ -469,7 +528,7 @@ def get_loud_begin_dates(entity: Entity) -> dict[str, Any]:
     return {k: v for k, v in data.items() if v is not None}
 
 
-def get_loud_end_dates(entity: Entity) -> dict[str, Any]:
+def get_loud_end_dates(entity: Entity | Link) -> dict[str, Any]:
     data = {
         'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
         'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
@@ -477,7 +536,9 @@ def get_loud_end_dates(entity: Entity) -> dict[str, Any]:
     return {k: v for k, v in data.items() if v is not None}
 
 
-def get_type_property(type_: Entity) -> dict[str, Any]:
+def get_type_property(
+        type_: Entity,
+        type_references: dict[int, list[Link]]) -> dict[str, Any]:
     property_: dict[str, Any] = {
         'id': url_for(
             'api.entity',
@@ -486,10 +547,29 @@ def get_type_property(type_: Entity) -> dict[str, Any]:
         'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
         '_label': type_.name}
     if type_.dates.begin_from or type_.dates.end_from:
-        property_['timespan'] = get_loud_timespan(type_)
+        property_ = property_ | get_loud_timespan(type_)
     for super_type in [g.types[root] for root in type_.root]:
-        property_['part_of'] = [get_type_property(super_type)]
-    return property_
+        property_['part_of'] = [get_type_property(super_type, type_references)]
+
+    external_references = {}
+    for type_link in type_references.get(type_.id, []):
+        url = type_link.domain.name
+        if type_link.domain.class_.name == 'reference_system':
+            system = g.reference_systems[type_link.domain.id]
+            url = f'{system.resolver_url or ''}{type_link.description}'
+        if not validators.url(url):
+            continue
+        match_property = 'equivalent'
+        if g.types.get(type_link.type.id) and \
+                'close' in g.types[type_link.type.id].name:
+            match_property = 'related'
+        if match_property not in external_references:
+            external_references[match_property] = []
+        external_references[match_property].append({
+            "id": url,
+            "type": "Type",
+            "_label": type_.name})
+    return property_ | external_references
 
 
 def get_standard_type_loud(types: dict[Entity, Any]) -> Optional[Entity]:
