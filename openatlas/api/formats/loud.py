@@ -126,6 +126,13 @@ def get_loud_entities(
         elif link_.type:
             property_['classified_as'] = [
                 get_type_property(g.types[link_.type.id], type_references)]
+        if code_ == 'P73':
+            property_['content'] = link_.range.description
+            if link_.range.standard_type:
+                property_['classified_as'] = [
+                    get_type_property(
+                        g.types[link_.range.standard_type.id],
+                        type_references)]
         if code_ == 'P67' and link_.description:
             property_['content'] = link_.description
         if code_ == 'OA7':
@@ -231,6 +238,8 @@ def get_loud_entities(
             property_name = 'refers_to'
             if link_.domain.class_.name == 'file':
                 property_name = 'digitally_carries'
+        elif link_.property.code == 'P73':
+            property_name = 'referred_to_by'
         else:
             property_name = get_loud_property_name(loud, link_)
 
