@@ -840,3 +840,16 @@ def get_reference_systems() -> list[dict[str, Any]]:
             rs.entity_id;
         """)
     return list(g.cursor)
+
+
+def get_multiple_linked_entities(sub_ids: list[int]) -> list[int]:
+    g.cursor.execute(
+        """
+        SELECT domain_id, COUNT(*) AS "Count"
+        FROM model.link
+        WHERE property_code IN ('P2', 'P89') AND range_id IN %(sub_ids)s
+        GROUP BY domain_id
+        HAVING COUNT(*) > 1
+        """,
+        {'sub_ids': tuple(sub_ids)})
+    return [row[0] for row in list(g.cursor)]

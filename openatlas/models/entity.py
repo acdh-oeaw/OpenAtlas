@@ -470,6 +470,10 @@ class Entity:
     def get_overlays(self) -> dict[int, Overlay]:
         return Overlay.get_by_entity(self)
 
+    def get_multiple_typed_entities(self) -> list[Entity]:
+        return Entity.get_by_ids(
+            db.get_multiple_linked_entities(self.get_sub_ids_recursive()))
+
     @staticmethod
     def get_file_info() -> dict[int, Any]:
         return db.get_file_info()

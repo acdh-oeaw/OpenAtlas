@@ -209,7 +209,8 @@ def bookmark_toggle(entity_id: int, for_table: bool = False) -> str:
 def format_entity_date(
         dates: Dates,
         mode: str,
-        object_: Optional[Entity] = None) -> str:
+        object_: Optional[Entity] = None,
+        with_comment: Optional[bool] = False) -> str:
     html = link(object_) if object_ else ''
     if getattr(dates, f'{mode}_from'):
         html += ', ' if html else ''
@@ -220,6 +221,8 @@ def format_entity_date(
                 end=format_date(getattr(dates, f'{mode}_to')))
         else:
             html += format_date(getattr(dates, f'{mode}_from'))
+        if with_comment and (comment := getattr(dates, f'{mode}_comment')):
+            html += f' ({comment})'
     return html
 
 

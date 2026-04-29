@@ -399,8 +399,14 @@ class Display:
     def add_data(self) -> None:
         self.data = {
             _('alias'): list(self.entity.aliases.values()),
-            _('begin'): format_entity_date(self.entity.dates, 'begin'),
-            _('end'): format_entity_date(self.entity.dates, 'end')}
+            _('begin'): format_entity_date(
+                self.entity.dates,
+                'begin',
+                with_comment=True),
+            _('end'): format_entity_date(
+                self.entity.dates,
+                'end',
+                with_comment=True)}
         if self.entity.class_.group['name'] == 'actor' \
                 and not (self.entity.dates.first and self.entity.dates.last):
             appears_first, appears_last = get_appearance(self.entity)
