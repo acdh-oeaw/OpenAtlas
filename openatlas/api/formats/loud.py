@@ -507,8 +507,7 @@ class LoudFormatter:
                 'api.entity',
                 id_=link_.domain.id,
                 _external=True),
-            'type': self.loud[
-                get_crm_code(link_, True).replace(' ', '_')],
+            'type': self.loud[get_crm_code(link_, True).replace(' ', '_')],
             '_label': link_.domain.name})
         if link_.type or link_.dates.dates_available():
             carried_out: dict[str, Any] = {
@@ -535,6 +534,84 @@ class LoudFormatter:
                     carried_out | self.get_loud_timespan(link_))
             properties_set['carried_out'].append(carried_out)
 
+    def process_link(
+            self,
+            link_: Link,
+            properties_set: dict[str, Any],
+            is_inverse: bool,
+            root_entity: Entity) -> None:
+        is_domain = is_inverse
+        if link_.property.code == 'P53':
+            property_name = self.get_property_key(link_, is_inverse)
+            for geom in get_wkt_by_id(link_.range.id):
+                base_property = \
+                    self.format_link(link_, is_domain=is_domain) | geom
+                properties_set[property_name].append(base_property)
+            return
+        if is_inverse \
+                and link_.property.code == 'P67' \
+                and link_.domain.cidoc_class.code == 'E32':
+            self.handle_authority_reference(
+                link_, properties_set, root_entity)
+            return
+        if is_inverse and link_.property.code == 'P107':
+            self.handle_membership(link_, properties_set)
+            return
+        property_name = self.get_property_key(link_, is_inverse)
+        properties_set[property_name].append(
+            self.format_link(link_, is_domain=is_domain))
+
+    def process_media_links(
+            self,
+            file_links: list[Link],
+            properties_set: dict[str, Any],
+            entity: Entity) -> None:
+        if file_links:
+            properties_set['representation'].extend(
+                self.get_loud_representations(file_links))
+            properties_set['subject_of'].extend(
+                self.get_iiif_subject_of(file_links))
+        if entity.class_.name == 'file' and g.files.get(entity.id):
+            properties_set.update(self.get_file_dimensions(entity))
+            properties_set.update(self.get_digital_object_details(entity))
+
+    @staticmethod
+    def add_core_metadata(
+            entity: Entity,
+            properties_set: dict[str, Any]) -> None:
+        properties_set['identified_by'].append({
+            "type": "Name",
+            "_label": entity.name,
+            "content": entity.name})
+        # This needs to be replaced by UUID
+        properties_set['identified_by'].append({
+            "type": "Identifier",
+            "_label": "System Identifier",
+            "content": url_for(
+                'api.entity',
+                id_=entity.id,
+                _external=True)})
+        if entity.description:
+            properties_set['referred_to_by'].append({
+                "type": "LinguisticObject",
+                "content": entity.description,
+                "classified_as": [{
+                    "id": "https://vocab.getty.edu/aat/300435416",
+                    "type": "Type",
+                    "_label": "Description"}]})
+
+    def finalize_output(
+            self,
+            entity: Entity,
+            properties_set: dict[str, Any],
+            links_data: list[Link]) -> dict[str, Any]:
+
+        self.add_core_metadata(entity, properties_set)
+        return ({'@context': app.config['API_CONTEXT']['LOUD']} |
+                self.base_entity_dict(entity) |
+                self.get_loud_timespan(entity, links_data) |
+                properties_set)
+
 
 def get_loud_entities(
         data: dict[str, Any],
@@ -542,75 +619,23 @@ def get_loud_entities(
         type_references: dict[int, list[Link]]) -> Any:
     entity = data['entity']
     formatter = LoudFormatter(loud, type_references)
-    properties_set = defaultdict(list)
+    properties_set: dict[str, Any] = defaultdict(list)
     for link_ in data['links']:
         if link_.property.code in ['OA8', 'OA9']:
             continue
-        property_name = formatter.get_property_key(link_, is_inverse=False)
-        if link_.property.code == 'P53':
-            for geom in get_wkt_by_id(link_.range.id):
-                base_property = \
-                    formatter.format_link(link_, is_domain=False) | geom
-                properties_set[property_name].append(base_property)
-        else:
-            base_property = formatter.format_link(link_, is_domain=False)
-            properties_set[property_name].append(base_property)
-
+        formatter.process_link(
+            link_, properties_set, is_inverse=False, root_entity=entity)
     file_links = []
     for link_ in data['links_inverse']:
         if link_.property.code in ['OA8', 'OA9']:
             continue
-        if link_.domain.class_.name == 'file' and g.files.get(
-                link_.domain.id):
+        if link_.domain.class_.name == 'file' and g.files.get(link_.domain.id):
             file_links.append(link_)
             continue
-        property_name = formatter.get_property_key(link_, is_inverse=True)
-        if link_.property.code == 'P53':
-            for geom in get_wkt_by_id(link_.range.id):
-                base_property = \
-                    formatter.format_link(link_, is_domain=True) | geom
-                properties_set[property_name].append(base_property)
-        elif link_.property.code == 'P67' and \
-                link_.domain.cidoc_class.code == 'E32':
-            formatter.handle_authority_reference(
-                link_, properties_set, entity)
-        elif link_.property.code == 'P107':
-            formatter.handle_membership(link_, properties_set)
-        else:
-            base_property = formatter.format_link(link_, is_domain=True)
-            properties_set[property_name].append(base_property)
-
-    if file_links:
-        properties_set['representation'].extend(
-            formatter.get_loud_representations(file_links))
-        properties_set['subject_of'].extend(
-            formatter.get_iiif_subject_of(file_links))
-
-    if entity.class_.name == 'file' and g.files.get(entity.id):
-        properties_set.update(LoudFormatter.get_file_dimensions(entity))
-        properties_set.update(formatter.get_digital_object_details(entity))
-
-    properties_set['identified_by'].append({
-        "type": "Name",
-        "_label": entity.name,
-        "content": entity.name})
-    # This needs to be replaced by UUID
-    properties_set['identified_by'].append({
-        "type": "Identifier",
-        "_label": "System Identifier",
-        "content": url_for(
-            'api.entity',
-            id_=entity.id,
-            _external=True)})
-    properties_set['referred_to_by'].append({
-        "type": "LinguisticObject",
-        "content": entity.description,
-        "classified_as": [{
-            "id": "https://vocab.getty.edu/aat/300435416",
-            "type": "Type",
-            "_label": "Description"}]})
-
-    return ({'@context': app.config['API_CONTEXT']['LOUD']} |
-            LoudFormatter.base_entity_dict(entity) |
-            formatter.get_loud_timespan(entity, data['links']) |
-            properties_set)
+        formatter.process_link(
+            link_, properties_set, is_inverse=True, root_entity=entity)
+    formatter.process_media_links(file_links, properties_set, entity)
+    return formatter.finalize_output(
+        entity,
+        properties_set,
+        data['links'])
