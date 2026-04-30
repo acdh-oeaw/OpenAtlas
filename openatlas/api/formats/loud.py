@@ -61,11 +61,11 @@ class LoudFormatter:
                 get_crm_code(link_, is_domain).replace(' ', '_')],
             '_label': target.name}
         if link_.dates.begin_from or link_.dates.end_from:
-            property_ = property_ | get_loud_timespan(link_)
+            property_ = property_ | self._get_loud_timespan(link_)
         code_ = link_.property.code
         if code_ != 'P2' and link_.type:
-            property_['classified_as'] = [get_type_property(
-                g.types[link_.type.id], self.type_refs)]
+            property_['classified_as'] = [
+                self._format_type_property(g.types[link_.type.id])]
         handler = self.handlers.get(code_)
         if handler:
             return handler(property_, link_, is_domain)
@@ -153,8 +153,7 @@ class LoudFormatter:
                 'type': "MeasurementUnit",
                 '_label': target.description}
         super_type = g.types[g.types[link_.range.id].root[-1]]
-        property_['part_of'] = [
-            get_type_property(super_type, self.type_refs)]
+        property_['part_of'] = [self._format_type_property(super_type)]
         return property_
 
     def _handle_p73(
@@ -166,9 +165,8 @@ class LoudFormatter:
             return property_
         property_['content'] = link_.range.description
         if link_.range.standard_type:
-            property_['classified_as'] = [get_type_property(
-                g.types[link_.range.standard_type.id],
-                self.type_refs)]
+            property_['classified_as'] = [self._format_type_property(
+                g.types[link_.range.standard_type.id])]
         return property_
 
     def _handle_p67(
@@ -185,7 +183,7 @@ class LoudFormatter:
             property_['type'] = 'DigitalObject'
         if standard_type := get_standard_type_loud(link_.domain.types):
             property_['classified_as'].append(
-                get_type_property(standard_type, self.type_refs))
+                self._format_type_property(standard_type))
         if link_.description:
             property_['content'] = link_.description
         if link_.domain.class_.name == 'bibliography':
@@ -237,8 +235,183 @@ class LoudFormatter:
             'had_participant': [property_]}
         if link_.type:
             relationship['classified_as'] = [
-                get_type_property(g.types[link_.type.id], self.type_refs)]
+                self._format_type_property(g.types[link_.type.id])]
         return [relationship] if is_domain else relationship
+
+    def _format_type_property(self, type_: Entity) -> dict[str, Any]:
+        property_: dict[str, Any] = {
+            'id': url_for('api.entity', id_=type_.id, _external=True),
+            'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
+            '_label': type_.name}
+        if type_.dates.begin_from or type_.dates.end_from:
+            property_ = property_ | self._get_loud_timespan(type_)
+        for super_type in [g.types[root] for root in type_.root]:
+            property_['part_of'] = [
+                self._format_type_property(super_type)]
+        external_references: dict[str, Any] = {}
+        for type_link in self.type_refs.get(type_.id, []):
+            url = type_link.domain.name
+            if type_link.domain.class_.name == 'reference_system':
+                system = g.reference_systems[type_link.domain.id]
+                url = f'{system.resolver_url or ''}{type_link.description}'
+            if not validators.url(url):
+                continue
+            match_property = 'equivalent'
+            if type_link.type \
+                    and g.types.get(type_link.type.id) \
+                    and 'close' in g.types[type_link.type.id].name:
+                match_property = 'related'
+            if match_property not in external_references:
+                external_references[match_property] = []
+            external_references[match_property].append({
+                "id": url,
+                "type": "Type",
+                "_label": type_.name})
+        return property_ | external_references
+
+    def _get_loud_timespan(
+            self,
+            entity: Entity | Link,
+            links_: list[Link] | None = None) -> dict[str, Any]:
+        if not isinstance(entity, Link):
+            if entity.class_.name == 'person':
+                return self._get_loud_person_timespan(entity, links_)
+            elif entity.class_.name == 'group':
+                return self._get_loud_group_timespan(entity, links_)
+        if not entity.dates.dates_available():
+            return {}
+        return {'timespan': (
+                {'type': 'TimeSpan'} |
+                self._get_loud_begin_dates(entity) |
+                self._get_loud_end_dates(entity))}
+
+    def _get_loud_person_timespan(
+            self,
+            entity: Entity,
+            links_: list[Link] | None) -> dict[str, Any]:
+        result = {}
+        birth_event: dict[str, Any] = {
+            'type': 'Birth',
+            '_label': f'Birth of {entity.name}'}
+        has_birth_data = False
+        if entity.dates.begin_from or entity.dates.begin_to:
+            birth_event['timespan'] = (
+                    {'type': 'TimeSpan'}
+                    | self._get_loud_begin_dates(entity))
+            has_birth_data = True
+
+        death_event: dict[str, Any] = {
+            'type': 'Death',
+            '_label': f'Death of {entity.name}'}
+        has_death_data = False
+        if entity.dates.end_from or entity.dates.end_to:
+            death_event['timespan'] = (
+                    {'type': 'TimeSpan'}
+                    | self._get_loud_end_dates(entity))
+            has_death_data = True
+
+        if links_:
+            for link_ in links_:
+                place = {
+                    'id': url_for(
+                        'api.entity',
+                        id_=link_.range.id,
+                        _external=True),
+                    'type': 'Place',
+                    '_label': link_.range.name}
+                if link_.property.code == 'OA8':
+                    birth_event['took_place_at'] = [place]
+                    has_birth_data = True
+                elif link_.property.code == 'OA9':
+                    death_event['took_place_at'] = [place]
+                    has_death_data = True
+        if has_birth_data:
+            result['born'] = birth_event
+        if has_death_data:
+            result['died_in'] = death_event
+        return result
+
+    def _get_loud_group_timespan(
+            self,
+            entity: Entity,
+            links_: list[Link] | None) -> dict[str, Any]:
+        res = {}
+        form: dict[str, Any] = {
+            'type': 'Formation',
+            '_label': f'Formation of {entity.name}'}
+        has_formation = False
+        if entity.dates.begin_from or entity.dates.begin_to:
+            form['timespan'] = (
+                    {'type': 'TimeSpan'}
+                    | self._get_loud_begin_dates(entity))
+            has_formation = True
+
+        diss: dict[str, Any] = {
+            'type': 'Dissolution',
+            '_label': f'Dissolution of {entity.name}'}
+        has_dissolution = False
+        if entity.dates.end_from or entity.dates.end_to:
+            diss['timespan'] = (
+                    {'type': 'TimeSpan'}
+                    | self._get_loud_end_dates(entity))
+            has_dissolution = True
+        if links_:
+            for lnk in links_:
+                place = {
+                    'id': url_for(
+                        'api.entity',
+                        id_=lnk.range.id,
+                        _external=True),
+                    'type': 'Place',
+                    '_label': lnk.range.name}
+                if lnk.property.code == 'OA8':
+                    form['took_place_at'] = [place]
+                    has_formation = True
+                elif lnk.property.code == 'OA9':
+                    diss['took_place_at'] = [place]
+                    has_dissolution = True
+
+        if has_formation:
+            res['formed_by'] = form
+        if has_dissolution:
+            res['dissolved_by'] = diss
+        return res
+
+    @staticmethod
+    def _get_loud_begin_dates(entity: Entity | Link) -> dict[str, Any]:
+        data = {
+            'begin_of_the_begin':
+                date_to_utc_iso_str(entity.dates.begin_from),
+            'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
+            'beginning_is_qualified_by': entity.dates.begin_comment}
+        return {k: v for k, v in data.items() if v is not None}
+
+    @staticmethod
+    def _get_loud_end_dates(entity: Entity | Link) -> dict[str, Any]:
+        data = {
+            'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
+            'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
+            'end_is_qualified_by': entity.dates.end_comment}
+        return {k: v for k, v in data.items() if v is not None}
+
+    def _get_loud_representations(
+            self,
+            image_links: list[Link]) -> list[dict[str, Any]]:
+        representation = []
+        for link_ in image_links:
+            entity = link_.domain
+            image = {
+                'id': url_for(
+                    'api.entity',
+                    id_=entity.id,
+                    _external=True),
+                '_label': entity.name,
+                'type': 'DigitalObject'}
+            image.update(self.get_digital_object_details(entity))
+            representation.append({
+                'type': 'VisualItem',
+                'digitally_shown_by': [image]})
+        return representation
 
 
 def get_loud_entities(
@@ -336,14 +509,14 @@ def get_loud_entities(
                 if link_.type:
                     if type_ := g.types.get(link_.type.id):
                         label = f"Role as {type_.name} at {link_.domain.name}"
-                    if type_ := get_type_property(
-                            g.types[link_.type.id],
-                            type_references):
+                    if type_ := formatter._format_type_property(
+                            g.types[link_.type.id]):
                         carried_out['classified_as'] = [type_]
 
                 carried_out['_label'] = label
                 if link_.dates.dates_available():
-                    carried_out = carried_out | get_loud_timespan(link_)
+                    carried_out = (
+                        carried_out | formatter._get_loud_timespan(link_))
                 properties_set['carried_out'].append(carried_out)
         else:
             base_property = formatter.format_link(link_, is_domain=True)
@@ -351,7 +524,7 @@ def get_loud_entities(
 
     if file_links:
         properties_set['representation'].extend(
-            get_loud_representations(file_links, formatter))
+            formatter._get_loud_representations(file_links))
         properties_set['subject_of'].extend(
             get_loud_iiif_subject_of(file_links))
 
@@ -381,7 +554,7 @@ def get_loud_entities(
 
     return ({'@context': app.config['API_CONTEXT']['LOUD']} |
             base_entity_dict(entity) |
-            get_loud_timespan(entity, data['links']) |
+            formatter._get_loud_timespan(entity, data['links']) |
             properties_set)
 
 
@@ -408,27 +581,6 @@ def get_loud_property_name(
     return name
 
 
-def get_loud_representations(
-        image_links: list[Link],
-        formatter: 'LoudFormatter') -> list[dict[str, Any]]:
-    representation = []
-    for link_ in image_links:
-        entity = link_.domain
-        image = {
-            'id': url_for(
-                'api.entity',
-                id_=entity.id,
-                _external=True),
-            '_label': entity.name,
-            'type': 'DigitalObject'}
-        image.update(formatter.get_digital_object_details(entity))
-        representation.append({
-            'type': 'VisualItem',
-            'digitally_shown_by': [image]})
-
-    return representation
-
-
 def get_loud_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
     subject_of = []
     for link_ in image_links:
@@ -450,160 +602,6 @@ def get_loud_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
                         "application/ld+json;profile='https://iiif.io/api"
                         "/presentation/2/context.json'"}]})
     return subject_of
-
-
-def get_loud_person_timespan(
-        entity: Entity,
-        links_: list[Link] | None) -> dict[str, Any]:
-    result = {}
-    birth_event: dict[str, Any] = {
-        'type': 'Birth',
-        '_label': f'Birth of {entity.name}'}
-    has_birth_data = False
-    if entity.dates.begin_from or entity.dates.begin_to:
-        birth_event['timespan'] = (
-                {'type': 'TimeSpan'} | get_loud_begin_dates(entity))
-        has_birth_data = True
-
-    death_event: dict[str, Any] = {
-        'type': 'Death',
-        '_label': f'Death of {entity.name}'}
-    has_death_data = False
-    if entity.dates.end_from or entity.dates.end_to:
-        death_event['timespan'] = (
-                {'type': 'TimeSpan'} | get_loud_end_dates(entity))
-        has_death_data = True
-
-    if links_:
-        for link_ in links_:
-            place = {
-                'id': url_for(
-                    'api.entity',
-                    id_=link_.range.id,
-                    _external=True),
-                'type': 'Place',
-                '_label': link_.range.name}
-            if link_.property.code == 'OA8':
-                birth_event['took_place_at'] = [place]
-                has_birth_data = True
-            elif link_.property.code == 'OA9':
-                death_event['took_place_at'] = [place]
-                has_death_data = True
-    if has_birth_data:
-        result['born'] = birth_event
-    if has_death_data:
-        result['died_in'] = death_event
-    return result
-
-
-def get_loud_group_timespan(
-        entity: Entity,
-        links_: list[Link] | None) -> dict[str, Any]:
-    res = {}
-    form: dict[str, Any] = {
-        'type': 'Formation',
-        '_label': f'Formation of {entity.name}'}
-    has_formation = False
-    if entity.dates.begin_from or entity.dates.begin_to:
-        form['timespan'] = (
-                {'type': 'TimeSpan'} | get_loud_begin_dates(entity))
-        has_formation = True
-
-    diss: dict[str, Any] = {
-        'type': 'Dissolution',
-        '_label': f'Dissolution of {entity.name}'}
-    has_dissolution = False
-    if entity.dates.end_from or entity.dates.end_to:
-        diss['timespan'] = (
-                {'type': 'TimeSpan'} | get_loud_end_dates(entity))
-        has_dissolution = True
-    if links_:
-        for lnk in links_:
-            place = {
-                'id': url_for('api.entity', id_=lnk.range.id, _external=True),
-                'type': 'Place',
-                '_label': lnk.range.name}
-            if lnk.property.code == 'OA8':
-                form['took_place_at'] = [place]
-                has_formation = True
-            elif lnk.property.code == 'OA9':
-                diss['took_place_at'] = [place]
-                has_dissolution = True
-
-    if has_formation:
-        res['formed_by'] = form
-    if has_dissolution:
-        res['dissolved_by'] = diss
-    return res
-
-
-def get_loud_timespan(
-        entity: Entity,
-        links_: list[Link] | None = None) -> dict[str, Any]:
-    if not isinstance(entity, Link):
-        if entity.class_.name == 'person':
-            return get_loud_person_timespan(entity, links_)
-        elif entity.class_.name == 'group':
-            return get_loud_group_timespan(entity, links_)
-    if not entity.dates.dates_available():
-        return {}
-    return {'timespan': (
-            {'type': 'TimeSpan'} |
-            get_loud_begin_dates(entity) |
-            get_loud_end_dates(entity))}
-
-
-def get_loud_begin_dates(entity: Entity | Link) -> dict[str, Any]:
-    data = {
-        'begin_of_the_begin': date_to_utc_iso_str(entity.dates.begin_from),
-        'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
-        'beginning_is_qualified_by': entity.dates.begin_comment}
-    return {k: v for k, v in data.items() if v is not None}
-
-
-def get_loud_end_dates(entity: Entity | Link) -> dict[str, Any]:
-    data = {
-        'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
-        'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
-        'end_is_qualified_by': entity.dates.end_comment}
-    return {k: v for k, v in data.items() if v is not None}
-
-
-def get_type_property(
-        type_: Entity,
-        type_references: dict[int, list[Link]]) -> dict[str, Any]:
-    property_: dict[str, Any] = {
-        'id': url_for(
-            'api.entity',
-            id_=type_.id,
-            _external=True),
-        'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
-        '_label': type_.name}
-    if type_.dates.begin_from or type_.dates.end_from:
-        property_ = property_ | get_loud_timespan(type_)
-    for super_type in [g.types[root] for root in type_.root]:
-        property_['part_of'] = [get_type_property(super_type, type_references)]
-
-    external_references = {}
-    for type_link in type_references.get(type_.id, []):
-        url = type_link.domain.name
-        if type_link.domain.class_.name == 'reference_system':
-            system = g.reference_systems[type_link.domain.id]
-            url = f'{system.resolver_url or ''}{type_link.description}'
-        if not validators.url(url):
-            continue
-        match_property = 'equivalent'
-        if type_link.type \
-                and g.types.get(type_link.type.id) \
-                and 'close' in g.types[type_link.type.id].name:
-            match_property = 'related'
-        if match_property not in external_references:
-            external_references[match_property] = []
-        external_references[match_property].append({
-            "id": url,
-            "type": "Type",
-            "_label": type_.name})
-    return property_ | external_references
 
 
 def get_standard_type_loud(types: dict[Entity, Any]) -> Optional[Entity]:
