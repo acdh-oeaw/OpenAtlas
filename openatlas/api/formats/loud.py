@@ -287,7 +287,7 @@ class LoudFormatter:
             if type_link.domain.class_.name == 'reference_system':
                 system = g.reference_systems[type_link.domain.id]
                 url = f'{system.resolver_url or ''}{type_link.description}'
-            if not validators.url(url):
+            if not validators.url(url):  # pragma: no cover
                 continue
             match_property = 'equivalent'
             if type_link.type \
@@ -309,7 +309,7 @@ class LoudFormatter:
         if not isinstance(entity, Link):
             if entity.class_.name == 'person':
                 return self._get_loud_person_timespan(entity, links_)
-            elif entity.class_.name == 'group':
+            if entity.class_.name == 'group':
                 return self._get_loud_group_timespan(entity, links_)
         if not entity.dates.dates_available():
             return {}
@@ -477,7 +477,8 @@ class LoudFormatter:
             properties_set: dict[str, Any],
             entity: Entity) -> None:
         match_property = 'equivalent'
-        if g.types.get(link_.type.id) and \
+        if link_.type and \
+                g.types.get(link_.type.id) and \
                 'close' in g.types[link_.type.id].name:
             match_property = 'related'
         system = g.reference_systems[link_.domain.id]

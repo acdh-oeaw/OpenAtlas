@@ -140,7 +140,7 @@ class Api(ApiTestCase):
                 'api_04.network_visualisation',
                 exclude_system_classes='type'))
         rv = rv.get_json()
-        assert len(rv['results']) == 61
+        assert len(rv['results']) == 64
         rv = c.get(
             url_for(
                 'api_04.network_visualisation',
@@ -149,7 +149,7 @@ class Api(ApiTestCase):
         assert len(rv['results']) == 15
         rv = c.get(url_for('api_04.network_visualisation', download=True))
         rv = rv.get_json()
-        assert len(rv['results']) == 157
+        assert len(rv['results']) == 160
 
         rv = c.get(
             url_for(
@@ -157,7 +157,7 @@ class Api(ApiTestCase):
                 id_=place.id,
                 exclude_system_classes='type'))
         rv = rv.get_json()
-        assert len(rv['results']) == 12
+        assert len(rv['results']) == 13
         rv = c.get(
             url_for(
                 'api_04.ego_network_visualisation',
@@ -179,7 +179,7 @@ class Api(ApiTestCase):
                 id_=place.id,
                 download=True))
         rv = rv.get_json()
-        assert len(rv['results']) == 16
+        assert len(rv['results']) == 17
 
         for rv in [
                 c.get(url_for('api_04.geometric_entities')),
@@ -236,7 +236,7 @@ class Api(ApiTestCase):
                == [16.37069611, 48.208571233]
         assert rv['depictions'][0]['@id']
         assert rv['depictions'][0]['title'] == 'Picture with a License'
-        assert rv['depictions'][0]['license'] == 'Public domain'
+        assert rv['depictions'][0]['license'] == 'CC BY 4.0'
         assert rv['depictions'][0]['url']
 
         rv = c.get(
@@ -707,7 +707,7 @@ class Api(ApiTestCase):
                     "operator": "equal",
                     "values": [boundary_mark.id, height.id]}]}]),
             (6, [{"entityName": [{"operator": "like", "values": ["Fr"]}]}]),
-            (7, [{
+            (8, [{
                 "typeIDWithSubs": [{
                     "operator": "equal",
                     "values": [boundary_mark.id, height.id,
@@ -719,12 +719,12 @@ class Api(ApiTestCase):
                 "relationToID": [{
                     "operator": "equal",
                     "values": [place.id]}]}]),
-            (162, [{
+            (164, [{
                 "typeIDWithSubs": [{
                     "operator": "notEqual",
                     "values": [boundary_mark.id],
                     "logicalOperator": "and"}]}]),
-            (164, [{
+            (166, [{
                 "typeName": [{
                     "operator": "notEqual",
                     "values": ["Boundary Mark", "Height"],

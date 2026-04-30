@@ -21,10 +21,12 @@ VALUES
   ('E31', 'file', 'File without file', 'No file', CURRENT_TIMESTAMP),
   ('E31', 'file', 'File not public', 'Not public', CURRENT_TIMESTAMP),
   ('E33', 'source', 'Silmarillion', 'The Silmarillion', CURRENT_TIMESTAMP),
+  ('E33', 'source', 'Silmarillion text', 'Nice text', CURRENT_TIMESTAMP),
   ('E21', 'person', 'Frodo', 'That is Frodo', CURRENT_TIMESTAMP),
   ('E21', 'person', 'https://viaf.org/viaf/95218067', 'John Ronald Reuel Tolkien', CURRENT_TIMESTAMP),
   ('E31', 'external_reference', 'https://lotr.fandom.com/', NULL, CURRENT_TIMESTAMP),
   ('E31', 'bibliography', 'Frodo et. al.', 'Book of Frodo and his friends', CURRENT_TIMESTAMP),
+  ('E31', 'edition', 'Translation of Silmarillion', 'Book of Frodo and his friends', CURRENT_TIMESTAMP),
   ('E41', 'appellation', 'Sûza', NULL, CURRENT_TIMESTAMP),
   ('E41', 'appellation', 'The ring bearer', NULL, CURRENT_TIMESTAMP),
   ('E7', 'activity', 'Travel to Mordor', NULL, CURRENT_TIMESTAMP),
@@ -86,6 +88,8 @@ VALUES
 
 INSERT INTO model.link (property_code, range_id, domain_id)
 VALUES
+  ('P2', (SELECT id FROM model.entity WHERE name='Original Text'), (SELECT id FROM model.entity WHERE name='Silmarillion text')),
+  ('P73', (SELECT id FROM model.entity WHERE name='Silmarillion text'), (SELECT id FROM model.entity WHERE name='Silmarillion')),
   ('P127', (SELECT id FROM model.entity WHERE name='Case Study'), (SELECT id FROM model.entity WHERE name='Lord of the rings')),
   ('P127', (SELECT id FROM model.entity WHERE name='Stratigraphic unit'), (SELECT id FROM model.entity WHERE name='Tavern')),
   ('P127', (SELECT id FROM model.entity WHERE name='Feature'), (SELECT id FROM model.entity WHERE name='Hills')),
@@ -120,6 +124,8 @@ VALUES
   ('P74', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam')),
   ('OA8', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam')),
   ('OA9', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam')),
+  ('OA8', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='The Fellowship')),
+  ('OA9', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='The Fellowship')),
   ('P2', (SELECT id FROM model.entity WHERE name='Lord of the rings'), (SELECT id FROM model.entity WHERE name='Exchange of the one ring')),
   ('P2', (SELECT id FROM model.entity WHERE name='Male'), (SELECT id FROM model.entity WHERE name='Frodo')),
   ('P2', (SELECT id FROM model.entity WHERE name='Link'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain')),
@@ -140,34 +146,38 @@ VALUES
   ('P67', (SELECT id FROM model.entity WHERE name='https://viaf.org/viaf/95218067'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='File without license') ),
   ('P52', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='The One Ring') ),
-  ('P2', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
+  ('P2', (SELECT id FROM model.entity WHERE name='CC BY 4.0'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
   ('P2', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='File without file') ),
   ('P2', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='File not public') ),
   ('P74', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam') ),
   ('OA8', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam') ),
   ('OA9', (SELECT id FROM model.entity WHERE name='Location of Shire'), (SELECT id FROM model.entity WHERE name='Sam') ),
   ('P11', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Travel to Mordor') ),
-  ('P11', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='The Fellowship') ),
-  ('P11', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='The Fellowship') ),
   ('P134', (SELECT id FROM model.entity WHERE name='Travel to Mordor'), (SELECT id FROM model.entity WHERE name='Exchange of the one ring') ),
   ('P7', (SELECT id FROM model.entity WHERE name='Location of Mordor'), (SELECT id FROM model.entity WHERE name='Travel to Mordor') );
 
 INSERT INTO model.link (property_code, range_id, domain_id, begin_from, end_from)
 VALUES
-  ('P14', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='Travel to Mordor'), '2018-03-01', '2018-04-01' );
+  ('P14', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='Travel to Mordor'), '2018-03-01', '2018-04-01' ),
+  ('P107', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='The Fellowship'), '0020-03-01', '0030-04-01' ),
+  ('P107', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='The Fellowship'), '0024-03-01', '0030-04-01' );
 
 INSERT INTO model.link (property_code, range_id, domain_id, description, type_id)
 VALUES
+
+  ('P107', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='The Fellowship'), NULL, (SELECT id FROM model.entity WHERE name='Bishop') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='Frodo et. al.'), '987', NULL ),
   ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Frodo et. al.'), '234', NULL ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Translation of Silmarillion'), '234', NULL ),
   ('P67', (SELECT id FROM model.entity WHERE name='Picture with a License'), (SELECT id FROM model.entity WHERE name='Frodo et. al.'), '112', NULL ),
   ('P67', (SELECT id FROM model.entity WHERE name='Picture with a License'), (SELECT id FROM model.entity WHERE name='https://doi.org/10.2307/j.ctv1vtz8mq.3'), NULL, NULL ),
   ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='GeoNames'), '2761369', (SELECT id FROM model.entity WHERE name='close match') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q218728', (SELECT id FROM model.entity WHERE name='exact match') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Mordor'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q202886', (SELECT id FROM model.entity WHERE name='exact match') ),
-  ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q177329', (SELECT id FROM model.entity WHERE name='exact match') ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q177329', (SELECT id FROM model.entity WHERE name='close match') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Sam'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q219473', (SELECT id FROM model.entity WHERE name='exact match') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Lord of the rings'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q15228', (SELECT id FROM model.entity WHERE name='exact match') ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Bishop'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q29182', (SELECT id FROM model.entity WHERE name='exact match') ),
   ('OA7', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Sam'), NULL, (SELECT id FROM model.entity WHERE name='Economical') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='https://doi.org/10.2307/j.ctv1vtz8mq.3'), 'Studying The Lord of the Rings', NULL ),
   ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='https://lotr.fandom.com/'), 'Fandom Wiki of lord of the rings', NULL),
@@ -177,9 +187,11 @@ VALUES
   ('P2', (SELECT id FROM model.entity WHERE name='Height'), (SELECT id FROM model.entity WHERE name='Shire'), '23.0', NULL ),
   ('P2', (SELECT id FROM model.entity WHERE name='Weight'), (SELECT id FROM model.entity WHERE name='Shire'), '999.0', NULL ),
   ('P2', (SELECT id FROM model.entity WHERE name='Link'), (SELECT id FROM model.entity WHERE name='https://lotr.fandom.com/'), NULL, NULL ),
-  ('P2', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://en.wikipedia.org/wiki/Public_domain', NULL ),
-  ('P2', (SELECT id FROM model.entity WHERE name='CC BY 4.0'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://creativecommons.org/licenses/by/4.0/deed.de', NULL ),
-  ('P2', (SELECT id FROM model.entity WHERE name='CC BY-SA 4.0'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://creativecommons.org/licenses/by-sa/4.0/deed.de', NULL );
+  ('P67', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://en.wikipedia.org/wiki/Public_domain', NULL ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='Wikidata'), 'Q19652', (SELECT id FROM model.entity WHERE name='exact match') ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Public domain'), (SELECT id FROM model.entity WHERE name='GND'), 'public', (SELECT id FROM model.entity WHERE name='close match') ),
+  ('P67', (SELECT id FROM model.entity WHERE name='CC BY 4.0'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://creativecommons.org/licenses/by/4.0/deed.de', NULL ),
+  ('P67', (SELECT id FROM model.entity WHERE name='CC BY-SA 4.0'), (SELECT id FROM model.entity WHERE name='https://en.wikipedia.org/wiki/Public_domain'), 'https://creativecommons.org/licenses/by-sa/4.0/deed.de', NULL );
 
 INSERT INTO web.entity_profile_image (entity_id, image_id)
 VALUES ( (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='Picture with a License') )
