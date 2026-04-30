@@ -38,63 +38,207 @@ def get_file_dimensions(entity: Entity) -> dict[str, Any]:
             "_label": unit_map[file_size.split()[1]]}}]}
 
 
-def get_digital_object_details(
-        entity: Entity,
-        type_references: dict[int, list[Link]]) -> dict[str, Any]:
-    mime_type, _ = mimetypes.guess_type(g.files[entity.id])
-    file_ = get_file_path(entity.id)
-    digital_object: dict[str, Any] = {
-        'format': mime_type,
-        "classified_as": [{
-            "id": "https://vocab.getty.edu/aat/300215302",
-            "type": "Type",
-            "_label": "Digital Image"}]}
-    if file_ and file_.stem:
-        digital_object.update({"access_point": [{
-            "id": url_for(
-                'api.display',
-                filename=file_.stem if file_ else '',
-                _external=True),
-            "type": "DigitalObject"}]})
-    if entity.license_holder:
-        for license_holder in entity.license_holder:
-            digital_object.update({
-                'right_held_by': [{
-                    '_label': license_holder.name,
-                    'type': 'Actor'}]})
-    if entity.creator:
-        for creator in entity.creator:
-            digital_object.update({'created_by': [{
-                '_label': f'Creation of {entity.name}',
-                'type': 'Creation',
-                'carried_out_by': [{
-                    '_label': creator.name,
-                    'type': 'Actor'}]}]})
-    if license_ := get_license_type(entity):
-        subject_to: dict[str, Any] = {
-            'type': "Right",
-            '_label': f'License of {entity.name}',
-            "identified_by": [{
-                'id': url_for(
-                    'api.entity',
-                    id_=license_.id,
-                    _external=True),
-                "type": "Name",
-                "content": license_.name}]}
-        classified_as = []
-        for type_link in type_references.get(license_.id, []):
-            url = type_link.domain.name
-            if type_link.domain.class_.name == 'reference_system':
-                system = g.reference_systems[type_link.domain.id]
-                url = f'{system.resolver_url or ''}{type_link.description}'
-            classified_as.append({
-                "id": url,
+class LoudFormatter:
+
+    def __init__(
+            self,
+            loud_context: dict[str, str],
+            type_references: dict[int, list[Link]]) -> None:
+        self.loud = loud_context
+        self.type_refs = type_references
+        self.handlers = {
+            'P1': self._handle_p1,
+            'P2': self._handle_p2,
+            'P67': self._handle_p67,
+            'P73': self._handle_p73,
+            'OA7': self._handle_oa7}
+
+    def format_link(self, link_: Link, is_domain: bool) -> Any:
+        target = link_.domain if is_domain else link_.range
+        property_: Any = {
+            'id': url_for('api.entity', id_=target.id, _external=True),
+            'type': self.loud[
+                get_crm_code(link_, is_domain).replace(' ', '_')],
+            '_label': target.name}
+        if link_.dates.begin_from or link_.dates.end_from:
+            property_ = property_ | get_loud_timespan(link_)
+        code_ = link_.property.code
+        if code_ != 'P2' and link_.type:
+            property_['classified_as'] = [get_type_property(
+                g.types[link_.type.id], self.type_refs)]
+        handler = self.handlers.get(code_)
+        if handler:
+            return handler(property_, link_, is_domain)
+        return property_
+
+    def get_digital_object_details(
+            self,
+            entity: Entity) -> dict[str, Any]:
+        mime_type, _ = mimetypes.guess_type(g.files[entity.id])
+        file_ = get_file_path(entity.id)
+        digital_object: dict[str, Any] = {
+            'format': mime_type,
+            "classified_as": [{
+                "id": "https://vocab.getty.edu/aat/300215302",
                 "type": "Type",
-                "_label": license_.name})
-        if classified_as:
-            subject_to['classified_as'] = classified_as
-        digital_object.update({'subject_to': [subject_to]})
-    return digital_object
+                "_label": "Digital Image"}]}
+        if file_ and file_.stem:
+            digital_object.update({"access_point": [{
+                "id": url_for(
+                    'api.display',
+                    filename=file_.stem if file_ else '',
+                    _external=True),
+                "type": "DigitalObject"}]})
+        if entity.license_holder:
+            for license_holder in entity.license_holder:
+                digital_object.update({
+                    'right_held_by': [{
+                        '_label': license_holder.name,
+                        'type': 'Actor'}]})
+        if entity.creator:
+            for creator in entity.creator:
+                digital_object.update({'created_by': [{
+                    '_label': f'Creation of {entity.name}',
+                    'type': 'Creation',
+                    'carried_out_by': [{
+                        '_label': creator.name,
+                        'type': 'Actor'}]}]})
+        if license_ := get_license_type(entity):
+            subject_to: dict[str, Any] = {
+                'type': "Right",
+                '_label': f'License of {entity.name}',
+                "identified_by": [{
+                    'id': url_for(
+                        'api.entity',
+                        id_=license_.id,
+                        _external=True),
+                    "type": "Name",
+                    "content": license_.name}]}
+            classified_as = []
+            for type_link in self.type_refs.get(license_.id, []):
+                url = type_link.domain.name
+                if type_link.domain.class_.name == 'reference_system':
+                    system = g.reference_systems[type_link.domain.id]
+                    url = (
+                        f'{system.resolver_url or ''}'
+                        f'{type_link.description}')
+                classified_as.append({
+                    "id": url,
+                    "type": "Type",
+                    "_label": license_.name})
+            if classified_as:
+                subject_to['classified_as'] = classified_as
+            digital_object.update({'subject_to': [subject_to]})
+        return digital_object
+
+    def _handle_p1(
+            self,
+            property_: dict[str, Any],
+            link_: Link,
+            is_domain: bool) -> dict[str, Any]:
+        target = link_.domain if is_domain else link_.range
+        del property_['id']
+        property_['content'] = target.name
+        return property_
+
+    def _handle_p2(
+            self,
+            property_: dict[str, Any],
+            link_: Link,
+            is_domain: bool) -> dict[str, Any]:
+        target = link_.domain if is_domain else link_.range
+        if link_.description:
+            property_['value'] = link_.description
+            property_['unit'] = {
+                'type': "MeasurementUnit",
+                '_label': target.description}
+        super_type = g.types[g.types[link_.range.id].root[-1]]
+        property_['part_of'] = [
+            get_type_property(super_type, self.type_refs)]
+        return property_
+
+    def _handle_p73(
+            self,
+            property_: dict[str, Any],
+            link_: Link,
+            is_domain: bool) -> dict[str, Any]:
+        if is_domain:
+            return property_
+        property_['content'] = link_.range.description
+        if link_.range.standard_type:
+            property_['classified_as'] = [get_type_property(
+                g.types[link_.range.standard_type.id],
+                self.type_refs)]
+        return property_
+
+    def _handle_p67(
+            self,
+            property_: dict[str, Any],
+            link_: Link,
+            is_domain: bool) -> dict[str, Any]:
+        if not is_domain:
+            if link_.description:
+                property_['content'] = link_.description
+            return property_
+        property_['classified_as'] = []
+        if link_.domain.class_.name == 'file':
+            property_['type'] = 'DigitalObject'
+        if standard_type := get_standard_type_loud(link_.domain.types):
+            property_['classified_as'].append(
+                get_type_property(standard_type, self.type_refs))
+        if link_.description:
+            property_['content'] = link_.description
+        if link_.domain.class_.name == 'bibliography':
+            property_['classified_as'].append({
+                "id": "https://vocab.getty.edu/aat/300026652",
+                "type": "Type",
+                "_label": "Bibliography"})
+        if link_.domain.class_.name == 'edition':
+            property_['classified_as'].append({
+                "id": "https://vocab.getty.edu/aat/300404319",
+                "type": "Type",
+                "_label": "Edition"})
+        if link_.domain.class_.name == 'external_reference':
+            property_ = {
+                "id": url_for(
+                    'api.entity',
+                    id_=link_.domain.id,
+                    _external=True),
+                "type": "LinguisticObject",
+                "digitally_carried_by": [{
+                    "type": "DigitalObject",
+                    "classified_as": [{
+                        "id": "https://vocab.getty.edu/aat/300264578",
+                        "type": "Type",
+                        "_label": "Web Page"}],
+                    "format": "text/html",
+                    "_label": link_.domain.name,
+                    "access_point": [{
+                        "id": link_.domain.name,
+                        "type": "DigitalObject"}]}]}
+        return property_
+
+    def _handle_oa7(
+            self,
+            property_: dict[str, Any],
+            link_: Link,
+            is_domain: bool) -> Any:
+        if is_domain:
+            label = (
+                f'Relationship between '
+                f'{link_.range.name} and {link_.domain.name}')
+        else:
+            label = (
+                f'Relationship between '
+                f'{link_.domain.name} and {link_.range.name}')
+        relationship: dict[str, Any] = {
+            'type': 'Event',
+            '_label': label,
+            'had_participant': [property_]}
+        if link_.type:
+            relationship['classified_as'] = [
+                get_type_property(g.types[link_.type.id], self.type_refs)]
+        return [relationship] if is_domain else relationship
 
 
 def get_loud_entities(
@@ -102,132 +246,7 @@ def get_loud_entities(
         loud: dict[str, str],
         type_references: dict[int, list[Link]]) -> Any:
     entity = data['entity']
-
-    def get_range_links() -> dict[str, Any]:
-        property_: Any = {
-            'id': url_for(
-                'api.entity',
-                id_=link_.range.id,
-                _external=True),
-            'type': loud[get_crm_code(link_).replace(' ', '_')],
-            '_label': link_.range.name}
-        if link_.dates.begin_from or link_.dates.end_from:
-            property_ = property_ | get_loud_timespan(link_)
-        code_ = link_.property.code
-        if code_ == 'P2':
-            if link_.description:
-                property_['value'] = link_.description
-                property_['unit'] = {
-                    'type': "MeasurementUnit",
-                    '_label': link_.range.description}
-            super_type = g.types[g.types[link_.range.id].root[-1]]
-            property_['part_of'] = [
-                get_type_property(super_type, type_references)]
-        elif link_.type:
-            property_['classified_as'] = [
-                get_type_property(g.types[link_.type.id], type_references)]
-        if code_ == 'P73':
-            property_['content'] = link_.range.description
-            if link_.range.standard_type:
-                property_['classified_as'] = [
-                    get_type_property(
-                        g.types[link_.range.standard_type.id],
-                        type_references)]
-        if code_ == 'P67' and link_.description:
-            property_['content'] = link_.description
-        if code_ == 'OA7':
-            relationship = {
-                'type': 'Event',
-                '_label':
-                    f'Relationship between '
-                    f'{link_.domain.name} and {link_.range.name}',
-                'had_participant': [property_]}
-            if link_.type:
-                relationship['classified_as'] = [
-                    get_type_property(g.types[link_.type.id], type_references)]
-            property_ = relationship
-        if code_ == 'P1':
-            del property_['id']
-            property_['content'] = link_.range.name
-
-        return property_
-
-    def get_domain_links() -> dict[str, Any]:
-        property_: Any = {
-            'id': url_for(
-                'api.entity',
-                id_=link_.domain.id,
-                _external=True),
-            'type': loud[get_crm_code(link_, True).replace(' ', '_')],
-            '_label': link_.domain.name}
-        if link_.dates.begin_from or link_.dates.end_from:
-            property_ = property_ | get_loud_timespan(link_)
-        code_ = link_.property.code
-        if code_ == 'P2':
-            if link_.description:
-                property_['value'] = link_.description
-                property_['unit'] = {
-                    'type': "MeasurementUnit",
-                    '_label': link_.domain.description}
-            super_type = g.types[g.types[link_.range.id].root[-1]]
-            property_['part_of'] = [
-                get_type_property(super_type, type_references)]
-        elif link_.type:
-            property_['classified_as'] = [
-                get_type_property(g.types[link_.type.id], type_references)]
-        if code_ == 'P67':
-            property_['classified_as'] = []
-            if link_.domain.class_.name == 'file':
-                property_['type'] = 'DigitalObject'
-            if standard_type := get_standard_type_loud(link_.domain.types):
-                property_['classified_as'].append(
-                    get_type_property(standard_type, type_references))
-
-            if link_.description:
-                property_['content'] = link_.description
-            if link_.description and link_.domain.cidoc_class.code == 'E32':
-                pass
-            if link_.domain.class_.name == 'bibliography':
-                property_['classified_as'].append({
-                    "id": "https://vocab.getty.edu/aat/300026652",
-                    "type": "Type",
-                    "_label": "Bibliography"})
-            if link_.domain.class_.name == 'edition':
-                property_['classified_as'].append({
-                    "id": "https://vocab.getty.edu/aat/300404319",
-                    "type": "Type",
-                    "_label": "Edition"})
-            if link_.domain.class_.name == 'external_reference':
-                property_ = {
-                    "id": url_for(
-                        'api.entity',
-                        id_=link_.domain.id,
-                        _external=True),
-                    "type": "LinguisticObject",
-                    "digitally_carried_by": [{
-                        "type": "DigitalObject",
-                        "classified_as": [{
-                            "id": "https://vocab.getty.edu/aat/300264578",
-                            "type": "Type",
-                            "_label": "Web Page"}],
-                        "format": "text/html",
-                        "_label": link_.domain.name,
-                        "access_point": [{
-                            "id": link_.domain.name,
-                            "type": "DigitalObject"}]}]}
-        if code_ == 'OA7':
-            relationship = {
-                'type': 'Event',
-                '_label':
-                    f'Relationship between '
-                    f'{link_.range.name} and {link_.domain.name}',
-                'had_participant': [property_]}
-            if link_.type:
-                relationship['classified_as'] = [
-                    get_type_property(g.types[link_.type.id], type_references)]
-            property_ = [relationship]
-        return property_
-
+    formatter = LoudFormatter(loud, type_references)
     properties_set = defaultdict(list)
     for link_ in data['links']:
         if link_.property.code in ['OA8', 'OA9']:
@@ -245,10 +264,11 @@ def get_loud_entities(
 
         if link_.property.code == 'P53':
             for geom in get_wkt_by_id(link_.range.id):
-                base_property = get_range_links() | geom
+                base_property = \
+                    formatter.format_link(link_, is_domain=False) | geom
                 properties_set[property_name].append(base_property)
         else:
-            base_property = get_range_links()
+            base_property = formatter.format_link(link_, is_domain=False)
             properties_set[property_name].append(base_property)
 
     file_links = []
@@ -268,7 +288,8 @@ def get_loud_entities(
 
         if link_.property.code == 'P53':
             for geom in get_wkt_by_id(link_.range.id):
-                base_property = get_domain_links() | geom
+                base_property = \
+                    formatter.format_link(link_, is_domain=True) | geom
                 properties_set[property_name].append(base_property)
         elif link_.property.code == 'P67' and \
                 link_.domain.cidoc_class.code == 'E32':
@@ -325,20 +346,18 @@ def get_loud_entities(
                     carried_out = carried_out | get_loud_timespan(link_)
                 properties_set['carried_out'].append(carried_out)
         else:
-            base_property = get_domain_links()
+            base_property = formatter.format_link(link_, is_domain=True)
             properties_set[property_name].append(base_property)
 
     if file_links:
         properties_set['representation'].extend(
-            get_loud_representations(file_links, type_references))
+            get_loud_representations(file_links, formatter))
         properties_set['subject_of'].extend(
             get_loud_iiif_subject_of(file_links))
 
     if entity.class_.name == 'file' and g.files.get(entity.id):
         properties_set.update(get_file_dimensions(entity))
-        properties_set.update(get_digital_object_details(
-            entity,
-            type_references))
+        properties_set.update(formatter.get_digital_object_details(entity))
 
     properties_set['identified_by'].append({
         "type": "Name",
@@ -391,7 +410,7 @@ def get_loud_property_name(
 
 def get_loud_representations(
         image_links: list[Link],
-        type_references: dict[int, list[Link]]) -> list[dict[str, Any]]:
+        formatter: 'LoudFormatter') -> list[dict[str, Any]]:
     representation = []
     for link_ in image_links:
         entity = link_.domain
@@ -402,7 +421,7 @@ def get_loud_representations(
                 _external=True),
             '_label': entity.name,
             'type': 'DigitalObject'}
-        image.update(get_digital_object_details(entity, type_references))
+        image.update(formatter.get_digital_object_details(entity))
         representation.append({
             'type': 'VisualItem',
             'digitally_shown_by': [image]})
