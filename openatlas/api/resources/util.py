@@ -226,7 +226,7 @@ def date_to_utc_iso_str(date: Any) -> str | None:
         return None
     date_str = str(date)
     if not date_str.endswith('Z'):
-        return f'{date_str}Z'
+        date_str = f'{date_str}Z'
     return date_str
 
 
