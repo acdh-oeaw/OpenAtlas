@@ -15,7 +15,14 @@ def index_changelog() -> str:
 
 
 versions = {
-    '9.3.0': ['TBA', {}],
+    '9.3.0': ['TBA', {
+        'feature': {
+            '2775': 'Advanced image validation',
+            '2774': 'Vocabs: include external links',
+            '2782': 'Vocabs: Import top collection as type',
+            '2790': 'Refactor and minor improvements'},
+        'fix': {
+            '2789': 'Missing start/end dates in some tabs'}}],
     '9.2.0': ['2026-04-15', {
         'feature': {
             '2570': 'Improved tracking of file creator and license holder',
