@@ -21,6 +21,24 @@ unit_map = {
     'GB': 'gigabytes',
     'TB': 'terabytes'}
 
+ARCHAEOLOGY_AAT: dict[str, dict[str, str]] = {
+    'feature': {
+        'id': 'https://vocab.getty.edu/aat/300000801',
+        'type': 'Type',
+        '_label': 'features'},
+    'stratigraphic_unit': {
+        'id': 'https://vocab.getty.edu/aat/300411781',
+        'type': 'Type',
+        '_label': 'stratigraphic units'},
+    'artifact': {
+        'id': 'https://vocab.getty.edu/aat/300117127',
+        'type': 'Type',
+        '_label': 'artifacts'},
+    'human_remains': {
+        'id': 'https://vocab.getty.edu/aat/300251789',
+        'type': 'Type',
+        '_label': 'human remains'}}
+
 
 class LoudFormatter:
 
@@ -59,10 +77,13 @@ class LoudFormatter:
 
     def format_link(self, link_: Link, is_domain: bool) -> Any:
         target = link_.domain if is_domain else link_.range
+        type_ = self.loud[
+            get_crm_code(link_, is_domain).replace(' ', '_')]
+        if target.class_.name == 'human_remains':
+            type_ = 'BiologicalObject'
         property_: Any = {
             'id': url_for('api.entity', id_=target.id, _external=True),
-            'type': self.loud[
-                get_crm_code(link_, is_domain).replace(' ', '_')],
+            'type': type_,
             '_label': target.name}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
@@ -70,23 +91,36 @@ class LoudFormatter:
         if code_ != 'P2' and link_.type:
             property_['classified_as'] = [
                 self._format_type_property(g.types[link_.type.id])]
+        self._prepend_archaeology_classification(target, property_)
         handler = self.handlers.get(code_)
         if handler:
             return handler(property_, link_, is_domain)
         return property_
 
     @staticmethod
+    def _prepend_archaeology_classification(
+            entity: Entity,
+            property_: dict[str, Any]) -> None:
+        if aat := ARCHAEOLOGY_AAT.get(entity.class_.name):
+            property_['classified_as'] = (
+                [aat] + property_.get('classified_as', []))
+
+    @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
         type_ = remove_spaces_dashes(entity.cidoc_class.i18n['en'])
         if entity.class_.name == 'file':
             type_ = 'DigitalObject'
-        return {
+        if entity.class_.name == 'human_remains':
+            type_ = 'BiologicalObject'
+        result: dict[str, Any] = {
             'id': url_for(
                 'api.entity',
                 id_=entity.id,
                 _external=True),
             'type': type_,
             '_label': entity.name}
+        LoudFormatter._prepend_archaeology_classification(entity, result)
+        return result
 
     @staticmethod
     def get_file_dimensions(entity: Entity) -> dict[str, Any]:
