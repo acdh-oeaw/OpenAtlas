@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import bcrypt
-from bcrypt import hashpw
 from flask import abort, flash, g, render_template, request, session, url_for
 from flask_babel import gettext as _
+from flask_bcrypt import Bcrypt
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user)
 from flask_wtf import FlaskForm
@@ -60,10 +60,10 @@ def login() -> str | Response:
                     f'Login attempts exceeded: {user.username}')
                 flash(_('error login attempts exceeded'), 'error')
                 return render_template('login.html', form=form)
-            hash_ = hashpw(
-                form.password.data.encode('utf-8'),
-                user.password.encode('utf-8'))
-            if hash_ == user.password.encode('utf-8'):
+            flask_bcrypt = Bcrypt(app)
+            if flask_bcrypt.check_password_hash(
+                    user.password,
+                    form.password.data.encode('utf-8')):
                 if user.active:
                     login_user(user)
                     session['login_previous_success'] = user.login_last_success
