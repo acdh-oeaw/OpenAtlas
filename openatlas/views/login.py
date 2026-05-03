@@ -51,7 +51,7 @@ def login() -> str | Response:
         return redirect('/')
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.get_by_username(request.form['username'])
+        user = User.get_by_username(form.username.data)
         if user and user.username:
             if user.login_attempts_exceeded():
                 g.logger.log(
@@ -61,7 +61,7 @@ def login() -> str | Response:
                 flash(_('error login attempts exceeded'), 'error')
                 return render_template('login.html', form=form)
             hash_ = hashpw(
-                request.form['password'].encode('utf-8'),
+                form.password.data.encode('utf-8'),
                 user.password.encode('utf-8'))
             if hash_ == user.password.encode('utf-8'):
                 if user.active:
@@ -95,7 +95,7 @@ def login() -> str | Response:
             g.logger.log(
                 'notice',
                 'auth',
-                f'Wrong username: {request.form['username']}')
+                f'Wrong username: {form.username.data}')
             flash(_('Invalid user or password'), 'error')
     return render_template(
         'login.html',
@@ -115,8 +115,6 @@ def reset_password() -> str | Response:
             user.password_reset_code = code
             user.password_reset_date = datetime.now()
             user.update()
-            url = url_for('reset_confirm', code=code)
-            link = f'{request.scheme}://{request.headers['Host']}{url}'
             subject = _(
                 'Password reset request for %(site_name)s',
                 site_name=g.settings['site_name'])
@@ -124,9 +122,9 @@ def reset_password() -> str | Response:
                 'We received a password reset request for %(username)s',
                 username=user.username)
             body += \
-                f' {_('at')} {request.headers['Host']}\n\n' \
+                f' {_('at')} {url_for('login', _external=True)}\n\n' \
                 f'{_('reset password link')}:\n\n' \
-                f'{link}\n\n' \
+                f'{url_for('reset_confirm', code=code, _external=True)}\n\n' \
                 f'{_('The link is valid for')} ' \
                 f'{g.settings['reset_confirm_hours']} {_('hours')}.'
             email = form.email.data
@@ -174,7 +172,7 @@ def reset_confirm(code: str) -> Response:
     subject = \
         _('New password for %(sitename)s', sitename=g.settings['site_name'])
     body = _('New password for %(username)s', username=user.username) + ' '
-    body += f'{_('at')} {request.scheme}://{request.headers['Host']}:\n\n'
+    body += f'{_('at')} {url_for('login', _external=True)}:\n\n'
     body += f'{uc_first(_('username'))}: {user.username}\n'
     body += f'{uc_first(_('password'))}: {password}\n'
     if send_mail(subject, body, user.email, False):
