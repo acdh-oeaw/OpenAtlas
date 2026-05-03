@@ -50,9 +50,9 @@ def login() -> str | Response:
     if current_user.is_authenticated:
         return redirect('/')
     form = LoginForm()
-    if form.validate_on_submit():
+    if form.validate_on_submit() and form.username.data:
         user = User.get_by_username(form.username.data)
-        if user and user.username:
+        if user and user.username and form.password.data:
             if user.login_attempts_exceeded():
                 g.logger.log(
                     'notice',
