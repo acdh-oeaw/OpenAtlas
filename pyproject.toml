@@ -3,7 +3,7 @@ name = "openatlas"
 version = "9.2.0"
 description = "An open source database system for handling complex historical and archaeological data"
 readme = "README.md"
-license = { text = "GPL-2.0-only" }
+license = "GPL-2.0-only"
 authors = [
     { name = "OpenAtlas Team", email = "openatlas@oeaw.ac.at" }
 ]
