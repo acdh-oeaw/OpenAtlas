@@ -48,7 +48,7 @@ IMAGE_SIZE = {
     'table': '100'}
 
 # Security
-SESSION_COOKIE_SECURE = False  # Should be True in production.py if using HTTPS
+SESSION_COOKIE_SECURE = True  # Set to False if using locally without HTTPS
 REMEMBER_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
