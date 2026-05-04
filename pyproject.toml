@@ -68,3 +68,6 @@ Roadmap = "https://redmine.openatlas.eu/projects/openatlas/roadmap"
 Wiki = "https://redmine.openatlas.eu/projects/openatlas/wiki"
 Documentation = "https://redmine.openatlas.eu/projects/openatlas/wiki/Technical_Documentation"
 "User Manual" = "https://manual.openatlas.eu/"
+
+[tool.setuptools]
+packages = ["openatlas"]
