@@ -17,6 +17,7 @@ dependencies = [
     "flask==3.1.1",
     "flask-babel==4.0.0",
     "flask-cors==6.0.1",
+    "flask-bcrypt==1.0.1",
     "flask-jwt-extended==4.7.1",
     "flask-login==0.6.3",
     "flask-restful==0.3.10",
