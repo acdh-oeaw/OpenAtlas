@@ -3,7 +3,7 @@ FROM debian:13
 RUN --mount=type=cache,target=/var/cache/apt \
     export DEBIAN_FRONTEND=noninteractive &&\
     apt update && apt dist-upgrade -y --no-install-recommends &&\
-    apt install -y --no-install-recommends python3 python3-bcrypt python3-dateutil python3-psycopg2 python3-fuzzywuzzy python3-flask &&\
+    apt install -y --no-install-recommends python3 python3-bcrypt python3-dateutil python3-psycopg2 python3-levenshtein python3-flask &&\
     apt install -y --no-install-recommends python3-flask-babel python3-flask-login python3-flaskext.wtf python3-markdown python3-numpy &&\
     apt install -y --no-install-recommends python3-pandas python3-jinja2 python3-flask-cors python3-flask-restful p7zip-full python3-flask-bcrypt &&\
     apt install -y --no-install-recommends python3-wand python3-rdflib python3-requests python3-flasgger python3-fiona python3-magic &&\
