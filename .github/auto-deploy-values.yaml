@@ -10,7 +10,7 @@ postgis:
 service:
   name: "web"
   additionalHosts:
-    - ${app_name_in_url}-${ref_name}.${kube_ingress_base_domain}
+    - ${app_name_in_url}-${ref_slug}.${kube_ingress_base_domain}
   type: ClusterIP
   externalPort: 8080
   internalPort: 8080
