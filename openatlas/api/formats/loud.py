@@ -1,3 +1,4 @@
+import ast
 import mimetypes
 from collections import defaultdict
 from typing import Any
@@ -103,7 +104,7 @@ class LoudFormatter:
             property_: dict[str, Any]) -> None:
         if aat := ARCHAEOLOGY_AAT.get(entity.class_.name):
             property_['classified_as'] = (
-                [aat] + property_.get('classified_as', []))
+                    [aat] + property_.get('classified_as', []))
 
     @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
@@ -197,6 +198,64 @@ class LoudFormatter:
                 subject_to['classified_as'] = classified_as
             digital_object.update({'subject_to': [subject_to]})
         return digital_object
+
+    @staticmethod
+    def handle_radiocarbon(
+            link_: Link, properties_set: dict[str, Any]) -> None:
+        radio_data = ast.literal_eval(link_.description)
+        properties_set['attributed_by'].append({
+            "type": "AttributeAssignment",
+            "_label": "Radiocarbon Dating",
+            "classified_as": [{
+                "id": "http://vocab.getty.edu/aat/300054656",
+                "type": "Type",
+                "_label": "Radiocarbon Dating"}],
+            "assigned": [{
+                "type": "Dimension",
+                "_label": f'{radio_data['radiocarbonYear']} +/- '
+                          f'{radio_data['range']} {radio_data['timeScale']}',
+                "classified_as": [{
+                    "id": "http://vocab.getty.edu/aat/300054656",
+                    "type": "Type",
+                    "_label": "Radiocarbon Date"}],
+                "value": int(radio_data['radiocarbonYear']),
+                "lower_value": int(radio_data['radiocarbonYear']) - int(
+                    radio_data['range']),
+                "upper_value": int(radio_data['radiocarbonYear']) + int(
+                    radio_data['range']),
+                "unit": {
+                    "id": "http://vocab.getty.edu/aat/300379244",
+                    "type": "MeasurementUnit",
+                    "_label": f"years {radio_data['timeScale']}"},
+                "referred_to_by": [{
+                    "type": "LinguisticObject",
+                    "content": str(radio_data['range']),
+                    "_label": "Laboratory Error Range",
+                    "classified_as": [{
+                        "id": "http://vocab.getty.edu/aat/300435427",
+                        "type": "Type",
+                        "_label": "error (measure of uncertainty)"}]}]}],
+            "identified_by": [{
+                "type": "Identifier",
+                "content": f"{radio_data['labId']}-{radio_data['specId']}",
+                "_label": "Laboratory ID",
+                "classified_as": [{
+                    "id": "http://vocab.getty.edu/aat/300404621",
+                    "type": "Type",
+                    "_label": "Laboratory Identifiers"}]}, {
+                "type": "Identifier",
+                "content": str(radio_data['specId']),
+                "_label": "Specimen ID",
+                "classified_as": [{
+                    "id": "http://vocab.getty.edu/aat/300404626",
+                    "type": "Type",
+                    "_label": "Identification Numbers"}]}],
+            "carried_out_by": [{
+                "type": "Group",
+                "_label": radio_data['labId'],
+                "identified_by": [{
+                    "type": "Name",
+                    "content": radio_data['labId']}]}]})
 
     @staticmethod
     def _handle_p1(
@@ -565,7 +624,7 @@ class LoudFormatter:
             carried_out['_label'] = label
             if link_.dates.dates_available():
                 carried_out = (
-                    carried_out | self.get_loud_timespan(link_))
+                        carried_out | self.get_loud_timespan(link_))
             properties_set['carried_out'].append(carried_out)
 
     def process_link(
@@ -590,6 +649,9 @@ class LoudFormatter:
             return
         if is_inverse and link_.property.code == 'P107':
             self.handle_membership(link_, properties_set)
+            return
+        if link_.property.code == 'P2' and link_.range.name == 'Radiocarbon':
+            self.handle_radiocarbon(link_, properties_set)
             return
         property_name = self.get_property_key(link_, is_inverse)
         properties_set[property_name].append(
