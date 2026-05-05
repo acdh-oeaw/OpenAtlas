@@ -203,6 +203,24 @@ def generate_feature(geom: dict[str, Any]) -> dict[str, Any]:
             'locationId': geom['locationId']}}
 
 
+def generate_feature_without_null_values(
+        geom: dict[str, Any]) -> dict[str, Any]:
+    def remove_none_and_empty_strings(d: Any) -> Any:
+        if isinstance(d, dict):
+            return {
+                k: remove_none_and_empty_strings(v)
+                for k, v in d.items()
+                if v is not None and v != ''}
+        if isinstance(d, list):
+            return [
+                remove_none_and_empty_strings(v)
+                for v in d
+                if v is not None and v != '']
+        return d
+
+    return remove_none_and_empty_strings(generate_feature(geom))
+
+
 def get_geometries(parser: dict[str, Any]) -> list[dict[str, Any]]:
     choices = [
         'gisPointAll', 'gisPointSupers', 'gisPointSubs', 'gisPointSibling',

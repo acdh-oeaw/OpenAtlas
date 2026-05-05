@@ -8,12 +8,13 @@ from flask import g, url_for
 
 from openatlas import app
 from openatlas.api.resources.util import (
-    date_to_utc_iso_str, get_crm_code, get_crm_relation,
+    date_to_utc_iso_str, generate_feature_without_null_values, get_crm_code,
+    get_crm_relation,
     get_iiif_manifest_and_path,
     get_license_type, remove_spaces_dashes)
 from openatlas.display.util2 import get_file_path
 from openatlas.models.entity import Entity, Link
-from openatlas.models.gis import get_wkt_by_id
+from openatlas.models.gis import get_gis_by_id
 
 unit_map = {
     'B': 'bytes',
@@ -627,6 +628,13 @@ class LoudFormatter:
                         carried_out | self.get_loud_timespan(link_))
             properties_set['carried_out'].append(carried_out)
 
+    @staticmethod
+    def handle_geometries(link_: Link) -> dict[str, list[Any]]:
+        defined_by = []
+        for geom in get_gis_by_id(link_.range.id):
+            defined_by.append(generate_feature_without_null_values(geom))
+        return {'defined_by': defined_by}
+
     def process_link(
             self,
             link_: Link,
@@ -636,10 +644,11 @@ class LoudFormatter:
         is_domain = is_inverse
         if link_.property.code == 'P53':
             property_name = self.get_property_key(link_, is_inverse)
-            for geom in get_wkt_by_id(link_.range.id):
-                base_property = \
-                    self.format_link(link_, is_domain=is_domain) | geom
-                properties_set[property_name].append(base_property)
+
+            base_property = \
+                self.format_link(link_, is_domain=is_domain)
+            properties_set[property_name].append(
+                base_property | self.handle_geometries(link_))
             return
         if is_inverse \
                 and link_.property.code == 'P67' \
