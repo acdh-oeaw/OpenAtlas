@@ -282,7 +282,8 @@ def get_presentation_view(entity: Entity, parser: Parser) -> dict[str, Any]:
         'viewClass': entity.class_.group.get('name'),
         'title': entity.name,
         'description': entity.get_annotated_text()
-        if entity.class_.name == 'source' else entity.description,
+        if entity.class_.name in ['source', 'source_translation']
+        else entity.description,
         'aliases': list(entity.aliases.values()),
         'geometries': None,
         'when': get_presentation_time(entity.dates),
@@ -300,7 +301,6 @@ def get_presentation_view(entity: Entity, parser: Parser) -> dict[str, Any]:
     if entity.class_.group.get('name') in ['place', 'artifact']:
         data['geometries'] = geometry_to_feature_collection(
             geoms.get(entity.id))
-
     return data
 
 

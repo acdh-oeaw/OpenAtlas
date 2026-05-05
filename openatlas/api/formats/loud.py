@@ -13,6 +13,7 @@ from openatlas.api.resources.util import (
     get_iiif_manifest_and_path,
     get_license_type, remove_spaces_dashes)
 from openatlas.display.util2 import get_file_path
+from openatlas.models.annotation import AnnotationText
 from openatlas.models.entity import Entity, Link
 from openatlas.models.gis import get_gis_by_id
 
@@ -208,7 +209,7 @@ class LoudFormatter:
             "type": "AttributeAssignment",
             "_label": "Radiocarbon Dating",
             "classified_as": [{
-                "id": "http://vocab.getty.edu/aat/300054656",
+                "id": "https://vocab.getty.edu/aat/300054656",
                 "type": "Type",
                 "_label": "Radiocarbon Dating"}],
             "assigned": [{
@@ -216,7 +217,7 @@ class LoudFormatter:
                 "_label": f'{radio_data['radiocarbonYear']} +/- '
                           f'{radio_data['range']} {radio_data['timeScale']}',
                 "classified_as": [{
-                    "id": "http://vocab.getty.edu/aat/300054656",
+                    "id": "https://vocab.getty.edu/aat/300054656",
                     "type": "Type",
                     "_label": "Radiocarbon Date"}],
                 "value": int(radio_data['radiocarbonYear']),
@@ -225,7 +226,7 @@ class LoudFormatter:
                 "upper_value": int(radio_data['radiocarbonYear']) + int(
                     radio_data['range']),
                 "unit": {
-                    "id": "http://vocab.getty.edu/aat/300379244",
+                    "id": "https://vocab.getty.edu/aat/300379244",
                     "type": "MeasurementUnit",
                     "_label": f"years {radio_data['timeScale']}"},
                 "referred_to_by": [{
@@ -233,7 +234,7 @@ class LoudFormatter:
                     "content": str(radio_data['range']),
                     "_label": "Laboratory Error Range",
                     "classified_as": [{
-                        "id": "http://vocab.getty.edu/aat/300435427",
+                        "id": "https://vocab.getty.edu/aat/300435427",
                         "type": "Type",
                         "_label": "error (measure of uncertainty)"}]}]}],
             "identified_by": [{
@@ -241,14 +242,14 @@ class LoudFormatter:
                 "content": f"{radio_data['labId']}-{radio_data['specId']}",
                 "_label": "Laboratory ID",
                 "classified_as": [{
-                    "id": "http://vocab.getty.edu/aat/300404621",
+                    "id": "https://vocab.getty.edu/aat/300404621",
                     "type": "Type",
                     "_label": "Laboratory Identifiers"}]}, {
                 "type": "Identifier",
                 "content": str(radio_data['specId']),
                 "_label": "Specimen ID",
                 "classified_as": [{
-                    "id": "http://vocab.getty.edu/aat/300404626",
+                    "id": "https://vocab.getty.edu/aat/300404626",
                     "type": "Type",
                     "_label": "Identification Numbers"}]}],
             "carried_out_by": [{
@@ -644,9 +645,7 @@ class LoudFormatter:
         is_domain = is_inverse
         if link_.property.code == 'P53':
             property_name = self.get_property_key(link_, is_inverse)
-
-            base_property = \
-                self.format_link(link_, is_domain=is_domain)
+            base_property = self.format_link(link_, is_domain=is_domain)
             properties_set[property_name].append(
                 base_property | self.handle_geometries(link_))
             return
@@ -654,7 +653,9 @@ class LoudFormatter:
                 and link_.property.code == 'P67' \
                 and link_.domain.cidoc_class.code == 'E32':
             self.handle_authority_reference(
-                link_, properties_set, root_entity)
+                link_,
+                properties_set,
+                root_entity)
             return
         if is_inverse and link_.property.code == 'P107':
             self.handle_membership(link_, properties_set)
@@ -681,6 +682,69 @@ class LoudFormatter:
             properties_set.update(self.get_digital_object_details(entity))
 
     @staticmethod
+    def handle_description(
+            entity: Entity,
+            properties_set: dict[str, Any]) -> None:
+        description = {
+            "type": "LinguisticObject",
+            "_label": "Description",
+            "content": entity.description,
+            "classified_as": [{
+                "id": "https://vocab.getty.edu/aat/300435416",
+                "type": "Type",
+                "_label": "Description"}]}
+        part = []
+        if annotations := AnnotationText.get_by_source_id(entity.id):
+            for annotation in annotations:
+                offset = 0
+                text = entity.description or ''
+                inner_text = text[
+                    annotation.link_start + offset:
+                    annotation.link_end + offset]
+                annotation_dict = {
+                    "type": "LinguisticObject",
+                    "_label": f"Annotation: {inner_text}",
+                    "content": inner_text,
+                    "classified_as": [{
+                        "id": "https://vocab.getty.edu/aat/300435420",
+                        "type": "Type",
+                        "_label": "Annotation"}]}
+                annotation_dict = annotation_dict | {
+                    "identified_by": [{
+                        "type": "Identifier",
+                        "_label": "Text Offset",
+                        "content": f"{annotation.link_start + offset}, "
+                                   f"{annotation.link_end + offset}"}]}
+                # todo: this is not performant, get the entities somehow faster
+                # todo: add complete person structure (with identified_by)
+                if annotation.entity_id:
+                    linked_entity = Entity.get_by_id(annotation.entity_id)
+                    annotation_dict = annotation_dict | {
+                        "about": [{
+                            'id': url_for(
+                                'api.entity',
+                                id_=linked_entity.id,
+                                _external=True),
+                            'type': remove_spaces_dashes(
+                                linked_entity.cidoc_class.i18n['en']),
+                            '_label': linked_entity.name}]}
+                if annotation.text:
+                    annotation_dict = annotation_dict | {
+                        'referred_to_by': [{
+                            "type": "LinguisticObject",
+                            "_label": annotation.text,
+                            "content": annotation.text,
+                            "classified_as": [{
+                                "id": "https://vocab.getty.edu/aat/300027200",
+                                "type": "Type",
+                                "_label": "Note"}]}]}
+                part.append(annotation_dict)
+        if part:
+            description = description | {'part': part}
+
+        properties_set['referred_to_by'].append(description)
+
+    @staticmethod
     def add_core_metadata(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
@@ -696,22 +760,15 @@ class LoudFormatter:
                 'api.entity',
                 id_=entity.id,
                 _external=True)})
-        if entity.description:
-            properties_set['referred_to_by'].append({
-                "type": "LinguisticObject",
-                "content": entity.description,
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300435416",
-                    "type": "Type",
-                    "_label": "Description"}]})
 
     def finalize_output(
             self,
             entity: Entity,
             properties_set: dict[str, Any],
             links_data: list[Link]) -> dict[str, Any]:
-
         self.add_core_metadata(entity, properties_set)
+        if entity.description:
+            self.handle_description(entity, properties_set)
         return ({'@context': app.config['API_CONTEXT']['LOUD']} |
                 self.base_entity_dict(entity) |
                 self.get_loud_timespan(entity, links_data) |
