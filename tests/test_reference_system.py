@@ -6,19 +6,29 @@ from tests.base import TestBaseCase
 class ReferenceSystemTest(TestBaseCase):
     def test_reference_system(self) -> None:
         c = self.client
-        rv = c.post(url_for('ajax_info_wikidata'), data={'id_': 'Q304037'})
+        rv = c.post(
+            url_for('ajax_external_api', api='wikidata'),
+            data={'id_': 'Q304037'})
         assert b'National Library of Austria' in rv.data
 
-        rv = c.post(url_for('ajax_geonames_info'), data={'id_': '747712'})
+        rv = c.post(
+            url_for('ajax_external_api', api='geonames'),
+            data={'id_': '747712'})
         assert b'Edirne' in rv.data
 
-        rv = c.post(url_for('ajax_gnd_info'), data={'id_': '118584596'})
+        rv = c.post(
+            url_for('ajax_external_api', api='gnd'),
+            data={'id_': '118584596'})
         assert b'Mozart' in rv.data
 
-        rv = c.post(url_for('ajax_cadaster_info'), data={'id_': '01004/784/1'})
+        rv = c.post(
+            url_for('ajax_external_api', api='cadaster'),
+            data={'id_': '01004/784/1'})
         assert b'784/1' in rv.data
 
-        rv = c.post(url_for('ajax_cadaster_info'), data={'id_': '01004/78/99'})
+        rv = c.post(
+            url_for('ajax_external_api', api='cadaster'),
+            data={'id_': '01004/78/99'})
         assert b'nicht vorhanden' in rv.data
 
         rv = c.get(url_for('insert', class_='reference_system'))
@@ -27,7 +37,8 @@ class ReferenceSystemTest(TestBaseCase):
         data: dict[str, str | list[str]] = {
             'name': 'Wikipedia',
             'website_url': 'https://wikipedia.org',
-            'resolver_url': 'https://wikipedia.org'}
+            'resolver_url': 'https://wikipedia.org',
+            'api': ''}
         rv = c.post(url_for('insert', class_='reference_system'), data=data)
         wikipedia_id = rv.location.split('/')[-1]
 
@@ -51,7 +62,8 @@ class ReferenceSystemTest(TestBaseCase):
                 'name': 'Another system to test forms with more than 3',
                 'website_url': '',
                 'resolver_url': '',
-                'reference_system_classes': ['place']},
+                'reference_system_classes': ['place'],
+                'api': ''},
             follow_redirects=True)
         assert b'An entry has been created' in rv.data
 
@@ -97,7 +109,7 @@ class ReferenceSystemTest(TestBaseCase):
 
         rv = c.post(
             url_for('insert', class_='reference_system'),
-            data={'name': 'GeoNames'},
+            data={'name': 'GeoNames', 'api': ''},
             follow_redirects=True)
         assert b'A transaction error occurred' in rv.data
 
