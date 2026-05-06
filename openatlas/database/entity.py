@@ -12,6 +12,14 @@ def get_by_id(
         {'id': id_})
     return g.cursor.fetchone()
 
+def get_by_uuid(
+        uuid: str,
+        types: bool = False,
+        aliases: bool = False) -> dict[str, Any]:
+    g.cursor.execute(
+        select_sql(types, aliases) + ' WHERE e.uuid = %(uuid)s GROUP BY e.id;',
+        {'uuid': uuid})
+    return g.cursor.fetchone()
 
 def get_by_ids(
         ids: Iterable[int],
@@ -24,12 +32,12 @@ def get_by_ids(
         {'ids': tuple(ids)})
     return list(g.cursor)
 
-
 def get_by_project_id(project_id: int) -> list[dict[str, Any]]:
     g.cursor.execute(
         """
         SELECT
             e.id,
+            e.uuid,
             ie.origin_id,
             e.cidoc_class_code,
             e.name,
@@ -119,6 +127,7 @@ def get_all_entities() -> list[dict[str, Any]]:
         """
         SELECT
             e.id,
+            e.uuid,
             e.cidoc_class_code,
             e.name,
             e.description,
@@ -240,6 +249,7 @@ def select_sql(types: bool = False, aliases: bool = False) -> str:
     sql = """
         SELECT
             e.id,
+            e.uuid,
             e.cidoc_class_code,
             e.name,
             e.description,
@@ -426,7 +436,8 @@ def get_links_of_entities(
         inverse: bool = False) -> list[dict[str, Any]]:
     sql = f"""
         SELECT
-            l.id, l.property_code,
+            l.id, 
+            l.property_code,
             l.domain_id,
             l.range_id,
             l.description,
@@ -540,6 +551,7 @@ def get_types(with_count: bool) -> list[dict[str, Any]]:
     sql = f"""
         SELECT
             e.id,
+            e.uuid,
             e.name,
             e.cidoc_class_code,
             e.description,
