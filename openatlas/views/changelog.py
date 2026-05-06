@@ -22,7 +22,8 @@ versions = {
             '2782': 'Vocabs: Import top collection as type',
             '2790': 'Refactor and minor improvements'},
         'fix': {
-            '2789': 'Missing start/end dates in some tabs'}}],
+            '2789': 'Missing start/end dates in some tabs',
+            '2801': 'Type issues'}}],
     '9.2.0': ['2026-04-15', {
         'feature': {
             '2570': 'Improved tracking of file creator and license holder',
