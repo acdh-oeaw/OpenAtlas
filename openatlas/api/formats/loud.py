@@ -25,20 +25,12 @@ unit_map = {
     'TB': 'terabytes'}
 
 ARCHAEOLOGY_AAT: dict[str, dict[str, str]] = {
-    'feature': {
-        'id': 'https://vocab.getty.edu/aat/300000801',
-        'type': 'Type',
-        '_label': 'features'},
-    'stratigraphic_unit': {
-        'id': 'https://vocab.getty.edu/aat/300411781',
-        'type': 'Type',
-        '_label': 'stratigraphic units'},
     'artifact': {
         'id': 'https://vocab.getty.edu/aat/300117127',
         'type': 'Type',
         '_label': 'artifacts'},
     'human_remains': {
-        'id': 'https://vocab.getty.edu/aat/300251789',
+        'id': 'https://vocab.getty.edu/aat/300379896',
         'type': 'Type',
         '_label': 'human remains'}}
 
@@ -94,8 +86,14 @@ class LoudFormatter:
         if code_ != 'P2' and link_.type:
             property_['classified_as'] = [
                 self._format_type_property(g.types[link_.type.id])]
-        self._prepend_archaeology_classification(target, property_)
+        if code_ == 'P67' and link_.domain.class_.name == 'file':
+            property_ = {
+                "type": "VisualItem",
+                "_label": f"Visual content of {link_.domain.name}",
+                "represents": [property_]}
+
         handler = self.handlers.get(code_)
+        self._prepend_archaeology_classification(target, property_)
         if handler:
             return handler(property_, link_, is_domain)
         return property_
@@ -161,12 +159,14 @@ class LoudFormatter:
                 "type": "DigitalObject"}]})
         if entity.license_holder:
             for license_holder in entity.license_holder:
+                # todo: add id link for license holder
                 digital_object.update({
                     'right_held_by': [{
                         '_label': license_holder.name,
                         'type': 'Actor'}]})
         if entity.creator:
             for creator in entity.creator:
+                # todo: add id link for creator
                 digital_object.update({'created_by': [{
                     '_label': f'Creation of {entity.name}',
                     'type': 'Creation',
@@ -812,6 +812,7 @@ def get_loud_entities(
     for link_ in data['links']:
         if link_.property.code in ['OA8', 'OA9']:
             continue
+
         formatter.process_link(
             link_, properties_set, is_inverse=False, root_entity=entity)
     file_links = []
