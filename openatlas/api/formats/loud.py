@@ -710,13 +710,28 @@ class LoudFormatter:
                         "type": "Type",
                         "_label": "Annotation"}]}
                 annotation_dict = annotation_dict | {
-                    "identified_by": [{
-                        "type": "Identifier",
-                        "_label": "Text Offset",
-                        "content": f"{annotation.link_start + offset}, "
-                                   f"{annotation.link_end + offset}"}]}
+                    "digitally_carried_by": [{
+                        "type": "DigitalObject",
+                        "classified_as": [{
+                            "id": "http://vocab.getty.edu/aat/300435443",
+                            "type": "Type",
+                            "_label": "Selectors"}],
+                        "referred_to_by": [{
+                            "type": "LinguisticObject",
+                            "classified_as": [{
+                                "id": "http://vocab.getty.edu/aat/300430390",
+                                "type": "Type",
+                                "_label": "Text Position Selector"}],
+                            "identified_by": [{
+                                "type": "Identifier",
+                                "_label": "start",
+                                "content": f'{annotation.link_start + offset}'
+                                }, {
+                                "type": "Identifier",
+                                "_label": "end",
+                                "content": f'{annotation.link_end + offset}'}]
+                            }]}]}
                 # todo: this is not performant, get the entities somehow faster
-                # todo: add complete person structure (with identified_by)
                 if annotation.entity_id:
                     linked_entity = Entity.get_by_id(annotation.entity_id)
                     annotation_dict = annotation_dict | {
@@ -727,7 +742,19 @@ class LoudFormatter:
                                 _external=True),
                             'type': remove_spaces_dashes(
                                 linked_entity.cidoc_class.i18n['en']),
-                            '_label': linked_entity.name}]}
+                            '_label': linked_entity.name,
+                            'identified_by': [{
+                                "type": "Name",
+                                "_label": linked_entity.name,
+                                "content": linked_entity.name
+                                }, {
+                                # todo: UUID!
+                                "type": "Identifier",
+                                "_label": "System Identifier",
+                                "content": url_for(
+                                    'api.entity',
+                                    id_=linked_entity.id,
+                                    _external=True)}]}]}
                 if annotation.text:
                     annotation_dict = annotation_dict | {
                         'referred_to_by': [{
