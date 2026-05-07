@@ -636,6 +636,15 @@ class LoudFormatter:
             defined_by.append(generate_feature_without_null_values(geom))
         return {'defined_by': defined_by}
 
+    def handle_administrative_units(
+            self,
+            link_: Link) -> dict[str, Any]:
+        part_of = []
+        for type_ in link_.range.types:
+            super_type = g.types[g.types[type_.id].root[-1]]
+            part_of.append(self._format_type_property(super_type))
+        return {'part_of': part_of}
+
     def process_link(
             self,
             link_: Link,
@@ -647,7 +656,10 @@ class LoudFormatter:
             property_name = self.get_property_key(link_, is_inverse)
             base_property = self.format_link(link_, is_domain=is_domain)
             properties_set[property_name].append(
-                base_property | self.handle_geometries(link_))
+                base_property |
+                self.handle_geometries(link_) |
+                self.handle_administrative_units(link_)
+                )
             return
         if is_inverse \
                 and link_.property.code == 'P67' \
