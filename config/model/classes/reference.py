@@ -24,6 +24,7 @@ bibliography = {
         'name': {
             'required': True},
         'description': {}},
+    'extra': ['reference_system'],
     'relations': {
         'source': get_relation(['source']),
         'event': get_relation(class_groups['event']['classes']),
