@@ -7,9 +7,9 @@ class_groups = {
         'classes': ['person', 'group'],
         'table_columns': ['name', 'class', 'begin', 'end', 'description'],
         'icon': 'mdi-account'},
-    'artifact': {
-        'name': 'artifact',
-        'label': _('artifact'),
+    'item': {
+        'name': 'item',
+        'label': _('item'),
         'classes': ['artifact', 'human_remains'],
         'table_columns':
             ['name', 'class', 'type', 'begin', 'end', 'description'],

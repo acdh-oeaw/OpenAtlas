@@ -275,7 +275,7 @@ class PlaceTest(TestBaseCase):
                 'insert',
                 class_='human_remains',
                 origin_id=strati_id,
-                relation='artifact'))
+                relation='item'))
         assert b'exists' in rv.data
 
         rv = c.get(url_for('view', id_=remains_type.subs[0]))

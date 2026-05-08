@@ -4093,7 +4093,7 @@
           "enum": [
             "all",
             "actor",
-            "artifact",
+            "item",
             "event",
             "file",
             "place",
@@ -4903,7 +4903,7 @@
             "enum": [
               "all",
               "actor",
-              "artifact",
+              "item",
               "event",
               "file",
               "place",
@@ -5911,7 +5911,7 @@
               "$ref": "#/components/schemas/TypesByViewClassEntry"
             }
           },
-          "artifact": {
+          "item": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TypesByViewClassEntry"

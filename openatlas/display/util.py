@@ -235,7 +235,7 @@ def menu(entity: Optional[Entity]) -> str:
             'event': _('event'),
             'actor': _('actor'),
             'place': _('place'),
-            'artifact': _('artifact'),
+            'item': _('item'),
             'reference': _('reference'),
             'type': _('type'),
             'file': _('file')}.items():
