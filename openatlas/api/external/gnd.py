@@ -8,11 +8,11 @@ from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
 
 
-class GND(ExternalApi):
+class GND(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str) -> dict[str, str]:
-        info: dict[str, str] = {}
+    def get_info(id_: str) -> dict[str, object]:
+        info: dict[str, object] = {}
         try:
             data = requests.get(
                 f'{g.gnd.resolver_url}{id_}.json',

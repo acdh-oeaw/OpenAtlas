@@ -6,7 +6,7 @@ from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
 
 
-class Wikidata(ExternalApi):
+class Wikidata(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:

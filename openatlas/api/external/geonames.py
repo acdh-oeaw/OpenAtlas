@@ -6,7 +6,7 @@ from openatlas import app
 from openatlas.api.external.base import ExternalApi
 
 
-class GeoNames(ExternalApi):
+class GeoNames(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:
