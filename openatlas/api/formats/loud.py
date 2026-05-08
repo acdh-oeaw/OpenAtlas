@@ -141,15 +141,17 @@ class LoudFormatter:
 
     def get_digital_object_details(
             self,
-            entity: Entity) -> dict[str, Any]:
-        mime_type, _ = mimetypes.guess_type(g.files[entity.id])
+            entity: Entity,
+            mime_type: str | None = None) -> dict[str, Any]:
+        if not mime_type:
+            mime_type, _ = mimetypes.guess_type(g.files[entity.id])
         file_ = get_file_path(entity.id)
-        digital_object: dict[str, Any] = {
-            'format': mime_type,
-            "classified_as": [{
+        digital_object: dict[str, Any] = {'format': mime_type}
+        if mime_type and 'image/' in mime_type:
+            digital_object["classified_as"] = [{
                 "id": "https://vocab.getty.edu/aat/300215302",
                 "type": "Type",
-                "_label": "Digital Image"}]}
+                "_label": "Digital Image"}]
         if file_ and file_.stem:
             digital_object.update({"access_point": [{
                 "id": url_for(
@@ -309,11 +311,20 @@ class LoudFormatter:
         property_['classified_as'] = []
         if link_.domain.class_.name == 'file':
             property_['type'] = 'DigitalObject'
+        else:
+            property_['type'] = 'LinguisticObject'
         if standard_type := link_.domain.standard_type:
             property_['classified_as'].append(
                 self._format_type_property(standard_type))
         if link_.description:
-            property_['content'] = link_.description
+            property_ = property_ | {
+                "identified_by": [{
+                    "type": "Name",
+                    "content": f"{link_.description}",
+                    "classified_as": [{
+                        "id": "http://vocab.getty.edu/aat/300200294",
+                        "type": "Type",
+                        "_label": "pagination"}]}]}
         if link_.domain.class_.name == 'bibliography':
             property_['classified_as'].append({
                 "id": "https://vocab.getty.edu/aat/300026652",
@@ -524,10 +535,13 @@ class LoudFormatter:
 
     def get_loud_representations(
             self,
-            image_links: list[Link]) -> list[dict[str, Any]]:
+            image_links: list[Link],
+            properties_set: dict[str, Any]) -> None:
         representation = []
+        subject_of = []
         for link_ in image_links:
             entity = link_.domain
+            mime_type, _ = mimetypes.guess_type(g.files[entity.id])
             image = {
                 'id': url_for(
                     'api.entity',
@@ -535,15 +549,22 @@ class LoudFormatter:
                     _external=True),
                 '_label': entity.name,
                 'type': 'DigitalObject'}
-            image.update(self.get_digital_object_details(entity))
-            representation.append({
-                'type': 'VisualItem',
-                'digitally_shown_by': [image]})
-        return representation
+            image.update(self.get_digital_object_details(entity, mime_type))
+            if mime_type == 'application/pdf':
+                subject_of.append({
+                    'type': 'LinguisticObject',
+                    '_label': entity.name,
+                    'digitally_carried_by': [image]})
+            else:
+                representation.append(image)
+        properties_set['representation'].append({
+            'type': 'VisualItem',
+            "_label": "Visual Representations",
+            'digitally_shown_by': representation})
+        properties_set['subject_of'].extend(subject_of)
 
     @staticmethod
-    def get_iiif_subject_of(
-            image_links: list[Link]) -> list[dict[str, Any]]:
+    def get_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
         subject_of = []
         for link_ in image_links:
             entity = link_.domain
@@ -659,7 +680,7 @@ class LoudFormatter:
                 base_property |
                 self.handle_geometries(link_) |
                 self.handle_administrative_units(link_)
-                )
+            )
             return
         if is_inverse \
                 and link_.property.code == 'P67' \
@@ -685,8 +706,7 @@ class LoudFormatter:
             properties_set: dict[str, Any],
             entity: Entity) -> None:
         if file_links:
-            properties_set['representation'].extend(
-                self.get_loud_representations(file_links))
+            self.get_loud_representations(file_links, properties_set)
             properties_set['subject_of'].extend(
                 self.get_iiif_subject_of(file_links))
         if entity.class_.name == 'file' and g.files.get(entity.id):
@@ -738,11 +758,11 @@ class LoudFormatter:
                                 "type": "Identifier",
                                 "_label": "start",
                                 "content": f'{annotation.link_start + offset}'
-                                }, {
+                            }, {
                                 "type": "Identifier",
                                 "_label": "end",
                                 "content": f'{annotation.link_end + offset}'}]
-                            }]}]}
+                        }]}]}
                 # todo: this is not performant, get the entities somehow faster
                 if annotation.entity_id:
                     linked_entity = Entity.get_by_id(annotation.entity_id)
@@ -759,7 +779,7 @@ class LoudFormatter:
                                 "type": "Name",
                                 "_label": linked_entity.name,
                                 "content": linked_entity.name
-                                }, {
+                            }, {
                                 # todo: UUID!
                                 "type": "Identifier",
                                 "_label": "System Identifier",
