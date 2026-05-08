@@ -147,11 +147,25 @@ class LoudFormatter:
             mime_type, _ = mimetypes.guess_type(g.files[entity.id])
         file_ = get_file_path(entity.id)
         digital_object: dict[str, Any] = {'format': mime_type}
-        if mime_type and 'image/' in mime_type:
-            digital_object["classified_as"] = [{
-                "id": "https://vocab.getty.edu/aat/300215302",
-                "type": "Type",
-                "_label": "Digital Image"}]
+        if mime_type:
+            if 'image/' in mime_type:
+                digital_object["classified_as"] = [{
+                    "id": "https://vocab.getty.edu/aat/300215302",
+                    "type": "Type",
+                    "_label": "Digital image"}]
+            if 'application/pdf' in mime_type:
+                digital_object["classified_as"] = [{
+                    "id": "https://vocab.getty.edu/aat/300424602",
+                    "type": "Type",
+                    "_label": "Digital documents"}]
+            if 'model/' in mime_type:
+                digital_object["classified_as"] = [{
+                    "id": "https://vocab.getty.edu/aat/300247398",
+                    "type": "Type",
+                    "_label": "Digital File Format"}, {
+                    "id": "https://www.wikidata.org/wiki/Q3859833",
+                    "type": "Type",
+                    "_label": "3D Model"}]
         if file_ and file_.stem:
             digital_object.update({"access_point": [{
                 "id": url_for(
@@ -341,6 +355,10 @@ class LoudFormatter:
                     'api.entity',
                     id_=link_.domain.id,
                     _external=True),
+                "classified_as": [{
+                    "id": "https://vocab.getty.edu/aat/300264578",
+                    "type": "Type",
+                    "_label": "Web Page"}],
                 "type": "LinguisticObject",
                 "digitally_carried_by": [{
                     "type": "DigitalObject",
@@ -419,8 +437,22 @@ class LoudFormatter:
                 return self._get_loud_group_timespan(entity, links_)
         if not entity.dates.dates_available():
             return {}
+        #todo: broken°!!!!!!
         return {'timespan': (
                 {'type': 'TimeSpan'} |
+                {"referred_to_by": [
+    {
+      "type": "LinguisticObject",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300435416",
+          "type": "Type",
+          "_label": "Description"
+        }
+      ],
+      "content": f"{comment}"
+    } for comment in [entity.dates.begin_comment, entity.dates.end_comment]
+  ]} |
                 self._get_loud_begin_dates(entity) |
                 self._get_loud_end_dates(entity))}
 
@@ -522,7 +554,13 @@ class LoudFormatter:
             'begin_of_the_begin':
                 date_to_utc_iso_str(entity.dates.begin_from),
             'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
-            'beginning_is_qualified_by': entity.dates.begin_comment}
+            "referred_to_by": [{
+                "type": "LinguisticObject",
+                "classified_as": [{
+                    "id": "https://vocab.getty.edu/aat/300435416",
+                    "type": "Type",
+                    "_label": "Description"}],
+                "content": entity.dates.begin_comment}]}
         return {k: v for k, v in data.items() if v is not None}
 
     @staticmethod
@@ -530,7 +568,13 @@ class LoudFormatter:
         data = {
             'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
             'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
-            'end_is_qualified_by': entity.dates.end_comment}
+            "referred_to_by": [{
+                "type": "LinguisticObject",
+                "classified_as": [{
+                    "id": "https://vocab.getty.edu/aat/300435416",
+                    "type": "Type",
+                    "_label": "Description"}],
+                "content": entity.dates.end_comment}]}
         return {k: v for k, v in data.items() if v is not None}
 
     def get_loud_representations(
@@ -554,6 +598,10 @@ class LoudFormatter:
                 subject_of.append({
                     'type': 'LinguisticObject',
                     '_label': entity.name,
+                    "classified_as": [{
+                        "id": "https://vocab.getty.edu/aat/300424602",
+                        "type": "Type",
+                        "_label": "Digital documents"}],
                     'digitally_carried_by': [image]})
             else:
                 representation.append(image)
