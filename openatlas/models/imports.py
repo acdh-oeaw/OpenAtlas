@@ -107,7 +107,7 @@ def import_data_(project: Project, class_: str, data: list[Any]) -> None:
             if value := row.get('openatlas_class'):
                 if value.lower().replace(' ', '_') in (
                         g.class_groups['place']['classes'] +
-                        g.class_groups['artifact']['classes']):
+                        g.class_groups['item']['classes']):
                     class_ = value.lower().replace(' ', '_')
             description = row.get('description')
             insert_data = {
@@ -123,7 +123,7 @@ def import_data_(project: Project, class_: str, data: list[Any]) -> None:
             if class_ in ['place', 'person', 'group'] and row.get('alias'):
                 insert_data['alias'] = row.get('alias').split(";")
             if class_ in g.class_groups['place']['classes'] \
-                    + g.class_groups['artifact']['classes']:
+                    + g.class_groups['item']['classes']:
                 gis_data = {'point': '[]', 'line': '[]', 'polygon': '[]'}
                 if coordinates := row.get('wkt'):
                     gis_data = get_coordinates_from_wkt(coordinates)
@@ -146,7 +146,7 @@ def import_data_(project: Project, class_: str, data: list[Any]) -> None:
         for entry in entities.values():
             if entry['entity'].class_.name in (
                     g.class_groups['place']['classes'] +
-                    g.class_groups['artifact']['classes']):
+                    g.class_groups['item']['classes']):
                 if entry['parent_id']:
                     entities[entry['parent_id']]['entity'].link(
                         'P46',

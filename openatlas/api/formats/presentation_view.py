@@ -167,7 +167,7 @@ def get_presentation_references(
 def get_presentation_view(entity: Entity, parser: Parser) -> dict[str, Any]:
     ids = [entity.id]
     root_ids: list[int] = []
-    if entity.class_.group.get('name') in ['place', 'artifact']:
+    if entity.class_.group.get('name') in ['place', 'item']:
         entity.location = entity.get_linked_entity_safe('P53')
         ids.append(entity.location.id)
         if parser.place_hierarchy:
@@ -297,7 +297,7 @@ def get_presentation_view(entity: Entity, parser: Parser) -> dict[str, Any]:
             parser,
             root_ids),
         'relations': relations}
-    if entity.class_.group.get('name') in ['place', 'artifact']:
+    if entity.class_.group.get('name') in ['place', 'item']:
         data['geometries'] = geometry_to_feature_collection(
             geoms.get(entity.id))
 

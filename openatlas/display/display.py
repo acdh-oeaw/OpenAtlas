@@ -434,7 +434,12 @@ class Display:
                         relation=name))
                 html += f'{link_}'
                 self.data[attribute['label']] = html
-            if name in ['example_id', 'public', 'resolver_url', 'website_url']:
+            if name in [
+                    'api',
+                    'example_id',
+                    'public',
+                    'resolver_url',
+                    'website_url']:
                 if value := getattr(self.entity, name):
                     if isinstance(value, bool):
                         value = display_bool(value)

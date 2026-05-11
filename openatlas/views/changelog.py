@@ -17,7 +17,9 @@ def index_changelog() -> str:
 versions = {
     '9.3.0': ['TBA', {
         'feature': {
+            '2600': 'Add external references to references',
             '2775': 'Advanced image validation',
+            '2773': 'Standard API definitions for external reference systems',
             '2774': 'Vocabs: include external links',
             '2782': 'Vocabs: Import top collection as type',
             '2790': 'Refactor and minor improvements'},

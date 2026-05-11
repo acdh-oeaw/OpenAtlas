@@ -38,7 +38,7 @@ class EventTest(TestBaseCase):
         assert b'Location' in rv.data
 
         rv = c.get(url_for('insert', class_='move'))
-        assert b'Moved object' in rv.data
+        assert b'Moved item' in rv.data
 
         rv = c.get(url_for('insert', class_='acquisition'))
         assert b'+ Acquisition' in rv.data
@@ -72,7 +72,7 @@ class EventTest(TestBaseCase):
                 'name': 'Keep it moving',
                 'place_to': residence.id,
                 'place_from': residence.id,
-                'moved_object': artifact.id,
+                'moved_item': artifact.id,
                 'moved_person': actor.id})
         move_id = rv.location.split('/')[-1]
 
@@ -93,7 +93,7 @@ class EventTest(TestBaseCase):
             url_for('insert', class_='modification'),
             data={
                 'name': 'A modification event',
-                'modified_object': str([artifact.id]),
+                'modified_item': str([artifact.id]),
                 'modified_place': residence.id})
         modification_id = rv.location.split('/')[-1]
 

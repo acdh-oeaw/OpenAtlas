@@ -447,8 +447,7 @@ def get_allowed_columns(class_: str) -> dict[str, list[str]]:
     if class_ in ['place', 'artifact']:
         columns.append('wkt')
     if class_ in ['place', 'artifact', 'type']:
-        columns.extend([
-            'parent_id', 'openatlas_parent_id'])
+        columns.extend(['parent_id', 'openatlas_parent_id'])
     if class_ in ['place', 'type']:
         columns.extend(['openatlas_class'])
     if class_ in ['place']:
@@ -593,7 +592,7 @@ def check_cell_value(
         case 'openatlas_class' if value:
             if (value.lower().replace(' ', '_') not in (
                     g.class_groups['place']['classes'] +
-                    g.class_groups['artifact']['classes'] +
+                    g.class_groups['item']['classes'] +
                     g.class_groups['type']['classes'])):
                 value = error_span(value)
                 checks.set_warning('invalid_openatlas_class', id_)
