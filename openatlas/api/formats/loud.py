@@ -437,22 +437,8 @@ class LoudFormatter:
                 return self._get_loud_group_timespan(entity, links_)
         if not entity.dates.dates_available():
             return {}
-        #todo: broken°!!!!!!
         return {'timespan': (
                 {'type': 'TimeSpan'} |
-                {"referred_to_by": [
-    {
-      "type": "LinguisticObject",
-      "classified_as": [
-        {
-          "id": "http://vocab.getty.edu/aat/300435416",
-          "type": "Type",
-          "_label": "Description"
-        }
-      ],
-      "content": f"{comment}"
-    } for comment in [entity.dates.begin_comment, entity.dates.end_comment]
-  ]} |
                 self._get_loud_begin_dates(entity) |
                 self._get_loud_end_dates(entity))}
 
@@ -554,13 +540,7 @@ class LoudFormatter:
             'begin_of_the_begin':
                 date_to_utc_iso_str(entity.dates.begin_from),
             'end_of_the_begin': date_to_utc_iso_str(entity.dates.begin_to),
-            "referred_to_by": [{
-                "type": "LinguisticObject",
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300435416",
-                    "type": "Type",
-                    "_label": "Description"}],
-                "content": entity.dates.begin_comment}]}
+            'beginning_is_qualified_by': entity.dates.begin_comment}
         return {k: v for k, v in data.items() if v is not None}
 
     @staticmethod
@@ -568,13 +548,7 @@ class LoudFormatter:
         data = {
             'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
             'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
-            "referred_to_by": [{
-                "type": "LinguisticObject",
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300435416",
-                    "type": "Type",
-                    "_label": "Description"}],
-                "content": entity.dates.end_comment}]}
+            'end_is_qualified_by': entity.dates.end_comment}
         return {k: v for k, v in data.items() if v is not None}
 
     def get_loud_representations(
