@@ -13,7 +13,7 @@ from openatlas.api.endpoints.iiif import (
     IIIFSequence)
 from openatlas.api.endpoints.special import (
     ExportDatabase, GetChainedEvents, GetEgoNetworkVisualisation,
-    GetGeometricEntities, GetNetworkVisualisation, GetSubunits)
+    GetGeometricEntities, GetNetworkVisualisation, GetSkolemProxy, GetSubunits)
 from openatlas.api.endpoints.type import (
     GetTypeByViewClass, GetTypeOverview, GetTypeTree)
 
@@ -53,6 +53,7 @@ types = [
     [GetTypeTree, '/type_tree/', 'type_tree']]
 
 special = [
+    [GetSkolemProxy, '/generated/', 'skolem_proxy'],
     [ExportDatabase, '/export_database/<string:format_>', 'export_database'],
     [GetGeometricEntities, '/geometric_entities/', 'geometric_entities'],
     [GetSubunits, '/subunits/<int:id_>', 'subunits'],

@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import mimetypes
 from collections import defaultdict
 from typing import Any
@@ -64,6 +65,10 @@ class LoudFormatter:
                 return 'refers_to'
             if code == 'P73':
                 return 'referred_to_by'
+        if code == 'P53' and link_.domain.class_.name == 'artifact':
+            return 'current_location'
+        if code == 'P2' and link_.description:
+            return 'dimension'
         name = 'part' if is_inverse else 'part_of'
         if link_.property.code != 'P127':
             name = self.loud[
@@ -178,19 +183,29 @@ class LoudFormatter:
                 # todo: add id link for license holder
                 digital_object.update({
                     'right_held_by': [{
+                        'id': self.generate_skolem_id(
+                            license_holder.id,
+                            'rights_holder'),
                         '_label': license_holder.name,
                         'type': 'Actor'}]})
         if entity.creator:
             for creator in entity.creator:
                 # todo: add id link for creator
                 digital_object.update({'created_by': [{
+                    'id': self.generate_skolem_id(
+                        creator.id,
+                        f'{entity.id}_creation_{creator.id}'),
                     '_label': f'Creation of {entity.name}',
                     'type': 'Creation',
                     'carried_out_by': [{
+                        'id': self.generate_skolem_id(
+                            creator.id,
+                            'rights_holder'),
                         '_label': creator.name,
                         'type': 'Actor'}]}]})
         if license_ := get_license_type(entity):
             subject_to: dict[str, Any] = {
+                'id': self.generate_skolem_id(license_.id, 'license'),
                 'type': "Right",
                 '_label': f'License of {entity.name}',
                 "identified_by": [{
@@ -222,6 +237,7 @@ class LoudFormatter:
             link_: Link, properties_set: dict[str, Any]) -> None:
         radio_data = ast.literal_eval(link_.description)
         properties_set['attributed_by'].append({
+            'id': LoudFormatter.generate_skolem_id(link_.id, 'radiocarbon'),
             "type": "AttributeAssignment",
             "_label": "Radiocarbon Dating",
             "classified_as": [{
@@ -254,6 +270,7 @@ class LoudFormatter:
                         "type": "Type",
                         "_label": "error (measure of uncertainty)"}]}]}],
             "identified_by": [{
+                'id': LoudFormatter.generate_skolem_id(link_.id, 'laboratory'),
                 "type": "Identifier",
                 "content": f"{radio_data['labId']}-{radio_data['specId']}",
                 "_label": "Laboratory ID",
@@ -261,6 +278,7 @@ class LoudFormatter:
                     "id": "https://vocab.getty.edu/aat/300404621",
                     "type": "Type",
                     "_label": "Laboratory Identifiers"}]}, {
+                'id': LoudFormatter.generate_skolem_id(link_.id, 'specimen'),
                 "type": "Identifier",
                 "content": str(radio_data['specId']),
                 "_label": "Specimen ID",
@@ -269,6 +287,9 @@ class LoudFormatter:
                     "type": "Type",
                     "_label": "Identification Numbers"}]}],
             "carried_out_by": [{
+                'id': LoudFormatter.generate_skolem_id(
+                    link_.id,
+                    'radio_group'),
                 "type": "Group",
                 "_label": radio_data['labId'],
                 "identified_by": [{
@@ -294,10 +315,11 @@ class LoudFormatter:
         if link_.description:
             property_['value'] = link_.description
             property_['unit'] = {
+                "id": "http://vocab.getty.edu/aat/300226816",
                 'type': "MeasurementUnit",
                 '_label': target.description}
-        super_type = g.types[g.types[link_.range.id].root[-1]]
-        property_['part_of'] = [self._format_type_property(super_type)]
+        # super_type = g.types[g.types[link_.range.id].root[-1]]
+        # property_['part_of'] = [self._format_type_property(super_type)]
         return property_
 
     def _handle_p73(
@@ -371,6 +393,7 @@ class LoudFormatter:
                     "access_point": [{
                         "id": link_.domain.name,
                         "type": "DigitalObject"}]}]}
+        property_['content'] = link_.domain.description
         return property_
 
     def _handle_oa7(
@@ -387,6 +410,7 @@ class LoudFormatter:
                 f'Relationship between '
                 f'{link_.domain.name} and {link_.range.name}')
         relationship: dict[str, Any] = {
+            'id': self.generate_skolem_id(link_.id, 'relationship'),
             'type': 'Event',
             '_label': label,
             'had_participant': [property_]}
@@ -402,9 +426,9 @@ class LoudFormatter:
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(type_)
-        for super_type in [g.types[root] for root in type_.root]:
-            property_['part_of'] = [
-                self._format_type_property(super_type)]
+        # for super_type in [g.types[root] for root in type_.root]:
+        #    property_['part_of'] = [
+        #        self._format_type_property(super_type)]
         external_references: dict[str, Any] = {}
         for type_link in self.type_refs.get(type_.id, []):
             url = type_link.domain.name
@@ -426,6 +450,13 @@ class LoudFormatter:
                 "_label": type_.name})
         return property_ | external_references
 
+    @staticmethod
+    def generate_skolem_id(id_: int, type_name: str) -> str:
+        base_url = url_for("api.skolem_proxy", _external=True)
+        seed = f"{id_}_{type_name}".encode('utf-8')
+        identifier_hash = hashlib.sha256(seed).hexdigest()[:16]
+        return f"{base_url}{type_name.lower()}/{identifier_hash}"
+
     def get_loud_timespan(
             self,
             entity: Entity | Link,
@@ -438,7 +469,8 @@ class LoudFormatter:
         if not entity.dates.dates_available():
             return {}
         return {'timespan': (
-                {'type': 'TimeSpan'} |
+                {'id': self.generate_skolem_id(entity.id, 'timespan'),
+                 'type': 'TimeSpan'} |
                 self._get_loud_begin_dates(entity) |
                 self._get_loud_end_dates(entity))}
 
@@ -448,6 +480,7 @@ class LoudFormatter:
             links_: list[Link] | None) -> dict[str, Any]:
         result = {}
         birth_event: dict[str, Any] = {
+            'id': self.generate_skolem_id(entity.id, 'birth'),
             'type': 'Birth',
             '_label': f'Birth of {entity.name}'}
         has_birth_data = False
@@ -458,6 +491,7 @@ class LoudFormatter:
             has_birth_data = True
 
         death_event: dict[str, Any] = {
+            'id': self.generate_skolem_id(entity.id, 'death'),
             'type': 'Death',
             '_label': f'Death of {entity.name}'}
         has_death_data = False
@@ -494,22 +528,26 @@ class LoudFormatter:
             links_: list[Link] | None) -> dict[str, Any]:
         res = {}
         form: dict[str, Any] = {
+            'id': self.generate_skolem_id(entity.id, 'formation'),
             'type': 'Formation',
             '_label': f'Formation of {entity.name}'}
         has_formation = False
         if entity.dates.begin_from or entity.dates.begin_to:
             form['timespan'] = (
-                    {'type': 'TimeSpan'}
+                    {'id': self.generate_skolem_id(entity.id, 'begin'),
+                     'type': 'TimeSpan'}
                     | self._get_loud_begin_dates(entity))
             has_formation = True
 
         diss: dict[str, Any] = {
+            'id': self.generate_skolem_id(entity.id, 'dissolution'),
             'type': 'Dissolution',
             '_label': f'Dissolution of {entity.name}'}
         has_dissolution = False
         if entity.dates.end_from or entity.dates.end_to:
             diss['timespan'] = (
-                    {'type': 'TimeSpan'}
+                    {'id': self.generate_skolem_id(entity.id, 'end'),
+                     'type': 'TimeSpan', }
                     | self._get_loud_end_dates(entity))
             has_dissolution = True
         if links_:
@@ -580,6 +618,7 @@ class LoudFormatter:
             else:
                 representation.append(image)
         properties_set['representation'].append({
+            'id': self.generate_skolem_id(0, 'visual_representation'),
             'type': 'VisualItem',
             "_label": "Visual Representations",
             'digitally_shown_by': representation})
@@ -594,8 +633,14 @@ class LoudFormatter:
             if (manifest_path.get('IIIFManifest')
                     and manifest_path.get('IIIFBasePath')):
                 subject_of.append({
+                    'id': LoudFormatter.generate_skolem_id(
+                        link_.id,
+                        'iif_manifest'),
                     "type": "LinguisticObject",
                     "digitally_carried_by": [{
+                        'id': LoudFormatter.generate_skolem_id(
+                            link_.id,
+                            'DigitalObject'),
                         "type": "DigitalObject",
                         "access_point": [{
                             "id": manifest_path['IIIFManifest'],
@@ -624,6 +669,7 @@ class LoudFormatter:
             "id": f'{system.resolver_url or ''}{link_.description}',
             "type": entity.cidoc_class.name.replace(' ', '')})
         properties_set['identified_by'].append({
+            'id': LoudFormatter.generate_skolem_id(link_.id, 'identifier'),
             "type": "Identifier",
             "content": link_.description,
             "_label": f"{link_.domain.name} Identifier",
@@ -631,10 +677,13 @@ class LoudFormatter:
                 "id": "https://vocab.getty.edu/aat/300404620",
                 "type": "Type",
                 "_label": "Authority Control Number"}],
-            "part_of": [{
-                "id": system.website_url,
-                "type": "Set",
-                "_label": link_.domain.name}]})
+            "attributed_by": [{
+                "id": LoudFormatter.generate_skolem_id(link_.id, 'authority'),
+                "type": "AttributeAssignment",
+                "carried_out_by": [{
+                    "id": system.website_url,
+                    "type": "Group",
+                    "_label": link_.domain.name}]}]})
 
     def handle_membership(
             self,
@@ -679,15 +728,6 @@ class LoudFormatter:
             defined_by.append(generate_feature_without_null_values(geom))
         return {'defined_by': defined_by}
 
-    def handle_administrative_units(
-            self,
-            link_: Link) -> dict[str, Any]:
-        part_of = []
-        for type_ in link_.range.types:
-            super_type = g.types[g.types[type_.id].root[-1]]
-            part_of.append(self._format_type_property(super_type))
-        return {'part_of': part_of}
-
     def process_link(
             self,
             link_: Link,
@@ -700,8 +740,8 @@ class LoudFormatter:
             base_property = self.format_link(link_, is_domain=is_domain)
             properties_set[property_name].append(
                 base_property |
-                self.handle_geometries(link_) |
-                self.handle_administrative_units(link_)
+                self.handle_geometries(link_)
+                # | self.handle_administrative_units(link_)
             )
             return
         if is_inverse \
@@ -719,6 +759,11 @@ class LoudFormatter:
             self.handle_radiocarbon(link_, properties_set)
             return
         property_name = self.get_property_key(link_, is_inverse)
+        if link_.property.code == 'P46':
+            properties_set[property_name] = self.format_link(
+                link_,
+                is_domain=is_domain)
+            return
         properties_set[property_name].append(
             self.format_link(link_, is_domain=is_domain))
 
@@ -740,6 +785,7 @@ class LoudFormatter:
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
         description = {
+            'id': LoudFormatter.generate_skolem_id(entity.id, 'description'),
             "type": "LinguisticObject",
             "_label": "Description",
             "content": entity.description,
@@ -756,6 +802,9 @@ class LoudFormatter:
                     annotation.link_start + offset:
                     annotation.link_end + offset]
                 annotation_dict = {
+                    'id': LoudFormatter.generate_skolem_id(
+                        annotation.id,
+                        'annotation'),
                     "type": "LinguisticObject",
                     "_label": f"Annotation: {inner_text}",
                     "content": inner_text,
@@ -765,15 +814,21 @@ class LoudFormatter:
                         "_label": "Annotation"}]}
                 annotation_dict = annotation_dict | {
                     "digitally_carried_by": [{
+                        'id': LoudFormatter.generate_skolem_id(
+                            annotation.id,
+                            'annotation_digital_object'),
                         "type": "DigitalObject",
                         "classified_as": [{
-                            "id": "http://vocab.getty.edu/aat/300435443",
+                            # todo: get aat right
+                            "id": "https://vocab.getty.edu/aat/300435443",
                             "type": "Type",
                             "_label": "Selectors"}],
                         "referred_to_by": [{
                             "type": "LinguisticObject",
+                            "content": f'{annotation.text}',
                             "classified_as": [{
-                                "id": "http://vocab.getty.edu/aat/300430390",
+                                # todo: get aat right
+                                "id": "https://vocab.getty.edu/aat/300430390",
                                 "type": "Type",
                                 "_label": "Text Position Selector"}],
                             "identified_by": [{

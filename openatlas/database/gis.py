@@ -8,16 +8,15 @@ from flask import g
 def get_by_id(id_: int) -> list[dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT
-            g.id,
-            g.name,
-            g.description,
-            g.type,
-            public.ST_AsGeoJSON(geom_point) AS point,
-            public.ST_AsGeoJSON(geom_linestring) AS linestring,
-            public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
+        SELECT g.id,
+               g.name,
+               g.description,
+               g.type,
+               public.ST_AsGeoJSON(geom_point)                       AS point,
+               public.ST_AsGeoJSON(geom_linestring)                  AS linestring,
+               public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
         FROM model.entity place
-        JOIN model.gis g ON place.id = g.entity_id
+                 JOIN model.gis g ON place.id = g.entity_id
         WHERE place.id = %(id_)s;
         """,
         {'id_': id_})
@@ -27,25 +26,24 @@ def get_by_id(id_: int) -> list[dict[str, Any]]:
 def get_by_entity_ids(ids: list[int]) -> dict[int, list[dict[str, Any]]]:
     g.cursor.execute(
         """
-        SELECT
-            g.id,
-            l.domain_id as entity_id,
-            g.entity_id as location_id,
-            g.name,
-            g.description,
-            g.type,
-            public.ST_AsGeoJSON(geom_point) AS point,
-            public.ST_AsGeoJSON(geom_linestring) AS linestring,
-            public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
+        SELECT g.id,
+               l.domain_id                                           as entity_id,
+               g.entity_id                                           as location_id,
+               g.name,
+               g.description,
+               g.type,
+               public.ST_AsGeoJSON(geom_point)                       AS point,
+               public.ST_AsGeoJSON(geom_linestring)                  AS linestring,
+               public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
         FROM model.link l
-        JOIN model.gis g ON l.range_id = g.entity_id
+                 JOIN model.gis g ON l.range_id = g.entity_id
         WHERE l.property_code in
-            ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
-        AND l.domain_id IN %(ids)s
-        AND (
+              ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
+          AND l.domain_id IN %(ids)s
+          AND (
             geom_point IS NOT NULL
-            OR geom_linestring IS NOT NULL
-            OR geom_polygon IS NOT NULL);
+                OR geom_linestring IS NOT NULL
+                OR geom_polygon IS NOT NULL);
         """,
         {'ids': tuple(ids)})
     locations = defaultdict(list)
@@ -75,25 +73,30 @@ def get_geometry_dict(row: dict[str, Any]) -> dict[str, Any]:
 def get_centroids_by_entities(ids: list[int]) -> dict[int, list[Any]]:
     g.cursor.execute(
         """
-        SELECT
-            g.id,
-            l.domain_id as entity_id,
-            g.entity_id as location_id,
-            g.name,
-            g.description,
-            g.type,
-            CASE WHEN geom_linestring IS NULL THEN NULL ELSE
-                public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_linestring))
-                END AS linestring_point,
-            CASE WHEN geom_polygon IS NULL THEN NULL ELSE
-                public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_polygon))
-                END AS polygon_point
+        SELECT g.id,
+               l.domain_id as entity_id,
+               g.entity_id as location_id,
+               g.name,
+               g.description,
+               g.type,
+               CASE
+                   WHEN geom_linestring IS NULL THEN NULL
+                   ELSE
+                       public.ST_AsGeoJSON(public.ST_PointOnSurface(
+                               geom_linestring))
+                   END     AS linestring_point,
+               CASE
+                   WHEN geom_polygon IS NULL THEN NULL
+                   ELSE
+                       public.ST_AsGeoJSON(public.ST_PointOnSurface(
+                               geom_polygon))
+                   END     AS polygon_point
         FROM model.link l
-        JOIN model.gis g ON l.range_id = g.entity_id
+                 JOIN model.gis g ON l.range_id = g.entity_id
         WHERE l.property_code in
-            ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
-        AND l.domain_id IN %(ids)s
-        AND (geom_linestring IS NOT NULL OR geom_polygon IS NOT NULL);
+              ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
+          AND l.domain_id IN %(ids)s
+          AND (geom_linestring IS NOT NULL OR geom_polygon IS NOT NULL);
         """,
         {'ids': tuple(ids)})
     locations = defaultdict(list)
@@ -120,68 +123,37 @@ def get_centroid_dict(row: dict[str, Any]) -> dict[str, Any]:
     return geometry
 
 
-def get_wkt_by_id(id_: int) -> list[dict[str, Any]]:
-    g.cursor.execute(
-        """
-        SELECT
-            g.id,
-            g.name,
-            g.description,
-            g.type,
-            public.ST_AsText(geom_point) AS point,
-            public.ST_AsText(geom_linestring) AS linestring,
-            public.ST_AsText(ST_ForcePolygonCCW(geom_polygon)) AS polygon
-        FROM model.entity place
-        JOIN model.gis g ON place.id = g.entity_id
-        WHERE place.id = %(id_)s;
-        """,
-        {'id_': id_})
-    geometries = []
-    for row in list(g.cursor):
-        geometry = {}
-        if row['point']:
-            geometry['defined_by'] = row['point']
-        elif row['linestring']:
-            geometry['defined_by'] = row['linestring']
-        else:
-            geometry['defined_by'] = row['polygon']
-        geometry['content'] = row['description'].replace('"', '\"') \
-            if row['description'] else ''
-        geometry['shape_type'] = row['type'].replace('"', '\"') \
-            if row['type'] else ''
-        geometries.append(geometry)
-    return geometries
-
-
 def get_all(extra_ids: list[int]) -> list[dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT
-            object.id AS object_id,
-            g.entity_id AS location_id,
-            g.id,
-            g.name,
-            g.description,
-            g.type,
-            public.ST_AsGeoJSON(geom_point) AS point,
-            public.ST_AsGeoJSON(geom_linestring) AS linestring,
-            public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon,
-            CASE WHEN geom_polygon IS NULL THEN NULL ELSE
-                public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_polygon))
-                END AS polygon_point,
-            object.name AS object_name,
-            object.description AS object_desc,
-            string_agg(CAST(t.range_id AS text), ',') AS types
+        SELECT object.id                                             AS object_id,
+               g.entity_id                                           AS location_id,
+               g.id,
+               g.name,
+               g.description,
+               g.type,
+               public.ST_AsGeoJSON(geom_point)                       AS point,
+               public.ST_AsGeoJSON(geom_linestring)                  AS linestring,
+               public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon,
+               CASE
+                   WHEN geom_polygon IS NULL THEN NULL
+                   ELSE
+                       public.ST_AsGeoJSON(public.ST_PointOnSurface(
+                               geom_polygon))
+                   END                                               AS polygon_point,
+               object.name                                           AS object_name,
+               object.description                                    AS object_desc,
+               string_agg(CAST(t.range_id AS text), ',')             AS types
         FROM model.entity place
-        JOIN model.link l ON place.id = l.range_id
-        JOIN model.entity object ON l.domain_id = object.id
-        JOIN model.gis g ON place.id = g.entity_id
-        LEFT JOIN model.link t ON object.id = t.domain_id
+                 JOIN model.link l ON place.id = l.range_id
+                 JOIN model.entity object ON l.domain_id = object.id
+                 JOIN model.gis g ON place.id = g.entity_id
+                 LEFT JOIN model.link t ON object.id = t.domain_id
             AND t.property_code = 'P2'
         WHERE place.cidoc_class_code = 'E53'
-            AND l.property_code = 'P53'
-            AND (object.openatlas_class_name = 'place'
-                OR object.id IN %(extra_ids)s)
+          AND l.property_code = 'P53'
+          AND (object.openatlas_class_name = 'place'
+            OR object.id IN %(extra_ids)s)
         GROUP BY object.id, g.id;
         """,
         {'extra_ids': tuple(extra_ids)})
