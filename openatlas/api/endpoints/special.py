@@ -130,7 +130,7 @@ class GetChainedEvents(Resource):
 
 class GetSkolemProxy(Resource):
     @staticmethod
-    def get(subpath: str = None) -> tuple[dict[str, str | None], int]:
+    def get(subpath: str | None = None) -> tuple[dict[str, str | None], int]:
         return {
             "path": subpath,
             "error": "This is a deterministic Skolem URI for Linked.art. "

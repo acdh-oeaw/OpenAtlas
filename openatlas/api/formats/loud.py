@@ -180,7 +180,6 @@ class LoudFormatter:
                 "type": "DigitalObject"}]})
         if entity.license_holder:
             for license_holder in entity.license_holder:
-                # todo: add id link for license holder
                 digital_object.update({
                     'right_held_by': [{
                         'id': self.generate_skolem_id(
@@ -190,7 +189,6 @@ class LoudFormatter:
                         'type': 'Actor'}]})
         if entity.creator:
             for creator in entity.creator:
-                # todo: add id link for creator
                 digital_object.update({'created_by': [{
                     'id': self.generate_skolem_id(
                         creator.id,
@@ -786,7 +784,7 @@ class LoudFormatter:
     def handle_description(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
-        description = {
+        description: dict[str, Any] = {
             'id': LoudFormatter.generate_skolem_id(entity.id, 'description'),
             "type": "LinguisticObject",
             "_label": "Description",
@@ -842,7 +840,6 @@ class LoudFormatter:
                                 "_label": "end",
                                 "content": f'{annotation.link_end + offset}'}]
                         }]}]}
-                # todo: this is not performant, get the entities somehow faster
                 if annotation.entity_id:
                     linked_entity = Entity.get_by_id(annotation.entity_id)
                     annotation_dict = annotation_dict | {
@@ -876,8 +873,8 @@ class LoudFormatter:
                                 "type": "Type",
                                 "_label": "Note"}]}]}
                 part.append(annotation_dict)
-
-        description = description | {'part': part} if part else {}
+        if part:  # pragma: no cover
+            description = description | {'part': part}
         properties_set['referred_to_by'].append(description)
 
     @staticmethod

@@ -56,8 +56,6 @@ class Api(ApiTestCase):
                         feature = entity
                     case 'The One Ring':
                         artifact = entity
-                    case 'Dragon bones':
-                        human_remains = entity
                     case 'Sûza':
                         alias = entity
                     case 'Height':
@@ -292,7 +290,6 @@ class Api(ApiTestCase):
                 [[[28.938955988, 41.029052558], [28.940929349, 41.027312414],
                   [28.941969653, 41.028494098], [28.939964118, 41.02976479],
                   [28.938955988, 41.029052558]]])
-
 
         rv = c.get(url_for('api_04.entity_uuid', uuid=place.uuid))
         assert 'application/json' in rv.headers.get('Content-Type')
@@ -547,17 +544,17 @@ class Api(ApiTestCase):
                 assert b'SQLite format' in rv.data
 
         for url in [
-                    url_for(
-                        'api_04.query',
-                        cidoc_classes='E18',
-                        view_classes='artifact',
-                        system_classes='person',
-                        format='table_row'),
-                    url_for(
-                        'api_04.table_rows',
-                        cidoc_classes='E18',
-                        view_classes='artifact',
-                        system_classes='person')]:
+            url_for(
+                'api_04.query',
+                cidoc_classes='E18',
+                view_classes='artifact',
+                system_classes='person',
+                format='table_row'),
+            url_for(
+                'api_04.table_rows',
+                cidoc_classes='E18',
+                view_classes='artifact',
+                system_classes='person')]:
             with c.get(url) as rv:
                 rv = rv.get_json()['results']
                 assert 'Bar' in rv[0][0]
@@ -852,6 +849,9 @@ class Api(ApiTestCase):
         # Test Error Handling
         for rv in [
             c.get(url_for('api_04.entity', id_=233423424)),
+            c.get(url_for(
+                'api_04.entity_uuid',
+                uuid='7b9e1c4a-5f2d-4b8a-9e3c-2d1f0a9b8c7d')),
             c.get(url_for('api_04.cidoc_class', class_='E18', last=1231))]:
             rv = rv.get_json()
         assert 'Entity does not exist' in rv['title']
