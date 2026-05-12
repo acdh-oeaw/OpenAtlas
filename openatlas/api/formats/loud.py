@@ -75,13 +75,13 @@ class LoudFormatter:
                 get_crm_relation(link_, is_inverse).replace(' ', '_')]
         return name
 
-    def format_link(self, link_: Link, is_domain: bool) -> Any:
+    def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
         type_ = self.loud[
             get_crm_code(link_, is_domain).replace(' ', '_')]
         if target.class_.name == 'human_remains':
             type_ = 'BiologicalObject'
-        property_: Any = {
+        property_: dict[str, Any] = {
             'id': url_for('api.entity_uuid', uuid=target.uuid, _external=True),
             'type': type_,
             '_label': target.name}
@@ -449,7 +449,7 @@ class LoudFormatter:
         identifier_hash = hashlib.sha256(seed).hexdigest()[:16]
         return url_for(
             "api.skolem_proxy",
-            subpath= f'{type_name.lower()}/{identifier_hash}',
+            subpath=f'{type_name.lower()}/{identifier_hash}',
             _external=True)
 
     def get_loud_timespan(
@@ -662,7 +662,7 @@ class LoudFormatter:
         system = g.reference_systems[link_.domain.id]
         properties_set[match_property].append({
             "id": f'{system.resolver_url or ''}{link_.description}',
-            "type": entity.cidoc_class.name.replace(' ', '')})
+            "type": remove_spaces_dashes(entity.cidoc_class.i18n['en'])})
         properties_set['identified_by'].append({
             'id': LoudFormatter.generate_skolem_id(link_.id, 'identifier'),
             "type": "Identifier",
@@ -717,11 +717,11 @@ class LoudFormatter:
             properties_set['carried_out'].append(carried_out)
 
     @staticmethod
-    def handle_geometries(link_: Link) -> dict[str, list[Any]]:
+    def handle_geometries(id_: int) -> list[Any]:
         defined_by = []
-        for geom in get_gis_by_id(link_.range.id):
+        for geom in get_gis_by_id(id_):
             defined_by.append(generate_feature_without_null_values(geom))
-        return {'defined_by': defined_by}
+        return defined_by
 
     def process_link(
             self,
@@ -733,11 +733,9 @@ class LoudFormatter:
         if link_.property.code == 'P53':
             property_name = self.get_property_key(link_, is_inverse)
             base_property = self.format_link(link_, is_domain=is_domain)
-            properties_set[property_name].append(
-                base_property |
-                self.handle_geometries(link_)
-                # | self.handle_administrative_units(link_)
-            )
+            if geometry := self.handle_geometries(link_.range.id):
+                base_property.update({'defined_by': geometry})
+            properties_set[property_name] = base_property
             return
         if is_inverse \
                 and link_.property.code == 'P67' \
@@ -880,11 +878,30 @@ class LoudFormatter:
             "content": entity.name})
         properties_set['identified_by'].append({
             "type": "Identifier",
-            "_label": "System Identifier",
+            "_label": "Internal Database ID",
+            "content": url_for(
+                'api.entity',
+                id_=entity.id,
+                _external=True,
+                format='loud'),
+            "classified_as": [{
+                "id": "https://vocab.getty.edu/aat/300404629",
+                "type": "Type",
+                "_label": "local URI"}]})
+        properties_set['identified_by'].append({
+            "type": "Identifier",
+            "_label": "Unique Identifier",
             "content": url_for(
                 'api.entity_uuid',
                 uuid=entity.uuid,
-                _external=True)})
+                _external=True),
+            "classified_as": [{
+                "id": "https://vocab.getty.edu/aat//300404012",
+                "type": "Type",
+                "_label": "unique identifier"}]})
+        if entity.class_.name == 'object_location':
+            properties_set['defined_by'].append(
+                LoudFormatter.handle_geometries(entity.id))
 
     def finalize_output(
             self,
@@ -910,7 +927,6 @@ def get_loud_entities(
     for link_ in data['links']:
         if link_.property.code in ['OA8', 'OA9']:
             continue
-
         formatter.process_link(
             link_, properties_set, is_inverse=False, root_entity=entity)
     file_links = []
