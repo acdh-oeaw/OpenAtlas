@@ -165,7 +165,7 @@ class LoudFormatter:
                     "_label": "Digital documents"}]
             if 'model/' in mime_type:  # pragma: no cover
                 digital_object["classified_as"] = [{
-                    "id": "https://vocab.getty.edu/aat/300247398",
+                    "id": "https://vocab.getty.edu/aat/300266011",
                     "type": "Type",
                     "_label": "Digital File Format"}, {
                     "id": "https://www.wikidata.org/wiki/Q3859833",
@@ -239,7 +239,7 @@ class LoudFormatter:
             "type": "AttributeAssignment",
             "_label": "Radiocarbon Dating",
             "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300054656",
+                "id": "https://vocab.getty.edu/aat/300054717",
                 "type": "Type",
                 "_label": "Radiocarbon Dating"}],
             "assigned": [{
@@ -247,9 +247,9 @@ class LoudFormatter:
                 "_label": f'{radio_data['radiocarbonYear']} +/- '
                           f'{radio_data['range']} {radio_data['timeScale']}',
                 "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300054656",
+                    "id": "https://vocab.getty.edu/aat/300054717",
                     "type": "Type",
-                    "_label": "Radiocarbon Date"}],
+                    "_label": "Radiocarbon Dating"}],
                 "value": int(radio_data['radiocarbonYear']),
                 "lower_value": int(radio_data['radiocarbonYear']) - int(
                     radio_data['range']),
@@ -264,7 +264,7 @@ class LoudFormatter:
                     "content": str(radio_data['range']),
                     "_label": "Laboratory Error Range",
                     "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300435427",
+                        "id": "https://vocab.getty.edu/aat/300417273",
                         "type": "Type",
                         "_label": "error (measure of uncertainty)"}]}]}],
             "identified_by": [{
@@ -273,7 +273,7 @@ class LoudFormatter:
                 "content": f"{radio_data['labId']}-{radio_data['specId']}",
                 "_label": "Laboratory ID",
                 "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300404621",
+                    "id": "https://vocab.getty.edu/aat/300460217",
                     "type": "Type",
                     "_label": "Laboratory Identifiers"}]}, {
                 'id': LoudFormatter.generate_skolem_id(link_.id, 'specimen'),
@@ -316,8 +316,6 @@ class LoudFormatter:
                 "id": "http://vocab.getty.edu/aat/300226816",
                 'type': "MeasurementUnit",
                 '_label': target.description}
-        # super_type = g.types[g.types[link_.range.id].root[-1]]
-        # property_['part_of'] = [self._format_type_property(super_type)]
         return property_
 
     def _handle_p73(
@@ -361,14 +359,14 @@ class LoudFormatter:
                         "_label": "pagination"}]}]}
         if link_.domain.class_.name == 'bibliography':
             property_['classified_as'].append({
-                "id": "https://vocab.getty.edu/aat/300026652",
+                "id": "https://vocab.getty.edu/aat/300026497",
                 "type": "Type",
-                "_label": "Bibliography"})
+                "_label": "bibliography"})
         if link_.domain.class_.name == 'edition':
             property_['classified_as'].append({
-                "id": "https://vocab.getty.edu/aat/300404319",
+                "id": "https://vocab.getty.edu/aat/300121294",
                 "type": "Type",
-                "_label": "Edition"})
+                "_label": "edition"})
         if link_.domain.class_.name == 'external_reference':
             property_ = {
                 "id": url_for(
@@ -424,9 +422,6 @@ class LoudFormatter:
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(type_)
-        # for super_type in [g.types[root] for root in type_.root]:
-        #    property_['part_of'] = [
-        #        self._format_type_property(super_type)]
         external_references: dict[str, Any] = {}
         for type_link in self.type_refs.get(type_.id, []):
             url = type_link.domain.name
@@ -674,7 +669,7 @@ class LoudFormatter:
             "content": link_.description,
             "_label": f"{link_.domain.name} Identifier",
             "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300404620",
+                "id": "https://vocab.getty.edu/aat/300404626",
                 "type": "Type",
                 "_label": "Authority Control Number"}],
             "attributed_by": [{
@@ -792,7 +787,7 @@ class LoudFormatter:
             "classified_as": [{
                 "id": "https://vocab.getty.edu/aat/300435416",
                 "type": "Type",
-                "_label": "Description"}]}
+                "_label": "description"}]}
         part = []
         if annotations := AnnotationText.get_by_source_id(entity.id):
             for annotation in annotations:  # pragma: no cover
@@ -809,7 +804,7 @@ class LoudFormatter:
                     "_label": f"Annotation: {inner_text}",
                     "content": inner_text,
                     "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300435420",
+                        "id": "https://vocab.getty.edu/aat/300026100",
                         "type": "Type",
                         "_label": "Annotation"}]}
                 annotation_dict = annotation_dict | {
@@ -819,16 +814,14 @@ class LoudFormatter:
                             'annotation_digital_object'),
                         "type": "DigitalObject",
                         "classified_as": [{
-                            # todo: get aat right
-                            "id": "https://vocab.getty.edu/aat/300435443",
+                            "id": "https://vocab.getty.edu/aat/300055590",
                             "type": "Type",
                             "_label": "Selectors"}],
                         "referred_to_by": [{
                             "type": "LinguisticObject",
                             "content": f'{annotation.text}',
                             "classified_as": [{
-                                # todo: get aat right
-                                "id": "https://vocab.getty.edu/aat/300430390",
+                                "id": "https://vocab.getty.edu/aat/300055590",
                                 "type": "Type",
                                 "_label": "Text Position Selector"}],
                             "identified_by": [{
