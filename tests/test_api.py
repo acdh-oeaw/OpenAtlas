@@ -283,13 +283,12 @@ class Api(ApiTestCase):
         assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00Z'
         assert rv['identified_by'][0]['_label'] == 'Sûza'
         assert rv['classified_as'][0]['_label'] == 'Boundary Mark'
-        assert (rv['former_or_current_location'][0]['_label']
-                == 'Location of Shire')
-        assert (rv['former_or_current_location'][0]['defined_by'][0]
-                ['geometry']['coordinates'] ==
-                [[[28.938955988, 41.029052558], [28.940929349, 41.027312414],
-                  [28.941969653, 41.028494098], [28.939964118, 41.02976479],
-                  [28.938955988, 41.029052558]]])
+        assert (rv['former_or_current_location']['defined_by'] ==
+                'GEOMETRYCOLLECTION (POLYGON ((28.9389559878606 '
+                '41.0290525580955, 28.9409293485759 41.0273124142771, '
+                '28.941969652866 41.0284940983463, 28.9399641177912 '
+                '41.0297647897435, 28.9389559878606 41.0290525580955)),'
+                ' POINT (16.370696110389183 48.20857123273274))')
 
         rv = c.get(url_for('api_04.entity_uuid', uuid=place.uuid))
         assert 'application/json' in rv.headers.get('Content-Type')
