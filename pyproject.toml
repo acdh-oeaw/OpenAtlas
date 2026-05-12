@@ -34,6 +34,7 @@ dependencies = [
     "pyjwt==2.10.1",
     "python-dateutil==2.9.0",
     "python-gettext==4.0",
+    "python-magic==0.4.27",
     "pyyaml~=6.0.1",
     "rapidfuzz>=3.14.3",
     "rdflib==7.1.1",
