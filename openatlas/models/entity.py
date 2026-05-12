@@ -539,6 +539,22 @@ class Entity:
         return entity
 
     @staticmethod
+    def get_by_uuid(
+            uuid: str,
+            types: bool = False,
+            aliases: bool = False,
+            with_location: bool = True) -> Entity:
+        data = db.get_by_uuid(uuid, types, aliases)
+        if not data:
+            abort(418)
+        entity = Entity(data)
+        if entity.class_.name == 'place' and with_location:
+            entity.location = entity.get_linked_entity_safe('P53', types=True)
+            if types:
+                entity.types.update(entity.location.types)
+        return entity
+
+    @staticmethod
     def get_by_ids(
             ids: Iterable[int],
             types: bool = False,
@@ -821,8 +837,8 @@ def insert(data: dict[str, Any]) -> Entity:
         data['description'] = result['text']
         annotation_data = result['data']
     for item in [
-            'begin_from', 'begin_to', 'begin_comment',
-            'end_from', 'end_to', 'end_comment', 'description']:
+        'begin_from', 'begin_to', 'begin_comment',
+        'end_from', 'end_to', 'end_comment', 'description']:
         data[item] = data.get(item)
     for item in ['name', 'description']:
         data[item] = sanitize(data[item])

@@ -17,6 +17,8 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_creator_id_fkey;
 ALTER TABLE IF EXISTS ONLY web.user_settings DROP CONSTRAINT IF EXISTS user_settings_user_id_fkey;
@@ -624,6 +626,7 @@ CREATE TABLE model.entity (
     end_to timestamp without time zone,
     end_comment text,
     openatlas_class_name text NOT NULL,
+    uuid uuid DEFAULT public.gen_random_uuid() NOT NULL,
     CONSTRAINT no_empty_name CHECK ((name <> ''::text))
 );
 
@@ -1952,6 +1955,14 @@ ALTER TABLE ONLY model.file_info
 
 ALTER TABLE ONLY model.entity
     ADD CONSTRAINT entity_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: entity entity_uuid_unique; Type: CONSTRAINT; Schema: model; Owner: openatlas
+--
+
+ALTER TABLE ONLY model.entity
+    ADD CONSTRAINT entity_uuid_unique UNIQUE (uuid);
 
 
 --

@@ -13,6 +13,16 @@ def get_by_id(
     return g.cursor.fetchone()
 
 
+def get_by_uuid(
+        uuid: str,
+        types: bool = False,
+        aliases: bool = False) -> dict[str, Any]:
+    g.cursor.execute(
+        select_sql(types, aliases) + ' WHERE e.uuid = %(uuid)s GROUP BY e.id;',
+        {'uuid': uuid})
+    return g.cursor.fetchone()
+
+
 def get_by_ids(
         ids: Iterable[int],
         types: bool = False,
@@ -28,23 +38,23 @@ def get_by_ids(
 def get_by_project_id(project_id: int) -> list[dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT
-            e.id,
-            ie.origin_id,
-            e.cidoc_class_code,
-            e.name,
-            e.description,
-            e.created,
-            e.modified,
-            e.openatlas_class_name,
-            array_to_json(
-                array_agg((t.range_id, t.description))
-                    FILTER (WHERE t.range_id IS NOT NULL)
-            ) AS types
+        SELECT e.id,
+               e.uuid,
+               ie.origin_id,
+               e.cidoc_class_code,
+               e.name,
+               e.description,
+               e.created,
+               e.modified,
+               e.openatlas_class_name,
+               array_to_json(
+                       array_agg((t.range_id, t.description)) FILTER (WHERE 
+                       t.range_id IS NOT NULL)
+               ) AS types
         FROM model.entity e
-        LEFT JOIN model.link t ON e.id = t.domain_id
+                 LEFT JOIN model.link t ON e.id = t.domain_id
             AND t.property_code IN ('P2', 'P89')
-        JOIN import.entity ie ON e.id = ie.entity_id
+                 JOIN import.entity ie ON e.id = ie.entity_id
         WHERE ie.project_id = %(id)s
         GROUP BY e.id, ie.origin_id;
         """,
@@ -93,8 +103,9 @@ def get_overview_counts_by_type(
         """
         SELECT openatlas_class_name AS name, COUNT(openatlas_class_name)
         FROM model.entity e
-        JOIN model.link t ON e.id = t.domain_id
-        WHERE openatlas_class_name IN %(classes)s AND t.range_id IN %(ids)s  
+                 JOIN model.link t ON e.id = t.domain_id
+        WHERE openatlas_class_name IN %(classes)s
+          AND t.range_id IN %(ids)s
         GROUP BY openatlas_class_name;
         """,
         {'ids': tuple(ids), 'classes': tuple(classes)})
@@ -117,26 +128,26 @@ def get_latest(classes: list[str], limit: int) -> list[dict[str, Any]]:
 def get_all_entities() -> list[dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT
-            e.id,
-            e.cidoc_class_code,
-            e.name,
-            e.description,
-            COALESCE(to_char(e.created, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS created,
-            COALESCE(to_char(e.modified, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS modified,
-            e.openatlas_class_name,
-            COALESCE(to_char(e.begin_from, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS begin_from,
-            e.begin_comment,
-            COALESCE(to_char(e.begin_to, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS begin_to,
-            COALESCE(to_char(e.end_from, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS end_from,
-            e.end_comment,
-            COALESCE(to_char(e.end_to, 'yyyy-mm-dd hh24:mi:ss BC'), '')
-                AS end_to
+        SELECT e.id,
+               e.uuid,
+               e.cidoc_class_code,
+               e.name,
+               e.description,
+               COALESCE(to_char(e.created, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS created,
+               COALESCE(to_char(e.modified, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS modified,
+               e.openatlas_class_name,
+               COALESCE(to_char(e.begin_from, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS begin_from,
+               e.begin_comment,
+               COALESCE(to_char(e.begin_to, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS begin_to,
+               COALESCE(to_char(e.end_from, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS end_from,
+               e.end_comment,
+               COALESCE(to_char(e.end_to, 'yyyy-mm-dd hh24:mi:ss BC'), '')
+                   AS end_to
         FROM model.entity e;
         """)
     return list(g.cursor)
@@ -147,63 +158,61 @@ def insert(data: dict[str, Any]) -> int:
         g.classes[data['openatlas_class_name']].cidoc_class.code
     g.cursor.execute(
         """
-        INSERT INTO model.entity (
-            name,
-            openatlas_class_name,
-            cidoc_class_code,
-            description,
-            begin_from,
-            begin_to,
-            begin_comment,
-            end_from,
-            end_to,
-            end_comment
-        ) VALUES (
-            %(name)s,
-            %(openatlas_class_name)s,
-            %(cidoc_class_code)s,
-            %(description)s,
-            %(begin_from)s,
-            %(begin_to)s,
-            %(begin_comment)s,
-            %(end_from)s,
-            %(end_to)s,
-            %(end_comment)s)
-        RETURNING id;""",
+        INSERT INTO model.entity (name,
+                                  openatlas_class_name,
+                                  cidoc_class_code,
+                                  description,
+                                  begin_from,
+                                  begin_to,
+                                  begin_comment,
+                                  end_from,
+                                  end_to,
+                                  end_comment)
+        VALUES (%(name)s,
+                %(openatlas_class_name)s,
+                %(cidoc_class_code)s,
+                %(description)s,
+                %(begin_from)s,
+                %(begin_to)s,
+                %(begin_comment)s,
+                %(end_from)s,
+                %(end_to)s,
+                %(end_comment)s) RETURNING id;""",
         data)
     return g.cursor.fetchone()['id']
 
 
 def update(data: dict[str, Any]) -> None:
     for item in [
-            'begin_from',
-            'begin_to',
-            'end_from',
-            'end_to',
-            'begin_comment',
-            'end_comment',
-            'description']:
+        'begin_from',
+        'begin_to',
+        'end_from',
+        'end_to',
+        'begin_comment',
+        'end_comment',
+        'description']:
         data[item] = data.get(item)
     g.cursor.execute(
         """
-        UPDATE model.entity SET (
-            name,
-            description,
-            begin_from,
-            begin_to,
-            begin_comment,
-            end_from,
-            end_to,
-            end_comment
-        ) = (
-            %(name)s,
-            %(description)s,
-            %(begin_from)s,
-            %(begin_to)s,
-            %(begin_comment)s,
-            %(end_from)s,
-            %(end_to)s,
-            %(end_comment)s)
+        UPDATE model.entity
+        SET (
+                name,
+                description,
+                begin_from,
+                begin_to,
+                begin_comment,
+                end_from,
+                end_to,
+                end_comment
+                ) = (
+                     %(name)s,
+                     %(description)s,
+                     %(begin_from)s,
+                     %(begin_to)s,
+                     %(begin_comment)s,
+                     %(end_from)s,
+                     %(end_to)s,
+                     %(end_comment)s)
         WHERE id = %(id)s;
         """,
         data)
@@ -224,8 +233,8 @@ def set_profile_image(id_: int, origin_id: int) -> None:
     g.cursor.execute(
         """
         INSERT INTO web.entity_profile_image (entity_id, image_id)
-        VALUES (%(entity_id)s, %(image_id)s)
-        ON CONFLICT (entity_id) DO UPDATE SET image_id=%(image_id)s;
+        VALUES (%(entity_id)s, %(image_id)s) ON CONFLICT (entity_id) DO
+        UPDATE SET image_id=%(image_id)s;
         """,
         {'entity_id': origin_id, 'image_id': id_})
 
@@ -240,6 +249,7 @@ def select_sql(types: bool = False, aliases: bool = False) -> str:
     sql = """
         SELECT
             e.id,
+            e.uuid,
             e.cidoc_class_code,
             e.name,
             e.description,
@@ -325,31 +335,28 @@ def api_search(
 def link(data: dict[str, Any]) -> int:
     g.cursor.execute(
         """
-        INSERT INTO model.link (
-            property_code,
-            domain_id,
-            range_id,
-            description,
-            type_id,
-            begin_from,
-            begin_to,
-            begin_comment,
-            end_from,
-            end_to,
-            end_comment
-        ) VALUES (
-            %(property_code)s,
-            %(domain_id)s,
-            %(range_id)s,
-            %(description)s,
-            %(type_id)s,
-            %(begin_from)s,
-            %(begin_to)s,
-            %(begin_comment)s,
-            %(end_from)s,
-            %(end_to)s,
-            %(end_comment)s
-        ) RETURNING id;
+        INSERT INTO model.link (property_code,
+                                domain_id,
+                                range_id,
+                                description,
+                                type_id,
+                                begin_from,
+                                begin_to,
+                                begin_comment,
+                                end_from,
+                                end_to,
+                                end_comment)
+        VALUES (%(property_code)s,
+                %(domain_id)s,
+                %(range_id)s,
+                %(description)s,
+                %(type_id)s,
+                %(begin_from)s,
+                %(begin_to)s,
+                %(begin_comment)s,
+                %(end_from)s,
+                %(end_to)s,
+                %(end_comment)s) RETURNING id;
         """,
         data)
     return g.cursor.fetchone()['id']
@@ -358,13 +365,12 @@ def link(data: dict[str, Any]) -> int:
 def update_file_info(data: dict[str, Any]) -> None:
     g.cursor.execute(
         """
-        INSERT INTO model.file_info (
-            entity_id,
-            public
-        ) VALUES (
-            %(entity_id)s,
-            %(public)s
-        ) ON CONFLICT (entity_id) DO UPDATE SET
+        INSERT INTO model.file_info (entity_id,
+                                     public)
+        VALUES (%(entity_id)s,
+                %(public)s) ON CONFLICT (entity_id) DO
+        UPDATE
+        SET
             public = %(public)s
         """,
         data)
@@ -426,7 +432,8 @@ def get_links_of_entities(
         inverse: bool = False) -> list[dict[str, Any]]:
     sql = f"""
         SELECT
-            l.id, l.property_code,
+            l.id, 
+            l.property_code,
             l.domain_id,
             l.range_id,
             l.description,
@@ -471,7 +478,7 @@ def get_linked_entities(
             """
             SELECT e.id
             FROM model.link l
-            JOIN model.entity e ON l.range_id = e.id
+                     JOIN model.entity e ON l.range_id = e.id
                 AND l.domain_id = %(id_)s
                 AND e.openatlas_class_name IN %(classes)s
                 AND l.property_code IN %(codes)s;
@@ -482,7 +489,8 @@ def get_linked_entities(
             """
             SELECT range_id
             FROM model.link
-            WHERE domain_id = %(id_)s AND property_code IN %(codes)s;
+            WHERE domain_id = %(id_)s
+              AND property_code IN %(codes)s;
             """,
             {'id_': id_, 'codes': tuple(codes)})
     return [row[0] for row in list(g.cursor)]
@@ -497,7 +505,7 @@ def get_linked_entities_inverse(
             """
             SELECT l.domain_id
             FROM model.link l
-            JOIN model.entity e ON l.domain_id = e.id
+                     JOIN model.entity e ON l.domain_id = e.id
                 AND l.range_id = %(id_)s
                 AND e.openatlas_class_name IN %(classes)s
                 AND l.property_code IN %(codes)s;
@@ -508,7 +516,8 @@ def get_linked_entities_inverse(
             """
             SELECT domain_id
             FROM model.link
-            WHERE range_id = %(id_)s AND property_code IN %(codes)s;
+            WHERE range_id = %(id_)s
+              AND property_code IN %(codes)s;
             """,
             {'id_': id_, 'codes': tuple(codes)})
     return [row[0] for row in list(g.cursor)]
@@ -540,6 +549,7 @@ def get_types(with_count: bool) -> list[dict[str, Any]]:
     sql = f"""
         SELECT
             e.id,
+            e.uuid,
             e.name,
             e.cidoc_class_code,
             e.description,
@@ -636,7 +646,8 @@ def update_hierarchy(data: dict[str, Any]) -> None:
     g.cursor.execute(
         """
         UPDATE web.hierarchy
-        SET name = %(name)s, multiple = %(multiple)s
+        SET name     = %(name)s,
+            multiple = %(multiple)s
         WHERE id = %(id)s;
         """,
         data)
@@ -658,7 +669,8 @@ def change_link_type(data: dict[str, Any]) -> None:
         """
         UPDATE model.link
         SET type_id = %(new_type_id)s
-        WHERE type_id = %(old_type_id)s AND id IN %(entity_ids)s;
+        WHERE type_id = %(old_type_id)s
+          AND id IN %(entity_ids)s;
         """,
         data)
 
@@ -668,7 +680,8 @@ def change_type(data: dict[str, Any]) -> None:
         """
         UPDATE model.link
         SET range_id = %(new_type_id)s
-        WHERE range_id = %(old_type_id)s AND domain_id IN %(entity_ids)s;
+        WHERE range_id = %(old_type_id)s
+          AND domain_id IN %(entity_ids)s;
         """,
         data)
 
@@ -678,7 +691,8 @@ def remove_link_type(type_id: int, delete_ids: list[int]) -> None:
         """
         UPDATE model.link
         SET type_id = NULL
-        WHERE type_id = %(type_id)s AND id IN %(delete_ids)s;
+        WHERE type_id = %(type_id)s
+          AND id IN %(delete_ids)s;
         """,
         {'type_id': type_id, 'delete_ids': tuple(delete_ids)})
 
@@ -686,8 +700,10 @@ def remove_link_type(type_id: int, delete_ids: list[int]) -> None:
 def remove_type(type_id: int, delete_ids: list[int]) -> None:
     g.cursor.execute(
         """
-        DELETE FROM model.link
-        WHERE range_id = %(type_id)s AND domain_id IN %(delete_ids)s;
+        DELETE
+        FROM model.link
+        WHERE range_id = %(type_id)s
+          AND domain_id IN %(delete_ids)s;
         """,
         {'type_id': type_id, 'delete_ids': tuple(delete_ids)})
 
@@ -695,11 +711,12 @@ def remove_type(type_id: int, delete_ids: list[int]) -> None:
 def get_class_count(name: str, type_ids: list[int]) -> int:
     g.cursor.execute(
         """
-        SELECT COUNT(*) FROM model.link l
-        JOIN model.entity e ON l.domain_id = e.id
+        SELECT COUNT(*)
+        FROM model.link l
+                 JOIN model.entity e ON l.domain_id = e.id
             AND l.range_id IN %(type_ids)s
         WHERE l.property_code = 'P2'
-            AND e.openatlas_class_name = %(class_name)s;
+          AND e.openatlas_class_name = %(class_name)s;
         """,
         {'type_ids': tuple(type_ids), 'class_name': name})
     return g.cursor.fetchone()['count']
@@ -708,9 +725,10 @@ def get_class_count(name: str, type_ids: list[int]) -> int:
 def remove_class(hierarchy_id: int, class_name: str) -> None:
     g.cursor.execute(
         """
-        DELETE FROM web.hierarchy_openatlas_class
+        DELETE
+        FROM web.hierarchy_openatlas_class
         WHERE hierarchy_id = %(hierarchy_id)s
-            AND openatlas_class_name = %(class_name)s;
+          AND openatlas_class_name = %(class_name)s;
         """,
         {'hierarchy_id': hierarchy_id, 'class_name': class_name})
 
@@ -718,10 +736,11 @@ def remove_class(hierarchy_id: int, class_name: str) -> None:
 def remove_entity_links(type_id: int, entity_id: int) -> None:
     g.cursor.execute(
         """
-        DELETE FROM model.link
+        DELETE
+        FROM model.link
         WHERE domain_id = %(entity_id)s
-            AND range_id = %(type_id)s
-            AND property_code = 'P2';
+          AND range_id = %(type_id)s
+          AND property_code = 'P2';
         """,
         {'entity_id': entity_id, 'type_id': type_id})
 
@@ -729,20 +748,18 @@ def remove_entity_links(type_id: int, entity_id: int) -> None:
 def insert_reference_system(data: dict[str, Any]) -> None:
     g.cursor.execute(
         """
-        INSERT INTO web.reference_system (
-            entity_id,
-            name,
-            website_url,
-            resolver_url,
-            identifier_example,
-            api)
-        VALUES (
-            %(entity_id)s,
-            %(name)s,
-            %(website_url)s,
-            %(resolver_url)s,
-            %(identifier_example)s,
-            %(api)s);
+        INSERT INTO web.reference_system (entity_id,
+                                          name,
+                                          website_url,
+                                          resolver_url,
+                                          identifier_example,
+                                          api)
+        VALUES (%(entity_id)s,
+                %(name)s,
+                %(website_url)s,
+                %(resolver_url)s,
+                %(identifier_example)s,
+                %(api)s);
         """,
         data)
 
@@ -752,18 +769,19 @@ def update_reference_system(data: dict[str, Any]) -> None:
         """
         UPDATE web.reference_system
         SET (
-            name,
-            website_url,
-            resolver_url,
-            identifier_example,
-            api
-        ) = (
-            %(name)s,
-            %(website_url)s,
-            %(resolver_url)s,
-            %(identifier_example)s,
-            %(api)s
-        ) WHERE entity_id = %(entity_id)s;
+                name,
+                website_url,
+                resolver_url,
+                identifier_example,
+                api
+                ) = (
+                     %(name)s,
+                     %(website_url)s,
+                     %(resolver_url)s,
+                     %(identifier_example)s,
+                     %(api)s
+                )
+        WHERE entity_id = %(entity_id)s;
         """,
         data)
 
@@ -773,8 +791,9 @@ def add_reference_system_classes(entity_id: int, names: list[str]) -> None:
         g.cursor.execute(
             """
             INSERT INTO web.reference_system_openatlas_class (
-                reference_system_id, openatlas_class_name
-            ) VALUES (%(entity_id)s, %(name)s);
+                reference_system_id,
+                                                              openatlas_class_name)
+            VALUES (%(entity_id)s, %(name)s);
             """,
             {'entity_id': entity_id, 'name': name})
 
@@ -782,9 +801,10 @@ def add_reference_system_classes(entity_id: int, names: list[str]) -> None:
 def remove_reference_system_class(entity_id: int, name: str) -> None:
     g.cursor.execute(
         """
-        DELETE FROM web.reference_system_openatlas_class
+        DELETE
+        FROM web.reference_system_openatlas_class
         WHERE reference_system_id = %(reference_system_id)s
-            AND openatlas_class_name = %(class_name)s;
+          AND openatlas_class_name = %(class_name)s;
         """,
         {'reference_system_id': entity_id, 'class_name': name})
 
@@ -794,7 +814,8 @@ def reference_system_counts() -> dict[str, int]:
         """
         SELECT e.id, COUNT(l.id) AS count
         FROM model.entity e
-        LEFT JOIN model.link l ON e.id = l.domain_id
+            LEFT JOIN model.link l
+        ON e.id = l.domain_id
             AND l.property_code = 'P67'
         GROUP BY e.id;
         """)
@@ -804,40 +825,39 @@ def reference_system_counts() -> dict[str, int]:
 def get_reference_systems() -> list[dict[str, Any]]:
     g.cursor.execute(
         """
-        SELECT
-            e.id,
-            e.name,
-            e.cidoc_class_code,
-            e.description,
-            e.openatlas_class_name,
-            e.created,
-            e.modified,
-            rs.website_url,
-            rs.resolver_url,
-            rs.identifier_example,
-            rs.system,
-            rs.api,
-            array_to_json(
-                array_agg((t.range_id, t.description))
-                    FILTER (WHERE t.range_id IS NOT NULL)
-            ) AS types
+        SELECT e.id,
+               e.name,
+               e.cidoc_class_code,
+               e.description,
+               e.openatlas_class_name,
+               e.created,
+               e.modified,
+               rs.website_url,
+               rs.resolver_url,
+               rs.identifier_example,
+               rs.system,
+               rs.api,
+               array_to_json(
+                       array_agg((t.range_id, t.description)) FILTER (WHERE 
+                       t.range_id IS NOT NULL)
+               ) AS types
         FROM model.entity e
-        JOIN web.reference_system rs ON e.id = rs.entity_id
-        LEFT JOIN model.link t ON e.id = t.domain_id AND t.property_code = 'P2'
-        GROUP BY
-            e.id,
-            e.name,
-            e.cidoc_class_code,
-            e.description,
-            e.openatlas_class_name,
-            e.created,
-            e.modified,
-            rs.website_url,
-            rs.resolver_url,
-            rs.identifier_example,
-            rs.api,
-            rs.system,
-            rs.entity_id;
+                 JOIN web.reference_system rs ON e.id = rs.entity_id
+                 LEFT JOIN model.link t
+                           ON e.id = t.domain_id AND t.property_code = 'P2'
+        GROUP BY e.id,
+                 e.name,
+                 e.cidoc_class_code,
+                 e.description,
+                 e.openatlas_class_name,
+                 e.created,
+                 e.modified,
+                 rs.website_url,
+                 rs.resolver_url,
+                 rs.identifier_example,
+                 rs.api,
+                 rs.system,
+                 rs.entity_id;
         """)
     return list(g.cursor)
 
@@ -847,7 +867,8 @@ def get_multiple_linked_entities(sub_ids: list[int]) -> list[int]:
         """
         SELECT domain_id, COUNT(*) AS "Count"
         FROM model.link
-        WHERE property_code IN ('P2', 'P89') AND range_id IN %(sub_ids)s
+        WHERE property_code IN ('P2', 'P89')
+          AND range_id IN %(sub_ids)s
         GROUP BY domain_id
         HAVING COUNT(*) > 1
         """,
