@@ -238,6 +238,101 @@
         }
       }
     },
+    "/uuid/{uuid}": {
+      "get": {
+        "tags": [
+          "Entity Endpoint"
+        ],
+        "description": "Retrieves information about a single entity thorugh the UUID in the linked.art format.",
+        "operationId": "GetEntityByUUID",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/uuid"
+          },
+          {
+            "$ref": "#/components/parameters/download"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedArtModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/entity_presentation_view/{entityId}": {
       "get": {
         "tags": [
@@ -4033,25 +4128,26 @@
         "description": "Specific entity ID",
         "required": true,
         "schema": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "description": "Internal database ID",
-              "example": 50505
-            },
-            {
-              "type": "string",
-              "format": "uuid",
-              "description": "Global persistent identifier (UUID v4)",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            }
-          ]
+          "type": "integer",
+          "description": "Internal database ID",
+          "example": 50505
         },
         "x-examples": [
           50505,
           179184,
           196290
         ]
+      },
+      "uuid": {
+        "name": "uuid",
+        "in": "path",
+        "description": "Specific entity UUID",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "Universally Unique IDentifier",
+          "example": "281aebb0-edff-440d-9775-2732744d916e"
+        }
       },
       "fileId": {
         "name": "fileId",

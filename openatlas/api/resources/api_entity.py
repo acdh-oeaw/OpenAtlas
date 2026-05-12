@@ -20,6 +20,18 @@ class ApiEntity(Entity):
         return entity
 
     @staticmethod
+    def get_by_uuid(
+            uuid: str,
+            types: bool = False,
+            aliases: bool = False,
+            with_location: bool = True) -> Entity:
+        try:
+            entity = Entity.get_by_uuid(uuid, types=types, aliases=aliases)
+        except Exception as e:
+            raise EntityDoesNotExistError from e
+        return entity
+
+    @staticmethod
     def get_by_cidoc_classes(codes: list[str]) -> list[Entity]:
         if 'all' in codes:
             codes = list(g.cidoc_classes)
