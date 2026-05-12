@@ -439,10 +439,10 @@ class LoudFormatter:
         if not entity.dates.dates_available():
             return {}
         return {'timespan':
-                {'id': self.generate_skolem_id(entity.id, 'timespan'),
-                 'type': 'TimeSpan'}
-                | self._get_loud_begin_dates(entity)
-                | self._get_loud_end_dates(entity)}
+                    {'id': self.generate_skolem_id(entity.id, 'timespan'),
+                     'type': 'TimeSpan'}
+                    | self._get_loud_begin_dates(entity)
+                    | self._get_loud_end_dates(entity)}
 
     def _make_life_event(
             self,
@@ -462,8 +462,9 @@ class LoudFormatter:
                 ts_key = 'begin' if event_type in {'Birth', 'Formation'} \
                     else 'end'
                 timespan = {
-                    'id': self.generate_skolem_id(entity.id, ts_key),
-                    'type': 'TimeSpan'} | timespan
+                               'id': self.generate_skolem_id(entity.id,
+                                                             ts_key),
+                               'type': 'TimeSpan'} | timespan
             event['timespan'] = timespan | dates
         return event
 
@@ -642,8 +643,7 @@ class LoudFormatter:
             return
         if is_inverse and code == 'P67' \
                 and link_.domain.cidoc_class.code == 'E32':
-            self.handle_authority_reference(
-                link_, properties_set, root_entity)
+            self.handle_authority_reference(link_, properties_set, root_entity)
             return
         if is_inverse and code == 'P107':
             self.handle_membership(link_, properties_set)
