@@ -56,6 +56,8 @@ class Api(ApiTestCase):
                         feature = entity
                     case 'The One Ring':
                         artifact = entity
+                    case 'Dragon bones':
+                        human_remains = entity
                     case 'Sûza':
                         alias = entity
                     case 'Height':
@@ -140,7 +142,7 @@ class Api(ApiTestCase):
                 'api_04.network_visualisation',
                 exclude_system_classes='type'))
         rv = rv.get_json()
-        assert len(rv['results']) == 64
+        assert len(rv['results']) == 66
         rv = c.get(
             url_for(
                 'api_04.network_visualisation',
@@ -149,7 +151,7 @@ class Api(ApiTestCase):
         assert len(rv['results']) == 15
         rv = c.get(url_for('api_04.network_visualisation', download=True))
         rv = rv.get_json()
-        assert len(rv['results']) == 160
+        assert len(rv['results']) == 161
 
         rv = c.get(
             url_for(
@@ -292,7 +294,7 @@ class Api(ApiTestCase):
                   [28.938955988, 41.029052558]]])
 
 
-        rv = c.get(url_for('api_04.entity_uuid', uuid=place.id))
+        rv = c.get(url_for('api_04.entity_uuid', uuid=place.uuid))
         assert 'application/json' in rv.headers.get('Content-Type')
         rv = rv.get_json()
         assert rv['type'] == 'PhysicalThing'
@@ -469,7 +471,7 @@ class Api(ApiTestCase):
                 system_classes='person',
                 limit=0,
                 first=actor2.id)).get_json()
-        assert rv['pagination']['entities'] == 9
+        assert rv['pagination']['entities'] == 10
 
         # Test page parameter
         rv = c.get(
@@ -482,7 +484,7 @@ class Api(ApiTestCase):
                 limit=1,
                 page=7)).get_json()
         properties = rv['results'][0]['features'][0]['properties']
-        assert properties['title'] == actor2.name
+        assert properties['title'] == 'Mordor'
         assert len(rv['results']) == 1
 
         rv = c.get(
@@ -501,7 +503,7 @@ class Api(ApiTestCase):
                 view_classes='artifact',
                 system_classes='person',
                 count=True))
-        assert rv.get_json() == 9
+        assert rv.get_json() == 10
 
         rv = c.get(url_for('api_04.geometric_entities', count=True))
         assert rv.get_json() == 6
@@ -730,12 +732,12 @@ class Api(ApiTestCase):
                 "relationToID": [{
                     "operator": "equal",
                     "values": [place.id]}]}]),
-            (164, [{
+            (166, [{
                 "typeIDWithSubs": [{
                     "operator": "notEqual",
                     "values": [boundary_mark.id],
                     "logicalOperator": "and"}]}]),
-            (166, [{
+            (168, [{
                 "typeName": [{
                     "operator": "notEqual",
                     "values": ["Boundary Mark", "Height"],

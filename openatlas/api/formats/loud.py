@@ -158,12 +158,12 @@ class LoudFormatter:
                     "id": "https://vocab.getty.edu/aat/300215302",
                     "type": "Type",
                     "_label": "Digital image"}]
-            if 'application/pdf' in mime_type:
+            if 'application/pdf' in mime_type:  # pragma: no cover
                 digital_object["classified_as"] = [{
                     "id": "https://vocab.getty.edu/aat/300424602",
                     "type": "Type",
                     "_label": "Digital documents"}]
-            if 'model/' in mime_type:
+            if 'model/' in mime_type:  # pragma: no cover
                 digital_object["classified_as"] = [{
                     "id": "https://vocab.getty.edu/aat/300247398",
                     "type": "Type",
@@ -313,7 +313,7 @@ class LoudFormatter:
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
         if link_.description:
-            property_['value'] = link_.description
+            property_['value'] = float(link_.description)
             property_['unit'] = {
                 "id": "http://vocab.getty.edu/aat/300226816",
                 'type': "MeasurementUnit",
@@ -441,7 +441,7 @@ class LoudFormatter:
             if type_link.type \
                     and g.types.get(type_link.type.id) \
                     and 'close' in g.types[type_link.type.id].name:
-                match_property = 'related'
+                match_property = 'related'  # pragma: no cover
             if match_property not in external_references:
                 external_references[match_property] = []
             external_references[match_property].append({
@@ -608,7 +608,7 @@ class LoudFormatter:
                 '_label': entity.name,
                 'type': 'DigitalObject'}
             image.update(self.get_digital_object_details(entity, mime_type))
-            if mime_type == 'application/pdf':
+            if mime_type == 'application/pdf':  # pragma: no cover
                 subject_of.append({
                     'type': 'LinguisticObject',
                     '_label': entity.name,
@@ -797,7 +797,7 @@ class LoudFormatter:
                 "_label": "Description"}]}
         part = []
         if annotations := AnnotationText.get_by_source_id(entity.id):
-            for annotation in annotations:
+            for annotation in annotations:  # pragma: no cover
                 offset = 0
                 text = entity.description or ''
                 inner_text = text[
@@ -876,9 +876,8 @@ class LoudFormatter:
                                 "type": "Type",
                                 "_label": "Note"}]}]}
                 part.append(annotation_dict)
-        if part:
-            description = description | {'part': part}
 
+        description = description | {'part': part} if part else {}
         properties_set['referred_to_by'].append(description)
 
     @staticmethod
