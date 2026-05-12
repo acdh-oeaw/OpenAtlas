@@ -9,14 +9,14 @@ from flask import g, url_for
 
 from openatlas import app
 from openatlas.api.resources.util import (
-    date_to_utc_iso_str, generate_feature_without_null_values, get_crm_code,
+    date_to_utc_iso_str, get_crm_code,
     get_crm_relation,
     get_iiif_manifest_and_path,
     get_license_type, remove_spaces_dashes)
+from openatlas.database.gis import get_wkt_by_id
 from openatlas.display.util2 import get_file_path
 from openatlas.models.annotation import AnnotationText
 from openatlas.models.entity import Entity, Link
-from openatlas.models.gis import get_gis_by_id
 
 unit_map = {
     'B': 'bytes',
@@ -93,6 +93,7 @@ class LoudFormatter:
                 self._format_type_property(g.types[link_.type.id])]
         if code_ == 'P67' and link_.domain.class_.name == 'file':
             property_ = {
+                'id': self.generate_skolem_id(link_.domain.id, 'visual item'),
                 "type": "VisualItem",
                 "_label": f"Visual content of {link_.domain.name}",
                 "represents": [property_]}
@@ -189,7 +190,7 @@ class LoudFormatter:
                         'type': 'Actor'}]})
         if entity.creator:
             for creator in entity.creator:
-                digital_object.update({'created_by': [{
+                digital_object.update({'created_by': {
                     'id': self.generate_skolem_id(
                         creator.id,
                         f'{entity.id}_creation_{creator.id}'),
@@ -200,7 +201,7 @@ class LoudFormatter:
                             creator.id,
                             'rights_holder'),
                         '_label': creator.name,
-                        'type': 'Actor'}]}]})
+                        'type': 'Actor'}]}})
         if license_ := get_license_type(entity):
             subject_to: dict[str, Any] = {
                 'id': self.generate_skolem_id(license_.id, 'license'),
@@ -251,9 +252,9 @@ class LoudFormatter:
                     "type": "Type",
                     "_label": "Radiocarbon Dating"}],
                 "value": int(radio_data['radiocarbonYear']),
-                "lower_value": int(radio_data['radiocarbonYear']) - int(
+                "lower_value_limit": int(radio_data['radiocarbonYear']) - int(
                     radio_data['range']),
-                "upper_value": int(radio_data['radiocarbonYear']) + int(
+                "upper_value_limit": int(radio_data['radiocarbonYear']) + int(
                     radio_data['range']),
                 "unit": {
                     "id": "https://vocab.getty.edu/aat/300379244",
@@ -311,6 +312,7 @@ class LoudFormatter:
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
         if link_.description:
+            property_['type'] = 'Dimension'
             property_['value'] = float(link_.description)
             property_['unit'] = {
                 "id": "http://vocab.getty.edu/aat/300226816",
@@ -693,6 +695,7 @@ class LoudFormatter:
             '_label': link_.domain.name})
         if link_.type or link_.dates.dates_available():
             carried_out: dict[str, Any] = {
+                'id': self.generate_skolem_id(link_.id, 'membership'),
                 "type": "Activity",
                 "carried_out_on_behalf_of": [{
                     'id': url_for(
@@ -716,13 +719,6 @@ class LoudFormatter:
                         carried_out | self.get_loud_timespan(link_))
             properties_set['carried_out'].append(carried_out)
 
-    @staticmethod
-    def handle_geometries(id_: int) -> list[Any]:
-        defined_by = []
-        for geom in get_gis_by_id(id_):
-            defined_by.append(generate_feature_without_null_values(geom))
-        return defined_by
-
     def process_link(
             self,
             link_: Link,
@@ -733,7 +729,7 @@ class LoudFormatter:
         if link_.property.code == 'P53':
             property_name = self.get_property_key(link_, is_inverse)
             base_property = self.format_link(link_, is_domain=is_domain)
-            if geometry := self.handle_geometries(link_.range.id):
+            if geometry := get_wkt_by_id(link_.range.id):
                 base_property.update({'defined_by': geometry})
             properties_set[property_name] = base_property
             return
@@ -900,8 +896,8 @@ class LoudFormatter:
                 "type": "Type",
                 "_label": "unique identifier"}]})
         if entity.class_.name == 'object_location':
-            properties_set['defined_by'].append(
-                LoudFormatter.handle_geometries(entity.id))
+            if geometry := get_wkt_by_id(entity.id):
+                properties_set['defined_by'] = geometry
 
     def finalize_output(
             self,

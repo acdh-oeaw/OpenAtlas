@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Any
 
 from flask import g
+from shapely import GeometryCollection, from_wkt
 
 
 def get_by_id(id_: int) -> list[dict[str, Any]]:
@@ -118,6 +119,37 @@ def get_centroid_dict(row: dict[str, Any]) -> dict[str, Any]:
     geometry['locationId'] = row.get('location_id')
     geometry['placeId'] = row.get('entity_id')
     return geometry
+
+
+def get_wkt_by_id(id_: int) -> str:
+    g.cursor.execute(
+        """
+        SELECT
+            g.id,
+            g.name,
+            g.description,
+            g.type,
+            public.ST_AsText(geom_point) AS point,
+            public.ST_AsText(geom_linestring) AS linestring,
+            public.ST_AsText(ST_ForcePolygonCCW(geom_polygon)) AS polygon
+        FROM model.entity place
+        JOIN model.gis g ON place.id = g.entity_id
+        WHERE place.id = %(id_)s;
+        """,
+        {'id_': id_})
+    geometries = []
+    for row in g.cursor:
+        if row['point']:
+            geometries.append(from_wkt(row['point']))
+        if row['linestring']:
+            geometries.append(from_wkt(row['linestring']))
+        if row['polygon']:
+            geometries.append(from_wkt(row['polygon']))
+    if not geometries:
+        return ""
+    if len(geometries) == 1:
+        return geometries[0].wkt
+    return GeometryCollection(geometries).wkt
 
 
 def get_all(extra_ids: list[int]) -> list[dict[str, Any]]:
