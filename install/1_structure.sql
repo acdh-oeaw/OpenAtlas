@@ -7,8 +7,8 @@
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
--- SET idle_in_transaction_session_timeout = 0;
--- SET transaction_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -63,6 +63,7 @@ ALTER TABLE IF EXISTS ONLY model.annotation_image DROP CONSTRAINT IF EXISTS anno
 ALTER TABLE IF EXISTS ONLY import.entity DROP CONSTRAINT IF EXISTS entity_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY import.entity DROP CONSTRAINT IF EXISTS entity_project_id_fkey;
 ALTER TABLE IF EXISTS ONLY import.entity DROP CONSTRAINT IF EXISTS entity_entity_id_fkey;
+DROP TRIGGER IF EXISTS update_modified ON web.user_tokens;
 DROP TRIGGER IF EXISTS update_modified ON web.user_settings;
 DROP TRIGGER IF EXISTS update_modified ON web.user_notes;
 DROP TRIGGER IF EXISTS update_modified ON web.user_bookmarks;
@@ -1270,7 +1271,8 @@ CREATE TABLE web.reference_system (
     identifier_example text,
     system boolean DEFAULT false NOT NULL,
     created timestamp without time zone,
-    modified timestamp without time zone DEFAULT now() NOT NULL
+    modified timestamp without time zone DEFAULT now() NOT NULL,
+    api text
 );
 
 

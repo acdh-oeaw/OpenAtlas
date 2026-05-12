@@ -84,6 +84,7 @@ class Entity:
             self.resolver_url = data['resolver_url']
             self.example_id = data['identifier_example']
             self.system = data['system']
+            self.api = data['api']
 
     def get_linked_entity(
             self,
@@ -260,7 +261,8 @@ class Entity:
                         'name': self.name,
                         'website_url': data['website_url'],
                         'resolver_url': data['resolver_url'],
-                        'identifier_example': sanitize(data['example_id'])})
+                        'identifier_example': sanitize(data['example_id']),
+                        'api': sanitize(data['api'])})
                     if data['reference_system_classes']:
                         db.add_reference_system_classes(
                             self.id,
@@ -839,7 +841,8 @@ def insert(data: dict[str, Any]) -> Entity:
                     'name': entity.name,
                     'website_url': data['website_url'],
                     'resolver_url': data['resolver_url'],
-                    'identifier_example': sanitize(data['example_id'])})
+                    'identifier_example': sanitize(data['example_id']),
+                    'api': sanitize(data['api'])})
                 if data['reference_system_classes']:
                     db.add_reference_system_classes(
                         entity.id,

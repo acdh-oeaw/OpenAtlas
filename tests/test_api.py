@@ -299,7 +299,7 @@ class Api(ApiTestCase):
                     'api_04.query',
                     entities=location.id,
                     cidoc_classes='E18',
-                    view_classes='artifact',
+                    view_classes='item',
                     system_classes='person',
                     export='csv'))]:
             assert b'Shire' in rv.data
@@ -313,7 +313,7 @@ class Api(ApiTestCase):
                     'api_04.query',
                     entities=location.id,
                     cidoc_classes='E18',
-                    view_classes='artifact',
+                    view_classes='item',
                     system_classes='person',
                     export='csvNetwork'))]:
             assert b'Shire' in rv.data
@@ -417,8 +417,8 @@ class Api(ApiTestCase):
                 url_for(
                     'api_04.query',
                     entities=location.id,
-                    classes='E18',
-                    codes='artifact',
+                    cidoc_classes='E18',
+                    view_classes='item',
                     sort='desc',
                     column='cidoc_class',
                     system_classes='person',
@@ -428,8 +428,8 @@ class Api(ApiTestCase):
                 url_for(
                     'api_04.query',
                     entities=location.id,
-                    classes='E18',
-                    codes='artifact',
+                    cidoc_classes='E18',
+                    view_classes='item',
                     system_classes='person',
                     linked_entities=place.id,
                     sort='desc',
@@ -458,7 +458,7 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes='E18',
-                view_classes='artifact',
+                view_classes='item',
                 system_classes='person',
                 limit=0,
                 first=actor2.id)).get_json()
@@ -470,7 +470,7 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes='E18',
-                view_classes='artifact',
+                view_classes='item',
                 system_classes='person',
                 limit=1,
                 page=7)).get_json()
@@ -491,7 +491,7 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes='E18',
-                view_classes='artifact',
+                view_classes='item',
                 system_classes='person',
                 count=True))
         assert rv.get_json() == 9
@@ -506,7 +506,7 @@ class Api(ApiTestCase):
                     'api_04.query',
                     entities=location.id,
                     cidoc_classes='E18',
-                    view_classes='artifact',
+                    view_classes='item',
                     system_classes='person',
                     format='geojson')),
             c.get(
@@ -514,7 +514,7 @@ class Api(ApiTestCase):
                     'api_04.query',
                     entities=location.id,
                     cidoc_classes='E18',
-                    view_classes='artifact',
+                    view_classes='item',
                     system_classes='person',
                     format='geojson-v2'))]:
             rv = rv.get_json()['results'][0]['features'][0]
@@ -531,24 +531,24 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes='E18',
-                view_classes='artifact',
+                view_classes='item',
                 system_classes='person',
                 format='gpkg')]:
             with c.get(url) as rv:
                 assert b'SQLite format' in rv.data
 
         for url in [
-            url_for(
-                'api_04.query',
-                cidoc_classes='E18',
-                view_classes='artifact',
-                system_classes='person',
-                format='table_row'),
-            url_for(
-                'api_04.table_rows',
-                cidoc_classes='E18',
-                view_classes='artifact',
-                system_classes='person')]:
+                    url_for(
+                        'api_04.query',
+                        cidoc_classes='E18',
+                        view_classes='item',
+                        system_classes='person',
+                        format='table_row'),
+                    url_for(
+                        'api_04.table_rows',
+                        cidoc_classes='E18',
+                        view_classes='item',
+                        system_classes='person')]:
             with c.get(url) as rv:
                 rv = rv.get_json()['results']
                 assert 'Bar' in rv[0][0]
@@ -577,7 +577,7 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes=['E18', 'E53'],
-                view_classes='artifact',
+                view_classes='item',
                 system_classes=['person', 'type'],
                 format='loud',
                 limit=0))
@@ -855,7 +855,7 @@ class Api(ApiTestCase):
                 'api_04.query',
                 entities=location.id,
                 cidoc_classes='E18',
-                view_classes='artifact',
+                view_classes='item',
                 system_classes='person',
                 sort='desc',
                 column='id',
