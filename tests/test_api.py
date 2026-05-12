@@ -289,11 +289,11 @@ class Api(ApiTestCase):
                    ',28.9389559878606 41.0290525580955))')
 
 
-        # rv = c.get(url_for('api_04.entity_uuid', uuid=place.id))
-        # assert 'application/json' in rv.headers.get('Content-Type')
-        # rv = rv.get_json()
-        # assert rv['type'] == 'PhysicalThing'
-        # assert rv['_label'] == 'Shire'
+        rv = c.get(url_for('api_04.entity_uuid', uuid=place.uuid))
+        assert 'application/json' in rv.headers.get('Content-Type')
+        rv = rv.get_json()
+        assert rv['type'] == 'PhysicalThing'
+        assert rv['_label'] == 'Shire'
 
         # Test Entity export and RDFS
         for rv in [
@@ -847,6 +847,9 @@ class Api(ApiTestCase):
         # Test Error Handling
         for rv in [
                 c.get(url_for('api_04.entity', id_=233423424)),
+                c.get(url_for(
+                    'api_04.entity_uuid',
+                    uuid='7b9e1c4a-5f2d-4b8a-9e3c-2d1f0a9b8c7d')),
                 c.get(url_for('api_04.cidoc_class', class_='E18', last=1231))]:
             rv = rv.get_json()
         assert 'Entity does not exist' in rv['title']
