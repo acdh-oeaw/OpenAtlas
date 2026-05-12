@@ -315,8 +315,12 @@ class LoudFormatter:
             property_['type'] = 'Dimension'
             property_['value'] = float(link_.description)
             property_['unit'] = {
-                "id": "http://vocab.getty.edu/aat/300226816",
-                'type': "MeasurementUnit",
+                "id": "https://vocab.getty.edu/aat/300226816",
+                'type': "Measurement unit",
+                '_label': target.description}
+            property_['classified_as']= {
+                "id": "https://vocab.getty.edu/aat/300264087",
+                'type': "physical attributes",
                 '_label': target.description}
         return property_
 
@@ -356,7 +360,7 @@ class LoudFormatter:
                     "type": "Name",
                     "content": f"{link_.description}",
                     "classified_as": [{
-                        "id": "http://vocab.getty.edu/aat/300200294",
+                        "id": "https://vocab.getty.edu/aat/300200294",
                         "type": "Type",
                         "_label": "pagination"}]}]}
         if link_.domain.class_.name == 'bibliography':
@@ -601,7 +605,7 @@ class LoudFormatter:
                     uuid=entity.uuid,
                     _external=True),
                 '_label': entity.name,
-                'type': 'DigitalObject'}
+                'type': 'VisualWorks'}
             image.update(self.get_digital_object_details(entity, mime_type))
             if mime_type == 'application/pdf':  # pragma: no cover
                 subject_of.append({
