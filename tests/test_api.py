@@ -271,8 +271,8 @@ class Api(ApiTestCase):
             assert rv['properties'][key]
 
         # Test Skolem
-        rv = c.get(url_for('api_04.skolem_proxy'))
-        assert rv['error'] == 'deterministic Skolem URI for Linked.art.'
+        rv = c.get(url_for('api_04.skolem_proxy', subpath='timespan/2513fcbc'))
+        assert 'Skolem URI for Linked.art.' in rv.get_json()['error']
 
         # Test entity in Linked Open Usable Data
         rv = c.get(url_for('api_04.entity', id_=place.id, format='loud'))

@@ -53,7 +53,7 @@ types = [
     [GetTypeTree, '/type_tree/', 'type_tree']]
 
 special = [
-    [GetSkolemProxy, '/generated/', 'skolem_proxy'],
+    [GetSkolemProxy, '/generated/<path:subpath>', 'skolem_proxy'],
     [ExportDatabase, '/export_database/<string:format_>', 'export_database'],
     [GetGeometricEntities, '/geometric_entities/', 'geometric_entities'],
     [GetSubunits, '/subunits/<int:id_>', 'subunits'],

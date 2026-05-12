@@ -452,10 +452,12 @@ class LoudFormatter:
 
     @staticmethod
     def generate_skolem_id(id_: int, type_name: str) -> str:
-        base_url = url_for("api.skolem_proxy", _external=True)
         seed = f"{id_}_{type_name}".encode('utf-8')
         identifier_hash = hashlib.sha256(seed).hexdigest()[:16]
-        return f"{base_url}{type_name.lower()}/{identifier_hash}"
+        return url_for(
+            "api.skolem_proxy",
+            subpath= f'{type_name.lower()}/{identifier_hash}',
+            _external=True)
 
     def get_loud_timespan(
             self,

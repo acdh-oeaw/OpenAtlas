@@ -130,8 +130,9 @@ class GetChainedEvents(Resource):
 
 class GetSkolemProxy(Resource):
     @staticmethod
-    def get() -> tuple[Response, int]:
-        return jsonify({
+    def get(subpath: str = None) -> tuple[dict[str, str | None], int]:
+        return {
+            "path": subpath,
             "error": "This is a deterministic Skolem URI for Linked.art. "
                      "It is used for semantic mapping and has no persistent "
-                     "database entry."}), 200
+                     "database entry."}, 200
