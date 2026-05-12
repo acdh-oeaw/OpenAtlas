@@ -25,15 +25,49 @@ unit_map = {
     'GB': 'gigabytes',
     'TB': 'terabytes'}
 
+
+def aat_type(id_: str, label: str) -> dict[str, str]:
+    return {
+        'id': f'https://vocab.getty.edu/aat/{id_}',
+        'type': 'Type',
+        '_label': label}
+
+
 ARCHAEOLOGY_AAT: dict[str, dict[str, str]] = {
-    'artifact': {
-        'id': 'https://vocab.getty.edu/aat/300117127',
-        'type': 'Type',
-        '_label': 'artifacts'},
-    'human_remains': {
-        'id': 'https://vocab.getty.edu/aat/300379896',
-        'type': 'Type',
-        '_label': 'human remains'}}
+    'artifact': aat_type('300117127', 'artifacts'),
+    'human_remains': aat_type('300379896', 'human remains')}
+
+MIME_CLASSIFICATIONS: dict[str, list[dict[str, str]]] = {
+    'image/': [aat_type('300215302', 'Digital image')],
+    'application/pdf': [aat_type('300424602', 'Digital documents')],
+    'model/': [
+        aat_type('300266011', 'Digital File Format'), {
+            'id': 'https://www.wikidata.org/wiki/Q3859833',
+            'type': 'Type',
+            '_label': '3D Model'}]}
+
+BIBLIOGRAPHY_AAT: dict[str, dict[str, str]] = {
+    'bibliography': aat_type('300026497', 'bibliography'),
+    'edition': aat_type('300121294', 'edition')}
+
+
+def entity_uri(entity: Entity) -> str:
+    return url_for('api.entity_uuid', uuid=entity.uuid, _external=True)
+
+
+def reference_url(type_link: Link) -> str:
+    if type_link.domain.class_.name == 'reference_system':
+        system = g.reference_systems[type_link.domain.id]
+        return f'{system.resolver_url or ''}{type_link.description}'
+    return type_link.domain.name
+
+
+def match_kind(link_: Link) -> str:
+    if link_.type \
+            and g.types.get(link_.type.id) \
+            and 'close' in g.types[link_.type.id].name:
+        return 'related'
+    return 'equivalent'
 
 
 class LoudFormatter:
@@ -51,38 +85,40 @@ class LoudFormatter:
             'P73': self._handle_p73,
             'OA7': self._handle_oa7}
 
+    def _loud_relation(self, link_: Link, is_inverse: bool) -> str:
+        return self.loud[
+            get_crm_relation(link_, is_inverse).replace(' ', '_')]
+
+    def _loud_code(self, link_: Link, is_domain: bool) -> str:
+        return self.loud[get_crm_code(link_, is_domain).replace(' ', '_')]
+
     def get_property_key(self, link_: Link, is_inverse: bool) -> str:
         code = link_.property.code
         if code == 'OA7':
             return 'participated_in'
-        if is_inverse \
-                and link_.domain.class_.name == 'external_reference':
+        if is_inverse and link_.domain.class_.name == 'external_reference':
             return 'subject_of'
-        if not is_inverse:
-            if code == 'P67':
-                if link_.domain.class_.name == 'file':
-                    return 'digitally_carries'
-                return 'refers_to'
-            if code == 'P73':
-                return 'referred_to_by'
+        if not is_inverse and code == 'P67':
+            if link_.domain.class_.name == 'file':
+                return 'digitally_carries'
+            return 'refers_to'
+        if not is_inverse and code == 'P73':
+            return 'referred_to_by'
         if code == 'P53' and link_.domain.class_.name == 'artifact':
             return 'current_location'
         if code == 'P2' and link_.description:
             return 'dimension'
-        name = 'part' if is_inverse else 'part_of'
-        if link_.property.code != 'P127':
-            name = self.loud[
-                get_crm_relation(link_, is_inverse).replace(' ', '_')]
-        return name
+        if code == 'P127':
+            return 'part' if is_inverse else 'part_of'
+        return self._loud_relation(link_, is_inverse)
 
     def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        type_ = self.loud[
-            get_crm_code(link_, is_domain).replace(' ', '_')]
+        type_ = self._loud_code(link_, is_domain)
         if target.class_.name == 'human_remains':
             type_ = 'BiologicalObject'
         property_: dict[str, Any] = {
-            'id': url_for('api.entity_uuid', uuid=target.uuid, _external=True),
+            'id': entity_uri(target),
             'type': type_,
             '_label': target.name}
         if link_.dates.begin_from or link_.dates.end_from:
@@ -97,10 +133,8 @@ class LoudFormatter:
                 "type": "VisualItem",
                 "_label": f"Visual content of {link_.domain.name}",
                 "represents": [property_]}
-
-        handler = self.handlers.get(code_)
         self._prepend_archaeology_classification(target, property_)
-        if handler:
+        if handler := self.handlers.get(code_):
             return handler(property_, link_, is_domain)
         return property_
 
@@ -114,16 +148,14 @@ class LoudFormatter:
 
     @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
-        type_ = remove_spaces_dashes(entity.cidoc_class.i18n['en'])
-        if entity.class_.name == 'file':
-            type_ = 'DigitalObject'
-        if entity.class_.name == 'human_remains':
-            type_ = 'BiologicalObject'
+        type_overrides = {
+            'file': 'DigitalObject',
+            'human_remains': 'BiologicalObject'}
+        type_ = type_overrides.get(
+            entity.class_.name,
+            remove_spaces_dashes(entity.cidoc_class.i18n['en']))
         result: dict[str, Any] = {
-            'id': url_for(
-                'api.entity_uuid',
-                uuid=entity.uuid,
-                _external=True),
+            'id': entity_uri(entity),
             'type': type_,
             '_label': entity.name}
         LoudFormatter._prepend_archaeology_classification(entity, result)
@@ -132,18 +164,16 @@ class LoudFormatter:
     @staticmethod
     def get_file_dimensions(entity: Entity) -> dict[str, Any]:
         file_size = entity.get_file_size()
+        value, unit = file_size.split()
         return {'dimension': [{
             "type": "Dimension",
             "_label": file_size,
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300265863",
-                "type": "Type",
-                "_label": "File Size"}],
-            "value": int(file_size.split()[0]),
+            "classified_as": [aat_type('300265863', 'File Size')],
+            "value": int(value),
             "unit": {
                 "id": "https://vocab.getty.edu/aat/300265870",
                 "type": "MeasurementUnit",
-                "_label": unit_map[file_size.split()[1]]}}]}
+                "_label": unit_map[unit]}}]}
 
     def get_digital_object_details(
             self,
@@ -151,149 +181,111 @@ class LoudFormatter:
             mime_type: str | None = None) -> dict[str, Any]:
         if not mime_type:
             mime_type, _ = mimetypes.guess_type(g.files[entity.id])
-        file_ = get_file_path(entity.id)
         digital_object: dict[str, Any] = {'format': mime_type}
-        if mime_type:
-            if 'image/' in mime_type:
-                digital_object["classified_as"] = [{
-                    "id": "https://vocab.getty.edu/aat/300215302",
-                    "type": "Type",
-                    "_label": "Digital image"}]
-            if 'application/pdf' in mime_type:  # pragma: no cover
-                digital_object["classified_as"] = [{
-                    "id": "https://vocab.getty.edu/aat/300424602",
-                    "type": "Type",
-                    "_label": "Digital documents"}]
-            if 'model/' in mime_type:  # pragma: no cover
-                digital_object["classified_as"] = [{
-                    "id": "https://vocab.getty.edu/aat/300266011",
-                    "type": "Type",
-                    "_label": "Digital File Format"}, {
-                    "id": "https://www.wikidata.org/wiki/Q3859833",
-                    "type": "Type",
-                    "_label": "3D Model"}]
+        for prefix, classification in MIME_CLASSIFICATIONS.items():
+            if mime_type and prefix in mime_type:
+                digital_object['classified_as'] = classification
+        file_ = get_file_path(entity.id)
         if file_ and file_.stem:
-            digital_object.update({"access_point": [{
+            digital_object['access_point'] = [{
                 "id": url_for(
-                    'api.display',
-                    filename=file_.stem if file_ else '',
-                    _external=True),
-                "type": "DigitalObject"}]})
-        if entity.license_holder:
-            for license_holder in entity.license_holder:
-                digital_object.update({
-                    'right_held_by': [{
-                        'id': self.generate_skolem_id(
-                            license_holder.id,
-                            'rights_holder'),
-                        '_label': license_holder.name,
-                        'type': 'Actor'}]})
-        if entity.creator:
-            for creator in entity.creator:
-                digital_object.update({'created_by': {
+                    'api.display', filename=file_.stem, _external=True),
+                "type": "DigitalObject"}]
+        for license_holder in entity.license_holder or []:
+            digital_object['right_held_by'] = [{
+                'id': self.generate_skolem_id(
+                    license_holder.id, 'rights_holder'),
+                '_label': license_holder.name,
+                'type': 'Actor'}]
+        for creator in entity.creator or []:
+            digital_object['created_by'] = {
+                'id': self.generate_skolem_id(
+                    creator.id, f'{entity.id}_creation_{creator.id}'),
+                '_label': f'Creation of {entity.name}',
+                'type': 'Creation',
+                'carried_out_by': [{
                     'id': self.generate_skolem_id(
-                        creator.id,
-                        f'{entity.id}_creation_{creator.id}'),
-                    '_label': f'Creation of {entity.name}',
-                    'type': 'Creation',
-                    'carried_out_by': [{
-                        'id': self.generate_skolem_id(
-                            creator.id,
-                            'rights_holder'),
-                        '_label': creator.name,
-                        'type': 'Actor'}]}})
+                        creator.id, 'rights_holder'),
+                    '_label': creator.name,
+                    'type': 'Actor'}]}
         if license_ := get_license_type(entity):
-            subject_to: dict[str, Any] = {
-                'id': self.generate_skolem_id(license_.id, 'license'),
-                'type': "Right",
-                '_label': f'License of {entity.name}',
-                "identified_by": [{
-                    'id': url_for(
-                        'api.entity_uuid',
-                        uuid=license_.uuid,
-                        _external=True),
-                    "type": "Name",
-                    "content": license_.name}]}
-            classified_as = []
-            for type_link in self.type_refs.get(license_.id, []):
-                url = type_link.domain.name
-                if type_link.domain.class_.name == 'reference_system':
-                    system = g.reference_systems[type_link.domain.id]
-                    url = (
-                        f'{system.resolver_url or ''}'
-                        f'{type_link.description}')
-                classified_as.append({
-                    "id": url,
-                    "type": "Type",
-                    "_label": license_.name})
-            if classified_as:
-                subject_to['classified_as'] = classified_as
-            digital_object.update({'subject_to': [subject_to]})
+            digital_object['subject_to'] = [
+                self._build_license(license_, entity.name)]
         return digital_object
+
+    def _build_license(
+            self, license_: Entity, entity_name: str) -> dict[str, Any]:
+        subject_to: dict[str, Any] = {
+            'id': self.generate_skolem_id(license_.id, 'license'),
+            'type': "Right",
+            '_label': f'License of {entity_name}',
+            "identified_by": [{
+                'id': entity_uri(license_),
+                "type": "Name",
+                "content": license_.name}]}
+        classified_as = [{
+            "id": reference_url(type_link),
+            "type": "Type",
+            "_label": license_.name}
+            for type_link in self.type_refs.get(license_.id, [])]
+        if classified_as:
+            subject_to['classified_as'] = classified_as
+        return subject_to
 
     @staticmethod
     def handle_radiocarbon(
             link_: Link, properties_set: dict[str, Any]) -> None:
-        radio_data = ast.literal_eval(link_.description)
+        data = ast.literal_eval(link_.description)
+        year = int(data['radiocarbonYear'])
+        rng = int(data['range'])
+        scale = data['timeScale']
+        lab_id = data['labId']
+        spec_id = data['specId']
+        skolem = LoudFormatter.generate_skolem_id
+        dating = aat_type('300054717', 'Radiocarbon Dating')
         properties_set['attributed_by'].append({
-            'id': LoudFormatter.generate_skolem_id(link_.id, 'radiocarbon'),
+            'id': skolem(link_.id, 'radiocarbon'),
             "type": "AttributeAssignment",
             "_label": "Radiocarbon Dating",
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300054717",
-                "type": "Type",
-                "_label": "Radiocarbon Dating"}],
+            "classified_as": [dating],
             "assigned": [{
                 "type": "Dimension",
-                "_label": f'{radio_data['radiocarbonYear']} +/- '
-                          f'{radio_data['range']} {radio_data['timeScale']}',
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300054717",
-                    "type": "Type",
-                    "_label": "Radiocarbon Dating"}],
-                "value": int(radio_data['radiocarbonYear']),
-                "lower_value_limit": int(radio_data['radiocarbonYear']) - int(
-                    radio_data['range']),
-                "upper_value_limit": int(radio_data['radiocarbonYear']) + int(
-                    radio_data['range']),
+                "_label": f'{year} +/- {rng} {scale}',
+                "classified_as": [dating],
+                "value": year,
+                "lower_value_limit": year - rng,
+                "upper_value_limit": year + rng,
                 "unit": {
                     "id": "https://vocab.getty.edu/aat/300379244",
                     "type": "MeasurementUnit",
-                    "_label": f"years {radio_data['timeScale']}"},
+                    "_label": f"years {scale}"},
                 "referred_to_by": [{
                     "type": "LinguisticObject",
-                    "content": str(radio_data['range']),
+                    "content": str(rng),
                     "_label": "Laboratory Error Range",
-                    "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300417273",
-                        "type": "Type",
-                        "_label": "error (measure of uncertainty)"}]}]}],
+                    "classified_as": [aat_type(
+                        '300417273',
+                        'error (measure of uncertainty)')]}]}],
             "identified_by": [{
-                'id': LoudFormatter.generate_skolem_id(link_.id, 'laboratory'),
+                'id': skolem(link_.id, 'laboratory'),
                 "type": "Identifier",
-                "content": f"{radio_data['labId']}-{radio_data['specId']}",
+                "content": f"{lab_id}-{spec_id}",
                 "_label": "Laboratory ID",
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300460217",
-                    "type": "Type",
-                    "_label": "Laboratory Identifiers"}]}, {
-                'id': LoudFormatter.generate_skolem_id(link_.id, 'specimen'),
+                "classified_as": [aat_type(
+                    '300460217', 'Laboratory Identifiers')]}, {
+                'id': skolem(link_.id, 'specimen'),
                 "type": "Identifier",
-                "content": str(radio_data['specId']),
+                "content": str(spec_id),
                 "_label": "Specimen ID",
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300404626",
-                    "type": "Type",
-                    "_label": "Identification Numbers"}]}],
+                "classified_as": [aat_type(
+                    '300404626', 'Identification Numbers')]}],
             "carried_out_by": [{
-                'id': LoudFormatter.generate_skolem_id(
-                    link_.id,
-                    'radio_group'),
+                'id': skolem(link_.id, 'radio_group'),
                 "type": "Group",
-                "_label": radio_data['labId'],
+                "_label": lab_id,
                 "identified_by": [{
                     "type": "Name",
-                    "content": radio_data['labId']}]}]})
+                    "content": lab_id}]}]})
 
     @staticmethod
     def _handle_p1(
@@ -305,8 +297,8 @@ class LoudFormatter:
         property_['content'] = target.name
         return property_
 
+    @staticmethod
     def _handle_p2(
-            self,
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
@@ -318,7 +310,7 @@ class LoudFormatter:
                 "id": "https://vocab.getty.edu/aat/300226816",
                 'type': "Measurement unit",
                 '_label': target.description}
-            property_['classified_as']= {
+            property_['classified_as'] = {
                 "id": "https://vocab.getty.edu/aat/300264087",
                 'type': "physical attributes",
                 '_label': target.description}
@@ -346,56 +338,36 @@ class LoudFormatter:
             if link_.description:
                 property_['content'] = link_.description
             return property_
+        domain = link_.domain
         property_['classified_as'] = []
-        if link_.domain.class_.name == 'file':
-            property_['type'] = 'DigitalObject'
-        else:
-            property_['type'] = 'LinguisticObject'
-        if standard_type := link_.domain.standard_type:
+        property_['type'] = (
+            'DigitalObject' if domain.class_.name == 'file'
+            else 'LinguisticObject')
+        if standard_type := domain.standard_type:
             property_['classified_as'].append(
                 self._format_type_property(standard_type))
         if link_.description:
-            property_ = property_ | {
-                "identified_by": [{
-                    "type": "Name",
-                    "content": f"{link_.description}",
-                    "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300200294",
-                        "type": "Type",
-                        "_label": "pagination"}]}]}
-        if link_.domain.class_.name == 'bibliography':
-            property_['classified_as'].append({
-                "id": "https://vocab.getty.edu/aat/300026497",
-                "type": "Type",
-                "_label": "bibliography"})
-        if link_.domain.class_.name == 'edition':
-            property_['classified_as'].append({
-                "id": "https://vocab.getty.edu/aat/300121294",
-                "type": "Type",
-                "_label": "edition"})
-        if link_.domain.class_.name == 'external_reference':
+            property_['identified_by'] = [{
+                "type": "Name",
+                "content": f"{link_.description}",
+                "classified_as": [aat_type('300200294', 'pagination')]}]
+        if aat := BIBLIOGRAPHY_AAT.get(domain.class_.name):
+            property_['classified_as'].append(aat)
+        if domain.class_.name == 'external_reference':
+            web_page = aat_type('300264578', 'Web Page')
             property_ = {
-                "id": url_for(
-                    'api.entity_uuid',
-                    uuid=link_.domain.uuid,
-                    _external=True),
-                "classified_as": [{
-                    "id": "https://vocab.getty.edu/aat/300264578",
-                    "type": "Type",
-                    "_label": "Web Page"}],
+                "id": entity_uri(domain),
+                "classified_as": [web_page],
                 "type": "LinguisticObject",
                 "digitally_carried_by": [{
                     "type": "DigitalObject",
-                    "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300264578",
-                        "type": "Type",
-                        "_label": "Web Page"}],
+                    "classified_as": [web_page],
                     "format": "text/html",
-                    "_label": link_.domain.name,
+                    "_label": domain.name,
                     "access_point": [{
-                        "id": link_.domain.name,
+                        "id": domain.name,
                         "type": "DigitalObject"}]}]}
-        property_['content'] = link_.domain.description
+        property_['content'] = domain.description
         return property_
 
     def _handle_oa7(
@@ -403,18 +375,12 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> Any:
-        if is_domain:
-            label = (
-                f'Relationship between '
-                f'{link_.range.name} and {link_.domain.name}')
-        else:
-            label = (
-                f'Relationship between '
-                f'{link_.domain.name} and {link_.range.name}')
+        first, second = (link_.range, link_.domain) \
+            if is_domain else (link_.domain, link_.range)
         relationship: dict[str, Any] = {
             'id': self.generate_skolem_id(link_.id, 'relationship'),
             'type': 'Event',
-            '_label': label,
+            '_label': f'Relationship between {first.name} and {second.name}',
             'had_participant': [property_]}
         if link_.type:
             relationship['classified_as'] = [
@@ -423,27 +389,18 @@ class LoudFormatter:
 
     def _format_type_property(self, type_: Entity) -> dict[str, Any]:
         property_: dict[str, Any] = {
-            'id': url_for('api.entity_uuid', uuid=type_.uuid, _external=True),
+            'id': entity_uri(type_),
             'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(type_)
-        external_references: dict[str, Any] = {}
+        external_references: dict[str, list[dict[str, str]]] = {}
         for type_link in self.type_refs.get(type_.id, []):
-            url = type_link.domain.name
-            if type_link.domain.class_.name == 'reference_system':
-                system = g.reference_systems[type_link.domain.id]
-                url = f'{system.resolver_url or ''}{type_link.description}'
+            url = reference_url(type_link)
             if not validators.url(url):  # pragma: no cover
                 continue
-            match_property = 'equivalent'
-            if type_link.type \
-                    and g.types.get(type_link.type.id) \
-                    and 'close' in g.types[type_link.type.id].name:
-                match_property = 'related'  # pragma: no cover
-            if match_property not in external_references:
-                external_references[match_property] = []
-            external_references[match_property].append({
+            kind = match_kind(type_link)
+            external_references.setdefault(kind, []).append({
                 "id": url,
                 "type": "Type",
                 "_label": type_.name})
@@ -458,120 +415,90 @@ class LoudFormatter:
             subpath=f'{type_name.lower()}/{identifier_hash}',
             _external=True)
 
+    LIFE_EVENT_CONFIG: dict[str, dict[str, Any]] = {
+        'person': {
+            'begin_key': 'born',
+            'begin_type': 'Birth',
+            'end_key': 'died_in',
+            'end_type': 'Death',
+            'inner_ts_id': False},
+        'group': {
+            'begin_key': 'formed_by',
+            'begin_type': 'Formation',
+            'end_key': 'dissolved_by',
+            'end_type': 'Dissolution',
+            'inner_ts_id': True}}
+
     def get_loud_timespan(
             self,
             entity: Entity | Link,
             links_: list[Link] | None = None) -> dict[str, Any]:
-        if not isinstance(entity, Link):
-            if entity.class_.name == 'person':
-                return self._get_loud_person_timespan(entity, links_)
-            if entity.class_.name == 'group':
-                return self._get_loud_group_timespan(entity, links_)
+        if not isinstance(entity, Link) \
+                and entity.class_.name in self.LIFE_EVENT_CONFIG:
+            return self._get_life_event_timespan(entity, links_)
         if not entity.dates.dates_available():
             return {}
-        return {'timespan': (
+        return {'timespan':
                 {'id': self.generate_skolem_id(entity.id, 'timespan'),
-                 'type': 'TimeSpan'} |
-                self._get_loud_begin_dates(entity) |
-                self._get_loud_end_dates(entity))}
+                 'type': 'TimeSpan'}
+                | self._get_loud_begin_dates(entity)
+                | self._get_loud_end_dates(entity)}
 
-    def _get_loud_person_timespan(
+    def _make_life_event(
+            self,
+            entity: Entity,
+            event_type: str,
+            dates: dict[str, Any],
+            has_dates: bool,
+            inner_ts_id: bool) -> dict[str, Any]:
+        skolem_key = event_type.lower()
+        event: dict[str, Any] = {
+            'id': self.generate_skolem_id(entity.id, skolem_key),
+            'type': event_type,
+            '_label': f'{event_type} of {entity.name}'}
+        if has_dates:
+            timespan: dict[str, Any] = {'type': 'TimeSpan'}
+            if inner_ts_id:
+                ts_key = 'begin' if event_type in {'Birth', 'Formation'} \
+                    else 'end'
+                timespan = {
+                    'id': self.generate_skolem_id(entity.id, ts_key),
+                    'type': 'TimeSpan'} | timespan
+            event['timespan'] = timespan | dates
+        return event
+
+    def _get_life_event_timespan(
             self,
             entity: Entity,
             links_: list[Link] | None) -> dict[str, Any]:
-        result = {}
-        birth_event: dict[str, Any] = {
-            'id': self.generate_skolem_id(entity.id, 'birth'),
-            'type': 'Birth',
-            '_label': f'Birth of {entity.name}'}
-        has_birth_data = False
-        if entity.dates.begin_from or entity.dates.begin_to:
-            birth_event['timespan'] = (
-                    {'type': 'TimeSpan'}
-                    | self._get_loud_begin_dates(entity))
-            has_birth_data = True
-
-        death_event: dict[str, Any] = {
-            'id': self.generate_skolem_id(entity.id, 'death'),
-            'type': 'Death',
-            '_label': f'Death of {entity.name}'}
-        has_death_data = False
-        if entity.dates.end_from or entity.dates.end_to:
-            death_event['timespan'] = (
-                    {'type': 'TimeSpan'}
-                    | self._get_loud_end_dates(entity))
-            has_death_data = True
-
-        if links_:
-            for link_ in links_:
-                place = {
-                    'id': url_for(
-                        'api.entity_uuid',
-                        uuid=link_.range.uuid,
-                        _external=True),
-                    'type': 'Place',
-                    '_label': link_.range.name}
-                if link_.property.code == 'OA8':
-                    birth_event['took_place_at'] = [place]
-                    has_birth_data = True
-                elif link_.property.code == 'OA9':
-                    death_event['took_place_at'] = [place]
-                    has_death_data = True
-        if has_birth_data:
-            result['born'] = birth_event
-        if has_death_data:
-            result['died_in'] = death_event
+        config = self.LIFE_EVENT_CONFIG[entity.class_.name]
+        has_begin = bool(entity.dates.begin_from or entity.dates.begin_to)
+        has_end = bool(entity.dates.end_from or entity.dates.end_to)
+        begin_event = self._make_life_event(
+            entity, config['begin_type'],
+            self._get_loud_begin_dates(entity),
+            has_begin, config['inner_ts_id'])
+        end_event = self._make_life_event(
+            entity, config['end_type'],
+            self._get_loud_end_dates(entity),
+            has_end, config['inner_ts_id'])
+        for link_ in links_ or []:
+            place = {
+                'id': entity_uri(link_.range),
+                'type': 'Place',
+                '_label': link_.range.name}
+            if link_.property.code == 'OA8':
+                begin_event['took_place_at'] = [place]
+                has_begin = True
+            elif link_.property.code == 'OA9':
+                end_event['took_place_at'] = [place]
+                has_end = True
+        result: dict[str, Any] = {}
+        if has_begin:
+            result[config['begin_key']] = begin_event
+        if has_end:
+            result[config['end_key']] = end_event
         return result
-
-    def _get_loud_group_timespan(
-            self,
-            entity: Entity,
-            links_: list[Link] | None) -> dict[str, Any]:
-        res = {}
-        form: dict[str, Any] = {
-            'id': self.generate_skolem_id(entity.id, 'formation'),
-            'type': 'Formation',
-            '_label': f'Formation of {entity.name}'}
-        has_formation = False
-        if entity.dates.begin_from or entity.dates.begin_to:
-            form['timespan'] = (
-                    {'id': self.generate_skolem_id(entity.id, 'begin'),
-                     'type': 'TimeSpan'}
-                    | self._get_loud_begin_dates(entity))
-            has_formation = True
-
-        diss: dict[str, Any] = {
-            'id': self.generate_skolem_id(entity.id, 'dissolution'),
-            'type': 'Dissolution',
-            '_label': f'Dissolution of {entity.name}'}
-        has_dissolution = False
-        if entity.dates.end_from or entity.dates.end_to:
-            diss['timespan'] = (
-                    {'id': self.generate_skolem_id(entity.id, 'end'),
-                     'type': 'TimeSpan', }
-                    | self._get_loud_end_dates(entity))
-            has_dissolution = True
-        if links_:
-            for lnk in links_:
-                place = {
-                    'id': url_for(
-                        'api.entity_uuid',
-                        uuid=lnk.range.uuid,
-                        _external=True),
-                    'type': 'Place',
-                    '_label': lnk.range.name}
-                if lnk.property.code == 'OA8':
-                    form['took_place_at'] = [place]
-                    has_formation = True
-                elif lnk.property.code == 'OA9':
-                    diss['took_place_at'] = [place]
-                    has_dissolution = True
-
-        if has_formation:
-            res['formed_by'] = form
-        if has_dissolution:
-            res['dissolved_by'] = diss
-        return res
 
     @staticmethod
     def _get_loud_begin_dates(entity: Entity | Link) -> dict[str, Any]:
@@ -600,10 +527,7 @@ class LoudFormatter:
             entity = link_.domain
             mime_type, _ = mimetypes.guess_type(g.files[entity.id])
             image = {
-                'id': url_for(
-                    'api.entity_uuid',
-                    uuid=entity.uuid,
-                    _external=True),
+                'id': entity_uri(entity),
                 '_label': entity.name,
                 'type': 'VisualWorks'}
             image.update(self.get_digital_object_details(entity, mime_type))
@@ -611,10 +535,8 @@ class LoudFormatter:
                 subject_of.append({
                     'type': 'LinguisticObject',
                     '_label': entity.name,
-                    "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300424602",
-                        "type": "Type",
-                        "_label": "Digital documents"}],
+                    "classified_as": [
+                        aat_type('300424602', 'Digital documents')],
                     'digitally_carried_by': [image]})
             else:
                 representation.append(image)
@@ -628,31 +550,27 @@ class LoudFormatter:
     @staticmethod
     def get_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
         subject_of = []
+        skolem = LoudFormatter.generate_skolem_id
         for link_ in image_links:
-            entity = link_.domain
-            manifest_path = get_iiif_manifest_and_path(entity.id)
-            if (manifest_path.get('IIIFManifest')
+            manifest_path = get_iiif_manifest_and_path(link_.domain.id)
+            if not (manifest_path.get('IIIFManifest')
                     and manifest_path.get('IIIFBasePath')):
-                subject_of.append({
-                    'id': LoudFormatter.generate_skolem_id(
-                        link_.id,
-                        'iif_manifest'),
-                    "type": "LinguisticObject",
-                    "digitally_carried_by": [{
-                        'id': LoudFormatter.generate_skolem_id(
-                            link_.id,
-                            'DigitalObject'),
-                        "type": "DigitalObject",
-                        "access_point": [{
-                            "id": manifest_path['IIIFManifest'],
-                            "type": "DigitalObject"}],
-                        "conforms_to": [{
-                            "id":
-                                "https://iiif.io/api/presentation/2.0/",
-                            "type": "InformationObject"}],
-                        "format":
-                            "application/ld+json;profile='https://iiif.io"
-                            "/api/presentation/2/context.json'"}]})
+                continue
+            subject_of.append({
+                'id': skolem(link_.id, 'iif_manifest'),
+                "type": "LinguisticObject",
+                "digitally_carried_by": [{
+                    'id': skolem(link_.id, 'DigitalObject'),
+                    "type": "DigitalObject",
+                    "access_point": [{
+                        "id": manifest_path['IIIFManifest'],
+                        "type": "DigitalObject"}],
+                    "conforms_to": [{
+                        "id": "https://iiif.io/api/presentation/2.0/",
+                        "type": "InformationObject"}],
+                    "format":
+                        "application/ld+json;profile='https://iiif.io"
+                        "/api/presentation/2/context.json'"}]})
         return subject_of
 
     @staticmethod
@@ -660,26 +578,20 @@ class LoudFormatter:
             link_: Link,
             properties_set: dict[str, Any],
             entity: Entity) -> None:
-        match_property = 'equivalent'
-        if link_.type and \
-                g.types.get(link_.type.id) and \
-                'close' in g.types[link_.type.id].name:
-            match_property = 'related'
         system = g.reference_systems[link_.domain.id]
-        properties_set[match_property].append({
+        skolem = LoudFormatter.generate_skolem_id
+        properties_set[match_kind(link_)].append({
             "id": f'{system.resolver_url or ''}{link_.description}',
             "type": remove_spaces_dashes(entity.cidoc_class.i18n['en'])})
         properties_set['identified_by'].append({
-            'id': LoudFormatter.generate_skolem_id(link_.id, 'identifier'),
+            'id': skolem(link_.id, 'identifier'),
             "type": "Identifier",
             "content": link_.description,
             "_label": f"{link_.domain.name} Identifier",
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300404626",
-                "type": "Type",
-                "_label": "Authority Control Number"}],
+            "classified_as": [
+                aat_type('300404626', 'Authority Control Number')],
             "attributed_by": [{
-                "id": LoudFormatter.generate_skolem_id(link_.id, 'authority'),
+                "id": skolem(link_.id, 'authority'),
                 "type": "AttributeAssignment",
                 "carried_out_by": [{
                     "id": system.website_url,
@@ -690,38 +602,28 @@ class LoudFormatter:
             self,
             link_: Link,
             properties_set: dict[str, Any]) -> None:
-        properties_set['member_of'].append({
-            'id': url_for(
-                'api.entity_uuid',
-                uuid=link_.domain.uuid,
-                _external=True),
-            'type': self.loud[get_crm_code(link_, True).replace(' ', '_')],
-            '_label': link_.domain.name})
-        if link_.type or link_.dates.dates_available():
-            carried_out: dict[str, Any] = {
-                'id': self.generate_skolem_id(link_.id, 'membership'),
-                "type": "Activity",
-                "carried_out_on_behalf_of": [{
-                    'id': url_for(
-                        'api.entity_uuid',
-                        uuid=link_.domain.uuid,
-                        _external=True),
-                    'type': self.loud[
-                        get_crm_code(link_, True).replace(' ', '_')],
-                    '_label': link_.domain.name}]}
-            label = f"Membership in {link_.domain.name}"
-            if link_.type:
-                if type_ := g.types.get(link_.type.id):
-                    label = (
-                        f"Role as {type_.name} at {link_.domain.name}")
-                if type_ := self._format_type_property(
-                        g.types[link_.type.id]):
-                    carried_out['classified_as'] = [type_]
-            carried_out['_label'] = label
-            if link_.dates.dates_available():
-                carried_out = (
-                        carried_out | self.get_loud_timespan(link_))
-            properties_set['carried_out'].append(carried_out)
+        domain = link_.domain
+        group_ref = {
+            'id': entity_uri(domain),
+            'type': self._loud_code(link_, is_domain=True),
+            '_label': domain.name}
+        properties_set['member_of'].append(group_ref)
+        if not (link_.type or link_.dates.dates_available()):
+            return
+        carried_out: dict[str, Any] = {
+            'id': self.generate_skolem_id(link_.id, 'membership'),
+            "type": "Activity",
+            "carried_out_on_behalf_of": [dict(group_ref)],
+            '_label': f"Membership in {domain.name}"}
+        if link_.type:
+            if type_ := g.types.get(link_.type.id):
+                carried_out['_label'] = (
+                    f"Role as {type_.name} at {domain.name}")
+                carried_out['classified_as'] = [
+                    self._format_type_property(type_)]
+        if link_.dates.dates_available():
+            carried_out = carried_out | self.get_loud_timespan(link_)
+        properties_set['carried_out'].append(carried_out)
 
     def process_link(
             self,
@@ -729,36 +631,32 @@ class LoudFormatter:
             properties_set: dict[str, Any],
             is_inverse: bool,
             root_entity: Entity) -> None:
+        code = link_.property.code
         is_domain = is_inverse
-        if link_.property.code == 'P53':
-            property_name = self.get_property_key(link_, is_inverse)
+        if code == 'P53':
             base_property = self.format_link(link_, is_domain=is_domain)
             if geometry := get_wkt_by_id(link_.range.id):
-                base_property.update({'defined_by': geometry})
-            properties_set[property_name] = base_property
+                base_property['defined_by'] = geometry
+            properties_set[self.get_property_key(link_, is_inverse)] = (
+                base_property)
             return
-        if is_inverse \
-                and link_.property.code == 'P67' \
+        if is_inverse and code == 'P67' \
                 and link_.domain.cidoc_class.code == 'E32':
             self.handle_authority_reference(
-                link_,
-                properties_set,
-                root_entity)
+                link_, properties_set, root_entity)
             return
-        if is_inverse and link_.property.code == 'P107':
+        if is_inverse and code == 'P107':
             self.handle_membership(link_, properties_set)
             return
-        if link_.property.code == 'P2' and link_.range.name == 'Radiocarbon':
+        if code == 'P2' and link_.range.name == 'Radiocarbon':
             self.handle_radiocarbon(link_, properties_set)
             return
         property_name = self.get_property_key(link_, is_inverse)
-        if link_.property.code == 'P46':
-            properties_set[property_name] = self.format_link(
-                link_,
-                is_domain=is_domain)
+        formatted = self.format_link(link_, is_domain=is_domain)
+        if code == 'P46':
+            properties_set[property_name] = formatted
             return
-        properties_set[property_name].append(
-            self.format_link(link_, is_domain=is_domain))
+        properties_set[property_name].append(formatted)
 
     def process_media_links(
             self,
@@ -782,123 +680,83 @@ class LoudFormatter:
             "type": "LinguisticObject",
             "_label": "Description",
             "content": entity.description,
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300435416",
-                "type": "Type",
-                "_label": "description"}]}
-        part = []
-        if annotations := AnnotationText.get_by_source_id(entity.id):
-            for annotation in annotations:  # pragma: no cover
-                offset = 0
-                text = entity.description or ''
-                inner_text = text[
-                    annotation.link_start + offset:
-                    annotation.link_end + offset]
-                annotation_dict = {
-                    'id': LoudFormatter.generate_skolem_id(
-                        annotation.id,
-                        'annotation'),
-                    "type": "LinguisticObject",
-                    "_label": f"Annotation: {inner_text}",
-                    "content": inner_text,
-                    "classified_as": [{
-                        "id": "https://vocab.getty.edu/aat/300026100",
-                        "type": "Type",
-                        "_label": "Annotation"}]}
-                annotation_dict = annotation_dict | {
-                    "digitally_carried_by": [{
-                        'id': LoudFormatter.generate_skolem_id(
-                            annotation.id,
-                            'annotation_digital_object'),
-                        "type": "DigitalObject",
-                        "classified_as": [{
-                            "id": "https://vocab.getty.edu/aat/300055590",
-                            "type": "Type",
-                            "_label": "Selectors"}],
-                        "referred_to_by": [{
-                            "type": "LinguisticObject",
-                            "content": f'{annotation.text}',
-                            "classified_as": [{
-                                "id": "https://vocab.getty.edu/aat/300055590",
-                                "type": "Type",
-                                "_label": "Text Position Selector"}],
-                            "identified_by": [{
-                                "type": "Identifier",
-                                "_label": "start",
-                                "content": f'{annotation.link_start + offset}'
-                            }, {
-                                "type": "Identifier",
-                                "_label": "end",
-                                "content": f'{annotation.link_end + offset}'}]
-                        }]}]}
-                if annotation.entity_id:
-                    linked_entity = Entity.get_by_id(annotation.entity_id)
-                    annotation_dict = annotation_dict | {
-                        "about": [{
-                            'id': url_for(
-                                'api.entity_uuid',
-                                uuid=linked_entity.uuid,
-                                _external=True),
-                            'type': remove_spaces_dashes(
-                                linked_entity.cidoc_class.i18n['en']),
-                            '_label': linked_entity.name,
-                            'identified_by': [{
-                                "type": "Name",
-                                "_label": linked_entity.name,
-                                "content": linked_entity.name
-                            }, {
-                                "type": "Identifier",
-                                "_label": "System Identifier",
-                                "content": url_for(
-                                    'api.entity_uuid',
-                                    uuid=linked_entity.uuid,
-                                    _external=True)}]}]}
-                if annotation.text:
-                    annotation_dict = annotation_dict | {
-                        'referred_to_by': [{
-                            "type": "LinguisticObject",
-                            "_label": annotation.text,
-                            "content": annotation.text,
-                            "classified_as": [{
-                                "id": "https://vocab.getty.edu/aat/300027200",
-                                "type": "Type",
-                                "_label": "Note"}]}]}
-                part.append(annotation_dict)
+            "classified_as": [aat_type('300435416', 'description')]}
+        annotations = AnnotationText.get_by_source_id(entity.id) or []
+        part = [
+            LoudFormatter._build_annotation(annotation, entity)
+            for annotation in annotations]
         if part:  # pragma: no cover
-            description = description | {'part': part}
+            description['part'] = part
         properties_set['referred_to_by'].append(description)
+
+    @staticmethod
+    def _build_annotation(
+            annotation: AnnotationText,
+            entity: Entity) -> dict[str, Any]:  # pragma: no cover
+        skolem = LoudFormatter.generate_skolem_id
+        text = entity.description or ''
+        inner_text = text[annotation.link_start:annotation.link_end]
+        selector = aat_type('300055590', 'Selectors')
+        annotation_dict: dict[str, Any] = {
+            'id': skolem(annotation.id, 'annotation'),
+            "type": "LinguisticObject",
+            "_label": f"Annotation: {inner_text}",
+            "content": inner_text,
+            "classified_as": [aat_type('300026100', 'Annotation')],
+            "digitally_carried_by": [{
+                'id': skolem(annotation.id, 'annotation_digital_object'),
+                "type": "DigitalObject",
+                "classified_as": [selector],
+                "referred_to_by": [{
+                    "type": "LinguisticObject",
+                    "content": f'{annotation.text}',
+                    "classified_as": [
+                        aat_type('300055590', 'Text Position Selector')],
+                    "identified_by": [{
+                        "type": "Identifier",
+                        "_label": "start",
+                        "content": f'{annotation.link_start}'}, {
+                        "type": "Identifier",
+                        "_label": "end",
+                        "content": f'{annotation.link_end}'}]}]}]}
+        if annotation.entity_id:
+            linked = Entity.get_by_id(annotation.entity_id)
+            annotation_dict['about'] = [{
+                'id': entity_uri(linked),
+                'type': remove_spaces_dashes(linked.cidoc_class.i18n['en']),
+                '_label': linked.name,
+                'identified_by': [{
+                    "type": "Name",
+                    "_label": linked.name,
+                    "content": linked.name}, {
+                    "type": "Identifier",
+                    "_label": "System Identifier",
+                    "content": entity_uri(linked)}]}]
+        if annotation.text:
+            annotation_dict['referred_to_by'] = [{
+                "type": "LinguisticObject",
+                "_label": annotation.text,
+                "content": annotation.text,
+                "classified_as": [aat_type('300027200', 'Note')]}]
+        return annotation_dict
 
     @staticmethod
     def add_core_metadata(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
-        properties_set['identified_by'].append({
+        properties_set['identified_by'].extend([{
             "type": "Name",
             "_label": entity.name,
-            "content": entity.name})
-        properties_set['identified_by'].append({
+            "content": entity.name}, {
             "type": "Identifier",
             "_label": "Internal Database ID",
             "content": url_for(
-                'api.entity',
-                id_=entity.id,
-                _external=True,
-                format='loud'),
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat/300404629",
-                "type": "Type",
-                "_label": "local URI"}]})
-        properties_set['identified_by'].append({
+                'api.entity', id_=entity.id, _external=True, format='loud'),
+            "classified_as": [aat_type('300404629', 'local URI')]}, {
             "type": "Identifier",
             "_label": "Unique Identifier",
-            "content": url_for(
-                'api.entity_uuid',
-                uuid=entity.uuid,
-                _external=True),
-            "classified_as": [{
-                "id": "https://vocab.getty.edu/aat//300404012",
-                "type": "Type",
-                "_label": "unique identifier"}]})
+            "content": entity_uri(entity),
+            "classified_as": [aat_type('300404012', 'unique identifier')]}])
         if entity.class_.name == 'object_location':
             if geometry := get_wkt_by_id(entity.id):
                 properties_set['defined_by'] = geometry
@@ -924,22 +782,20 @@ def get_loud_entities(
     entity = data['entity']
     formatter = LoudFormatter(loud, type_references)
     properties_set: dict[str, Any] = defaultdict(list)
+    skipped = {'OA8', 'OA9'}
     for link_ in data['links']:
-        if link_.property.code in ['OA8', 'OA9']:
-            continue
-        formatter.process_link(
-            link_, properties_set, is_inverse=False, root_entity=entity)
+        if link_.property.code not in skipped:
+            formatter.process_link(
+                link_, properties_set, is_inverse=False, root_entity=entity)
     file_links = []
     for link_ in data['links_inverse']:
-        if link_.property.code in ['OA8', 'OA9']:
+        if link_.property.code in skipped:
             continue
-        if link_.domain.class_.name == 'file' and g.files.get(link_.domain.id):
+        domain = link_.domain
+        if domain.class_.name == 'file' and g.files.get(domain.id):
             file_links.append(link_)
             continue
         formatter.process_link(
             link_, properties_set, is_inverse=True, root_entity=entity)
     formatter.process_media_links(file_links, properties_set, entity)
-    return formatter.finalize_output(
-        entity,
-        properties_set,
-        data['links'])
+    return formatter.finalize_output(entity, properties_set, data['links'])
