@@ -292,11 +292,11 @@ class Api(ApiTestCase):
                   [28.938955988, 41.029052558]]])
 
 
-        # rv = c.get(url_for('api_04.entity_uuid', uuid=place.id))
-        # assert 'application/json' in rv.headers.get('Content-Type')
-        # rv = rv.get_json()
-        # assert rv['type'] == 'PhysicalThing'
-        # assert rv['_label'] == 'Shire'
+        rv = c.get(url_for('api_04.entity_uuid', uuid=place.id))
+        assert 'application/json' in rv.headers.get('Content-Type')
+        rv = rv.get_json()
+        assert rv['type'] == 'PhysicalThing'
+        assert rv['_label'] == 'Shire'
 
         # Test Entity export and RDFS
         for rv in [

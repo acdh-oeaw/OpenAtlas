@@ -82,7 +82,7 @@ class LoudFormatter:
         if target.class_.name == 'human_remains':
             type_ = 'BiologicalObject'
         property_: Any = {
-            'id': url_for('api.entity', id_=target.id, _external=True),
+            'id': url_for('api.entity_uuid', uuid=target.uuid, _external=True),
             'type': type_,
             '_label': target.name}
         if link_.dates.begin_from or link_.dates.end_from:
@@ -120,8 +120,8 @@ class LoudFormatter:
             type_ = 'BiologicalObject'
         result: dict[str, Any] = {
             'id': url_for(
-                'api.entity',
-                id_=entity.id,
+                'api.entity_uuid',
+                uuid=entity.uuid,
                 _external=True),
             'type': type_,
             '_label': entity.name}
@@ -210,8 +210,8 @@ class LoudFormatter:
                 '_label': f'License of {entity.name}',
                 "identified_by": [{
                     'id': url_for(
-                        'api.entity',
-                        id_=license_.id,
+                        'api.entity_uuid',
+                        uuid=license_.uuid,
                         _external=True),
                     "type": "Name",
                     "content": license_.name}]}
@@ -374,8 +374,8 @@ class LoudFormatter:
         if link_.domain.class_.name == 'external_reference':
             property_ = {
                 "id": url_for(
-                    'api.entity',
-                    id_=link_.domain.id,
+                    'api.entity_uuid',
+                    uuid=link_.domain.uuid,
                     _external=True),
                 "classified_as": [{
                     "id": "https://vocab.getty.edu/aat/300264578",
@@ -421,7 +421,7 @@ class LoudFormatter:
 
     def _format_type_property(self, type_: Entity) -> dict[str, Any]:
         property_: dict[str, Any] = {
-            'id': url_for('api.entity', id_=type_.id, _external=True),
+            'id': url_for('api.entity_uuid', uuid=type_.uuid, _external=True),
             'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
@@ -507,8 +507,8 @@ class LoudFormatter:
             for link_ in links_:
                 place = {
                     'id': url_for(
-                        'api.entity',
-                        id_=link_.range.id,
+                        'api.entity_uuid',
+                        uuid=link_.range.uuid,
                         _external=True),
                     'type': 'Place',
                     '_label': link_.range.name}
@@ -556,8 +556,8 @@ class LoudFormatter:
             for lnk in links_:
                 place = {
                     'id': url_for(
-                        'api.entity',
-                        id_=lnk.range.id,
+                        'api.entity_uuid',
+                        uuid=lnk.range.uuid,
                         _external=True),
                     'type': 'Place',
                     '_label': lnk.range.name}
@@ -602,8 +602,8 @@ class LoudFormatter:
             mime_type, _ = mimetypes.guess_type(g.files[entity.id])
             image = {
                 'id': url_for(
-                    'api.entity',
-                    id_=entity.id,
+                    'api.entity_uuid',
+                    uuid=entity.uuid,
                     _external=True),
                 '_label': entity.name,
                 'type': 'DigitalObject'}
@@ -693,8 +693,8 @@ class LoudFormatter:
             properties_set: dict[str, Any]) -> None:
         properties_set['member_of'].append({
             'id': url_for(
-                'api.entity',
-                id_=link_.domain.id,
+                'api.entity_uuid',
+                uuid=link_.domain.uuid,
                 _external=True),
             'type': self.loud[get_crm_code(link_, True).replace(' ', '_')],
             '_label': link_.domain.name})
@@ -703,8 +703,8 @@ class LoudFormatter:
                 "type": "Activity",
                 "carried_out_on_behalf_of": [{
                     'id': url_for(
-                        'api.entity',
-                        id_=link_.domain.id,
+                        'api.entity_uuid',
+                        uuid=link_.domain.uuid,
                         _external=True),
                     'type': self.loud[
                         get_crm_code(link_, True).replace(' ', '_')],
@@ -848,8 +848,8 @@ class LoudFormatter:
                     annotation_dict = annotation_dict | {
                         "about": [{
                             'id': url_for(
-                                'api.entity',
-                                id_=linked_entity.id,
+                                'api.entity_uuid',
+                                uuid=linked_entity.uuid,
                                 _external=True),
                             'type': remove_spaces_dashes(
                                 linked_entity.cidoc_class.i18n['en']),
@@ -859,12 +859,11 @@ class LoudFormatter:
                                 "_label": linked_entity.name,
                                 "content": linked_entity.name
                             }, {
-                                # todo: UUID!
                                 "type": "Identifier",
                                 "_label": "System Identifier",
                                 "content": url_for(
-                                    'api.entity',
-                                    id_=linked_entity.id,
+                                    'api.entity_uuid',
+                                    uuid=linked_entity.uuid,
                                     _external=True)}]}]}
                 if annotation.text:
                     annotation_dict = annotation_dict | {
@@ -890,13 +889,12 @@ class LoudFormatter:
             "type": "Name",
             "_label": entity.name,
             "content": entity.name})
-        # This needs to be replaced by UUID
         properties_set['identified_by'].append({
             "type": "Identifier",
             "_label": "System Identifier",
             "content": url_for(
-                'api.entity',
-                id_=entity.id,
+                'api.entity_uuid',
+                uuid=entity.uuid,
                 _external=True)})
 
     def finalize_output(
