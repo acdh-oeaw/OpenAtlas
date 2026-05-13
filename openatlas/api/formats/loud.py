@@ -113,6 +113,12 @@ class LoudFormatter:
             return 'dimension'
         if code == 'P127':
             return 'part' if is_inverse else 'part_of'
+        if code == 'P46':
+            classes = {
+                link_.domain.class_.name,
+                link_.range.class_.name}
+            if classes & {'artifact', 'human_remains'}:
+                return 'occupies' if is_inverse else 'occupied_by'
         return self._loud_relation(link_, is_inverse)
 
     def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
@@ -653,9 +659,6 @@ class LoudFormatter:
             return
         property_name = self.get_property_key(link_, is_inverse)
         formatted = self.format_link(link_, is_domain=is_domain)
-        if code == 'P46':
-            properties_set[property_name] = formatted
-            return
         properties_set[property_name].append(formatted)
 
     def process_media_links(
