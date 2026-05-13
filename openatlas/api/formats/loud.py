@@ -17,28 +17,6 @@ from openatlas.display.util2 import get_file_path
 from openatlas.models.annotation import AnnotationText
 from openatlas.models.entity import Entity, Link
 
-unit_map = {
-    'B': 'bytes',
-    'KB': 'kilobytes',
-    'MB': 'megabytes',
-    'GB': 'gigabytes',
-    'TB': 'terabytes'}
-
-TYPE_OVERWRITES = {
-    'file': 'DigitalObject',
-    'human_remains': 'BiologicalObject',
-    'place': 'Site',
-    'feature': 'HumanMadeFeature',
-    'stratigraphic_unit': 'StratigraphicUnit'}
-
-
-def aat_type(id_: str, label: str) -> dict[str, str]:
-    return {
-        'id': f'https://vocab.getty.edu/aat/{id_}',
-        'type': 'Type',
-        '_label': label}
-
-
 LANGUAGES: dict[str, dict[str, Any]] = {
     'en': {
         'id': 'https://vocab.getty.edu/aat/300388277',
@@ -77,35 +55,26 @@ LANGUAGES: dict[str, dict[str, Any]] = {
         'type': 'Language',
         '_label': 'Slovak'}}
 
+UNIT_MAP = {
+    'B': 'bytes',
+    'KB': 'kilobytes',
+    'MB': 'megabytes',
+    'GB': 'gigabytes',
+    'TB': 'terabytes'}
 
-def get_language() -> dict[str, Any]:
-    code = app.config.get('ARCHE_METADATA', {}).get('language', 'en')
-    return LANGUAGES.get(code, LANGUAGES['en'])
+TYPE_OVERWRITES = {
+    'file': 'DigitalObject',
+    'human_remains': 'BiologicalObject',
+    'place': 'Site',
+    'feature': 'HumanMadeFeature',
+    'stratigraphic_unit': 'StratigraphicUnit'}
 
 
-PRIMARY_NAME: dict[str, Any] = aat_type('300404670', 'primary name')
-
-DOCUMENTS_BY_FORM: dict[str, Any] = aat_type(
-    '300137954', 'documents (by form)')
-
-
-def category_aat(id_: str, label: str) -> dict[str, Any]:
-    return aat_type(id_, label) | {'classified_as': [DOCUMENTS_BY_FORM]}
-
-
-def primary_name(
-        content: str,
-        label: str | None = None,
-        id_: str | None = None) -> dict[str, Any]:
-    name: dict[str, Any] = {
-        'type': 'Name',
-        '_label': label or content,
-        'content': content,
-        'classified_as': [PRIMARY_NAME],
-        'language': [get_language()]}
-    if id_:
-        name = {'id': id_} | name
-    return name
+def aat_type(id_: str, label: str) -> dict[str, str]:
+    return {
+        'id': f'https://vocab.getty.edu/aat/{id_}',
+        'type': 'Type',
+        '_label': label}
 
 
 ARCHAEOLOGY_AAT: dict[str, dict[str, str]] = {
@@ -125,6 +94,36 @@ BIBLIOGRAPHY_AAT: dict[str, dict[str, str]] = {
     'bibliography': aat_type('300026497', 'bibliography'),
     'edition': aat_type('300121294', 'edition')}
 
+SKOS_CLOSE_MATCH: dict[str, Any] = {
+    'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
+    'type': 'Type',
+    '_label': 'Close Match'}
+
+
+def get_language() -> dict[str, Any]:
+    code = app.config.get('ARCHE_METADATA', {}).get('language', 'en')
+    return LANGUAGES.get(code, LANGUAGES['en'])
+
+
+def category_aat(id_: str, label: str) -> dict[str, Any]:
+    return aat_type(id_, label) \
+        | {'classified_as': [aat_type('300137954', 'documents (by form)')]}
+
+
+def primary_name(
+        content: str,
+        label: str | None = None,
+        id_: str | None = None) -> dict[str, Any]:
+    name: dict[str, Any] = {
+        'type': 'Name',
+        '_label': label or content,
+        'content': content,
+        'classified_as': [aat_type('300404670', 'primary name')],
+        'language': [get_language()]}
+    if id_:
+        name = {'id': id_} | name
+    return name
+
 
 def entity_uri(entity: Entity) -> str:
     return url_for('api.entity_uuid', uuid=entity.uuid, _external=True)
@@ -135,12 +134,6 @@ def reference_url(type_link: Link) -> str:
         system = g.reference_systems[type_link.domain.id]
         return f'{system.resolver_url or ''}{type_link.description}'
     return type_link.domain.name
-
-
-SKOS_CLOSE_MATCH: dict[str, Any] = {
-    'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
-    'type': 'Type',
-    '_label': 'Close Match'}
 
 
 def is_close_match(link_: Link) -> bool:
@@ -264,7 +257,7 @@ class LoudFormatter:
             "unit": {
                 "id": "https://vocab.getty.edu/aat/300265870",
                 "type": "MeasurementUnit",
-                "_label": unit_map[unit]}}]}
+                "_label": UNIT_MAP[unit]}}]}
 
     def get_digital_object_details(
             self,
