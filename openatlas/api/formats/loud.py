@@ -9,8 +9,7 @@ from flask import g, url_for
 
 from openatlas import app
 from openatlas.api.resources.util import (
-    date_to_utc_iso_str, get_crm_code,
-    get_crm_relation,
+    date_to_utc_iso_str,
     get_iiif_manifest_and_path,
     get_license_type, remove_spaces_dashes)
 from openatlas.database.gis import get_wkt_by_id
@@ -24,6 +23,13 @@ unit_map = {
     'MB': 'megabytes',
     'GB': 'gigabytes',
     'TB': 'terabytes'}
+
+TYPE_OVERWRITES = {
+    'file': 'DigitalObject',
+    'human_remains': 'BiologicalObject',
+    'place': 'Site',
+    'feature': 'HumanMadeFeature',
+    'stratigraphic_unit': 'StratigraphicUnit'}
 
 
 def aat_type(id_: str, label: str) -> dict[str, str]:
@@ -87,7 +93,7 @@ class LoudFormatter:
 
     def _loud_relation(self, link_: Link, is_inverse: bool) -> str:
         return self.loud[
-            get_crm_relation(link_, is_inverse).replace(' ', '_')]
+            get_loud_crm_relation(link_, is_inverse).replace(' ', '_')]
 
     def _loud_code(self, link_: Link, is_domain: bool) -> str:
         return self.loud[get_crm_code(link_, is_domain).replace(' ', '_')]
@@ -114,9 +120,9 @@ class LoudFormatter:
 
     def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        type_ = self._loud_code(link_, is_domain)
-        if target.class_.name == 'human_remains':
-            type_ = 'BiologicalObject'
+        type_ =  TYPE_OVERWRITES.get(
+            self._loud_code(link_, is_domain),
+            remove_spaces_dashes(target.cidoc_class.i18n['en']))
         property_: dict[str, Any] = {
             'id': entity_uri(target),
             'type': type_,
@@ -148,10 +154,7 @@ class LoudFormatter:
 
     @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
-        type_overrides = {
-            'file': 'DigitalObject',
-            'human_remains': 'BiologicalObject'}
-        type_ = type_overrides.get(
+        type_ = TYPE_OVERWRITES.get(
             entity.class_.name,
             remove_spaces_dashes(entity.cidoc_class.i18n['en']))
         result: dict[str, Any] = {
@@ -799,3 +802,24 @@ def get_loud_entities(
             link_, properties_set, is_inverse=True, root_entity=entity)
     formatter.process_media_links(file_links, properties_set, entity)
     return formatter.finalize_output(entity, properties_set, data['links'])
+
+
+def get_crm_code(link_: Link, inverse: bool = False) -> str:
+    name = link_.range.cidoc_class.i18n['en']
+    if inverse:
+        name = link_.domain.cidoc_class.i18n['en']
+    code = link_.range.cidoc_class.code
+    if inverse:
+        code = link_.domain.cidoc_class.code
+
+    if name == 'Appellation':
+        name = 'Linguistic Appellation'
+        code = 'E33 E41'
+    return f'crm:{code} {name}'
+
+
+def get_loud_crm_relation(link_: Link, inverse: bool = False) -> str:
+    property_ = f' {link_.property.i18n['en']}'
+    if inverse and link_.property.i18n_inverse['en']:
+        property_ = f'i {link_.property.i18n_inverse['en']}'
+    return f'crm:{link_.property.code}{property_}'

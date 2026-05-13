@@ -268,20 +268,6 @@ def get_crm_relation_x(link_: Link, inverse: bool = False) -> str:
     return f'crm:{link_.property.code}{property_.replace(' ', '_')}'
 
 
-def get_crm_code(link_: Link, inverse: bool = False) -> str:
-    name = link_.range.cidoc_class.i18n['en']
-    if inverse:
-        name = link_.domain.cidoc_class.i18n['en']
-    code = link_.range.cidoc_class.code
-    if inverse:
-        code = link_.domain.cidoc_class.code
-
-    if name == 'Appellation':
-        name = 'Linguistic Appellation'
-        code = 'E33 E41'
-    return f'crm:{code} {name}'
-
-
 def flatten_list_and_remove_duplicates(list_: list[Any]) -> list[Any]:
     return [item for sublist in list_ for item in sublist if item not in list_]
 
