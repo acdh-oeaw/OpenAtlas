@@ -137,12 +137,28 @@ def reference_url(type_link: Link) -> str:
     return type_link.domain.name
 
 
-def match_kind(link_: Link) -> str:
-    if link_.type \
-            and g.types.get(link_.type.id) \
-            and 'close' in g.types[link_.type.id].name:
-        return 'refers_to'
-    return 'equivalent'
+SKOS_CLOSE_MATCH: dict[str, Any] = {
+    'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
+    'type': 'Type',
+    '_label': 'Close Match'}
+
+
+def is_close_match(link_: Link) -> bool:
+    return bool(
+        link_.type
+        and g.types.get(link_.type.id)
+        and 'close' in g.types[link_.type.id].name)
+
+
+def close_match_attribution(
+        skolem_id: str,
+        assigned: dict[str, Any]) -> dict[str, Any]:
+    return {
+        'id': skolem_id,
+        'type': 'AttributeAssignment',
+        '_label': 'Close Match assignment',
+        'classified_as': [SKOS_CLOSE_MATCH],
+        'assigned': assigned}
 
 
 class LoudFormatter:
@@ -486,17 +502,27 @@ class LoudFormatter:
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(type_)
-        external_references: dict[str, list[dict[str, str]]] = {}
+        equivalents: list[dict[str, Any]] = []
+        attributed_by: list[dict[str, Any]] = []
         for type_link in self.type_refs.get(type_.id, []):
             url = reference_url(type_link)
             if not validators.url(url):  # pragma: no cover
                 continue
-            kind = match_kind(type_link)
-            external_references.setdefault(kind, []).append({
+            ref = {
                 "id": url,
                 "type": "Type",
-                "_label": type_.name})
-        return property_ | external_references
+                "_label": type_.name}
+            if is_close_match(type_link):
+                attributed_by.append(close_match_attribution(
+                    self.generate_skolem_id(type_link.id, 'close_match'),
+                    ref))
+            else:
+                equivalents.append(ref)
+        if equivalents:
+            property_['equivalent'] = equivalents
+        if attributed_by:
+            property_['attributed_by'] = attributed_by
+        return property_
 
     @staticmethod
     def generate_skolem_id(id_: int, type_name: str) -> str:
@@ -691,10 +717,15 @@ class LoudFormatter:
             entity: Entity) -> None:
         system = g.reference_systems[link_.domain.id]
         skolem = LoudFormatter.generate_skolem_id
-        properties_set[match_kind(link_)].append({
+        match_reference = {
             "id": f'{system.resolver_url or ''}{link_.description}',
             "type": LoudFormatter._resolve_type(entity),
-            "_label": entity.name})
+            "_label": entity.name}
+        if is_close_match(link_):
+            properties_set['attributed_by'].append(close_match_attribution(
+                skolem(link_.id, 'close_match'), match_reference))
+        else:
+            properties_set['equivalent'].append(match_reference)
         properties_set['identified_by'].append({
             'id': skolem(link_.id, 'identifier'),
             "type": "Identifier",
