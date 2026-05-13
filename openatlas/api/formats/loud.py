@@ -141,7 +141,7 @@ def match_kind(link_: Link) -> str:
     if link_.type \
             and g.types.get(link_.type.id) \
             and 'close' in g.types[link_.type.id].name:
-        return 'related'
+        return 'refers_to'
     return 'equivalent'
 
 
@@ -293,10 +293,11 @@ class LoudFormatter:
         classified_as: list[dict[str, Any]] = [
             aat_type('300435434', 'copyright/licensing statement')]
         classified_as.extend({
-            "id": reference_url(type_link),
-            "type": "Type",
-            "_label": license_.name}
-            for type_link in self.type_refs.get(license_.id, []))
+                                 "id": reference_url(type_link),
+                                 "type": "Type",
+                                 "_label": license_.name}
+                             for type_link in
+                             self.type_refs.get(license_.id, []))
         return {
             'id': self.generate_skolem_id(license_.id, 'license'),
             'type': 'LinguisticObject',
@@ -384,8 +385,8 @@ class LoudFormatter:
                 'type': "Measurement unit",
                 '_label': target.description}
             property_['classified_as'] = [{
-                "id": "https://vocab.getty.edu/aat/300264087",
-                'type': "physical attributes",
+                "id": "https://vocab.getty.edu/aat/300379096",
+                'type': "size/dimensions by unit",
                 '_label': target.description}]
         return property_
 
@@ -422,19 +423,27 @@ class LoudFormatter:
         if link_.description:
             pagination = primary_name(link_.description)
             pagination['classified_as'] = (
-                [aat_type('300200294', 'pagination')]
-                + pagination['classified_as'])
+                    [aat_type('300200294', 'pagination')]
+                    + pagination['classified_as'])
             property_['identified_by'] = [pagination]
         if aat := BIBLIOGRAPHY_AAT.get(domain.class_.name):
             property_['classified_as'].append(aat)
+            property_['classified_as'].append(category_aat(
+                '300311705',
+                'citations (bibliographic references)'))
         if property_['type'] == 'LinguisticObject':
             property_['language'] = [get_language()]
+        if domain.class_.name == 'source':
+            property_['classified_as'].append(category_aat(
+                '300435428',
+                'historical/cultural context'))
         if domain.class_.name == 'external_reference':
-            web_page = category_aat('300264578', 'Web Page')
+            web_page = category_aat('300264578', 'web page')
+            description = category_aat('300435416', 'description')
             property_ = {
                 "id": entity_uri(domain),
                 "_label": domain.name,
-                "classified_as": [web_page],
+                "classified_as": [web_page, description],
                 "type": "LinguisticObject",
                 "language": [get_language()],
                 "digitally_carried_by": [{
@@ -517,9 +526,12 @@ class LoudFormatter:
             return self._get_life_event_timespan(entity, links_)
         if not entity.dates.dates_available():
             return {}
+        name = entity.name if isinstance(entity, Entity) \
+            else entity.domain.name
         return {'timespan':
                     {'id': self.generate_skolem_id(entity.id, 'timespan'),
-                     'type': 'TimeSpan'}
+                     'type': 'TimeSpan',
+                     '_label': f'Timespan of {name}'}
                     | self._get_loud_begin_dates(entity)
                     | self._get_loud_end_dates(entity)}
 
@@ -540,10 +552,8 @@ class LoudFormatter:
             if inner_ts_id:
                 ts_key = 'begin' if event_type in {'Birth', 'Formation'} \
                     else 'end'
-                timespan = {
-                               'id': self.generate_skolem_id(entity.id,
-                                                             ts_key),
-                               'type': 'TimeSpan'} | timespan
+                timespan = {'id': self.generate_skolem_id(entity.id, ts_key),
+                            'type': 'TimeSpan'} | timespan
             event['timespan'] = timespan | dates
         return event
 
@@ -595,8 +605,8 @@ class LoudFormatter:
         end_of_the_end = date_to_utc_iso_str(entity.dates.end_to)
         if end_of_the_end is None:
             end_of_the_end = begin_of_the_end \
-                or date_to_utc_iso_str(entity.dates.begin_to) \
-                or date_to_utc_iso_str(entity.dates.begin_from)
+                             or date_to_utc_iso_str(entity.dates.begin_to) \
+                             or date_to_utc_iso_str(entity.dates.begin_from)
         data = {
             'begin_of_the_end': begin_of_the_end,
             'end_of_the_end': end_of_the_end,
@@ -632,7 +642,8 @@ class LoudFormatter:
             'type': 'VisualItem',
             "_label": "Visual Representations",
             'digitally_shown_by': representation})
-        properties_set['subject_of'].extend(subject_of)
+        if subject_of:  # pragma: no cover
+            properties_set['subject_of'].extend(subject_of)
 
     @staticmethod
     def get_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
@@ -642,7 +653,7 @@ class LoudFormatter:
             manifest_path = get_iiif_manifest_and_path(link_.domain.id)
             if not (manifest_path.get('IIIFManifest')
                     and manifest_path.get('IIIFBasePath')):
-                continue
+                continue  # pragma: no cover
             label = f'IIIF manifest of {link_.domain.name}'
             subject_of.append({
                 'id': skolem(link_.id, 'iif_manifest'),
@@ -703,12 +714,12 @@ class LoudFormatter:
             '_label': domain.name}
         properties_set['member_of'].append(group_ref)
         if not (link_.type or link_.dates.dates_available()):
-            return
+            return  # pragma: no cover
         carried_out: dict[str, Any] = {
             'id': self.generate_skolem_id(link_.id, 'membership'),
             "type": "Activity",
-            "carried_out_on_behalf_of": [dict(group_ref)],
-            '_label': f"Membership in {domain.name}"}
+            '_label': f"Membership in {domain.name}",
+            "carried_out_on_behalf_of": [dict(group_ref)]}
         if link_.type:
             if type_ := g.types.get(link_.type.id):
                 carried_out['_label'] = (
@@ -755,8 +766,8 @@ class LoudFormatter:
             entity: Entity) -> None:
         if file_links:
             self.get_loud_representations(file_links, properties_set)
-            properties_set['subject_of'].extend(
-                self.get_iiif_subject_of(file_links))
+            if iiif := self.get_iiif_subject_of(file_links):
+                properties_set['subject_of'].extend(iiif)
         if entity.class_.name == 'file' and g.files.get(entity.id):
             properties_set.update(self.get_file_dimensions(entity))
             details = self.get_digital_object_details(entity)
@@ -804,6 +815,7 @@ class LoudFormatter:
                 "_label": f"Annotation selector: {inner_text}",
                 "classified_as": [selector],
                 "referred_to_by": [{
+                    "id": skolem(annotation.id, 'annotation_text'),
                     "type": "LinguisticObject",
                     "_label": "Text Position Selector",
                     "content": f'{annotation.text}',
@@ -811,9 +823,11 @@ class LoudFormatter:
                     "classified_as": [category_aat(
                         '300055590', 'Text Position Selector')],
                     "identified_by": [{
+                        "id": skolem(annotation.id, 'link_start'),
                         "type": "Identifier",
                         "_label": "start",
                         "content": f'{annotation.link_start}'}, {
+                        "id": skolem(annotation.id, 'link_end'),
                         "type": "Identifier",
                         "_label": "end",
                         "content": f'{annotation.link_end}'}]}]}]}
@@ -830,6 +844,7 @@ class LoudFormatter:
                         "content": entity_uri(linked)}]}]
         if annotation.text:
             annotation_dict['referred_to_by'] = [{
+                "id": skolem(annotation.id, 'annotation_text'),
                 "type": "LinguisticObject",
                 "_label": annotation.text,
                 "content": annotation.text,
@@ -896,8 +911,6 @@ def get_loud_entities(
             link_, properties_set, is_inverse=True, root_entity=entity)
     formatter.process_media_links(file_links, properties_set, entity)
     return formatter.finalize_output(entity, properties_set, data['links'])
-
-
 
 
 def get_loud_crm_relation(link_: Link, inverse: bool = False) -> str:

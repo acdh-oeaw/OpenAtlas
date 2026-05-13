@@ -146,7 +146,7 @@ class Api(ApiTestCase):
                 'api_04.network_visualisation',
                 linked_to_ids=boundary_mark.id))
         rv = rv.get_json()
-        assert len(rv['results']) == 15
+        assert len(rv['results']) == 16
         rv = c.get(url_for('api_04.network_visualisation', download=True))
         rv = rv.get_json()
         assert len(rv['results']) == 161
@@ -157,7 +157,7 @@ class Api(ApiTestCase):
                 id_=place.id,
                 exclude_system_classes='type'))
         rv = rv.get_json()
-        assert len(rv['results']) == 13
+        assert len(rv['results']) == 14
         rv = c.get(
             url_for(
                 'api_04.ego_network_visualisation',
@@ -179,7 +179,7 @@ class Api(ApiTestCase):
                 id_=place.id,
                 download=True))
         rv = rv.get_json()
-        assert len(rv['results']) == 17
+        assert len(rv['results']) == 18
 
         for rv in [
             c.get(url_for('api_04.geometric_entities')),
@@ -724,7 +724,7 @@ class Api(ApiTestCase):
                 "entityDescription": [{
                     "operator": "like",
                     "values": ["FrOdO", "sam"]}]}]),
-            (14, [{
+            (15, [{
                 "relationToID": [{
                     "operator": "equal",
                     "values": [place.id]}]}]),

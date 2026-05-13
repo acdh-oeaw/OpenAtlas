@@ -145,6 +145,7 @@ VALUES
   ('P53', (SELECT id FROM model.entity WHERE name='Location of Home of Baggins'), (SELECT id FROM model.entity WHERE name='Home of Baggins') ),
   ('P53', (SELECT id FROM model.entity WHERE name='Location of Bar'), (SELECT id FROM model.entity WHERE name='Bar') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
+  ('P67', (SELECT id FROM model.entity WHERE name='Shire'), (SELECT id FROM model.entity WHERE name='Silmarillion') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
   ('P67', (SELECT id FROM model.entity WHERE name='https://viaf.org/viaf/95218067'), (SELECT id FROM model.entity WHERE name='Picture with a License') ),
   ('P67', (SELECT id FROM model.entity WHERE name='Frodo'), (SELECT id FROM model.entity WHERE name='File without license') ),
