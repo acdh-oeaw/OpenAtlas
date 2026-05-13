@@ -39,10 +39,49 @@ def aat_type(id_: str, label: str) -> dict[str, str]:
         '_label': label}
 
 
-LANGUAGE_EN: dict[str, Any] = {
-    'id': 'https://vocab.getty.edu/aat/300388277',
-    'type': 'Language',
-    '_label': 'English'}
+LANGUAGES: dict[str, dict[str, Any]] = {
+    'en': {
+        'id': 'https://vocab.getty.edu/aat/300388277',
+        'type': 'Language',
+        '_label': 'English'},
+    'de': {
+        'id': 'https://vocab.getty.edu/aat/300388344',
+        'type': 'Language',
+        '_label': 'German'},
+    'fr': {
+        'id': 'https://vocab.getty.edu/aat/300388306',
+        'type': 'Language',
+        '_label': 'French'},
+    'it': {
+        'id': 'https://vocab.getty.edu/aat/300388474',
+        'type': 'Language',
+        '_label': 'Italian'},
+    'es': {
+        'id': 'https://vocab.getty.edu/aat/300389311',
+        'type': 'Language',
+        '_label': 'Spanish'},
+    'sr': {
+        'id': 'https://vocab.getty.edu/aat/300389248',
+        'type': 'Language',
+        '_label': 'Serbian'},
+    'sl': {
+        'id': 'https://vocab.getty.edu/aat/300389291',
+        'type': 'Language',
+        '_label': 'Slovenian'},
+    'cs': {
+        'id': 'https://vocab.getty.edu/aat/300388191',
+        'type': 'Language',
+        '_label': 'Czech'},
+    'sk': {
+        'id': 'https://vocab.getty.edu/aat/300389290',
+        'type': 'Language',
+        '_label': 'Slovak'}}
+
+
+def get_language() -> dict[str, Any]:
+    code = app.config.get('ARCHE_METADATA', {}).get('language', 'en')
+    return LANGUAGES.get(code, LANGUAGES['en'])
+
 
 PRIMARY_NAME: dict[str, Any] = aat_type('300404670', 'primary name')
 
@@ -63,7 +102,7 @@ def primary_name(
         '_label': label or content,
         'content': content,
         'classified_as': [PRIMARY_NAME],
-        'language': [LANGUAGE_EN]}
+        'language': [get_language()]}
     if id_:
         name = {'id': id_} | name
     return name
@@ -263,7 +302,7 @@ class LoudFormatter:
             'type': 'LinguisticObject',
             '_label': f'License of {entity_name}',
             'classified_as': classified_as,
-            'language': [LANGUAGE_EN],
+            'language': [get_language()],
             'identified_by': [
                 primary_name(license_.name, id_=entity_uri(license_))]}
 
@@ -298,7 +337,7 @@ class LoudFormatter:
                     "type": "LinguisticObject",
                     "content": str(rng),
                     "_label": "Laboratory Error Range",
-                    "language": [LANGUAGE_EN],
+                    "language": [get_language()],
                     "classified_as": [category_aat(
                         '300417273',
                         'error (measure of uncertainty)')]}]}],
@@ -389,7 +428,7 @@ class LoudFormatter:
         if aat := BIBLIOGRAPHY_AAT.get(domain.class_.name):
             property_['classified_as'].append(aat)
         if property_['type'] == 'LinguisticObject':
-            property_['language'] = [LANGUAGE_EN]
+            property_['language'] = [get_language()]
         if domain.class_.name == 'external_reference':
             web_page = category_aat('300264578', 'Web Page')
             property_ = {
@@ -397,7 +436,7 @@ class LoudFormatter:
                 "_label": domain.name,
                 "classified_as": [web_page],
                 "type": "LinguisticObject",
-                "language": [LANGUAGE_EN],
+                "language": [get_language()],
                 "digitally_carried_by": [{
                     "type": "DigitalObject",
                     "_label": domain.name,
@@ -582,7 +621,7 @@ class LoudFormatter:
                 subject_of.append({
                     'type': 'LinguisticObject',
                     '_label': entity.name,
-                    "language": [LANGUAGE_EN],
+                    "language": [get_language()],
                     "classified_as": [
                         category_aat('300424602', 'Digital documents')],
                     'digitally_carried_by': [image]})
@@ -611,7 +650,7 @@ class LoudFormatter:
                 "_label": label,
                 "classified_as": [
                     category_aat('300266076', 'metadata (descriptive)')],
-                "language": [LANGUAGE_EN],
+                "language": [get_language()],
                 "digitally_carried_by": [{
                     'id': skolem(link_.id, 'DigitalObject'),
                     "type": "DigitalObject",
@@ -734,7 +773,7 @@ class LoudFormatter:
             "type": "LinguisticObject",
             "_label": "Description",
             "content": entity.description,
-            "language": [LANGUAGE_EN],
+            "language": [get_language()],
             "classified_as": [category_aat('300435416', 'description')]}
         annotations = AnnotationText.get_by_source_id(entity.id) or []
         part = [
@@ -757,7 +796,7 @@ class LoudFormatter:
             "type": "LinguisticObject",
             "_label": f"Annotation: {inner_text}",
             "content": inner_text,
-            "language": [LANGUAGE_EN],
+            "language": [get_language()],
             "classified_as": [category_aat('300026100', 'Annotation')],
             "digitally_carried_by": [{
                 'id': skolem(annotation.id, 'annotation_digital_object'),
@@ -768,7 +807,7 @@ class LoudFormatter:
                     "type": "LinguisticObject",
                     "_label": "Text Position Selector",
                     "content": f'{annotation.text}',
-                    "language": [LANGUAGE_EN],
+                    "language": [get_language()],
                     "classified_as": [category_aat(
                         '300055590', 'Text Position Selector')],
                     "identified_by": [{
@@ -794,7 +833,7 @@ class LoudFormatter:
                 "type": "LinguisticObject",
                 "_label": annotation.text,
                 "content": annotation.text,
-                "language": [LANGUAGE_EN],
+                "language": [get_language()],
                 "classified_as": [category_aat('300027200', 'Note')]}]
         return annotation_dict
 
