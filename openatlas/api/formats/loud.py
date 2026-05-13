@@ -39,6 +39,36 @@ def aat_type(id_: str, label: str) -> dict[str, str]:
         '_label': label}
 
 
+LANGUAGE_EN: dict[str, Any] = {
+    'id': 'https://vocab.getty.edu/aat/300388277',
+    'type': 'Language',
+    '_label': 'English'}
+
+PRIMARY_NAME: dict[str, Any] = aat_type('300404670', 'primary name')
+
+DOCUMENTS_BY_FORM: dict[str, Any] = aat_type(
+    '300137954', 'documents (by form)')
+
+
+def category_aat(id_: str, label: str) -> dict[str, Any]:
+    return aat_type(id_, label) | {'classified_as': [DOCUMENTS_BY_FORM]}
+
+
+def primary_name(
+        content: str,
+        label: str | None = None,
+        id_: str | None = None) -> dict[str, Any]:
+    name: dict[str, Any] = {
+        'type': 'Name',
+        '_label': label or content,
+        'content': content,
+        'classified_as': [PRIMARY_NAME],
+        'language': [LANGUAGE_EN]}
+    if id_:
+        name = {'id': id_} | name
+    return name
+
+
 ARCHAEOLOGY_AAT: dict[str, dict[str, str]] = {
     'artifact': aat_type('300117127', 'artifacts'),
     'human_remains': aat_type('300379896', 'human remains')}
@@ -233,10 +263,9 @@ class LoudFormatter:
             'type': 'LinguisticObject',
             '_label': f'License of {entity_name}',
             'classified_as': classified_as,
-            'identified_by': [{
-                'id': entity_uri(license_),
-                'type': 'Name',
-                'content': license_.name}]}
+            'language': [LANGUAGE_EN],
+            'identified_by': [
+                primary_name(license_.name, id_=entity_uri(license_))]}
 
     @staticmethod
     def handle_radiocarbon(
@@ -269,7 +298,8 @@ class LoudFormatter:
                     "type": "LinguisticObject",
                     "content": str(rng),
                     "_label": "Laboratory Error Range",
-                    "classified_as": [aat_type(
+                    "language": [LANGUAGE_EN],
+                    "classified_as": [category_aat(
                         '300417273',
                         'error (measure of uncertainty)')]}]}],
             "identified_by": [{
@@ -289,9 +319,7 @@ class LoudFormatter:
                 'id': skolem(link_.id, 'radio_group'),
                 "type": "Group",
                 "_label": lab_id,
-                "identified_by": [{
-                    "type": "Name",
-                    "content": lab_id}]}]})
+                "identified_by": [primary_name(lab_id)]}]})
 
     @staticmethod
     def _handle_p1(
@@ -353,25 +381,31 @@ class LoudFormatter:
             property_['classified_as'].append(
                 self._format_type_property(standard_type))
         if link_.description:
-            property_['identified_by'] = [{
-                "type": "Name",
-                "content": f"{link_.description}",
-                "classified_as": [aat_type('300200294', 'pagination')]}]
+            pagination = primary_name(link_.description)
+            pagination['classified_as'] = (
+                [aat_type('300200294', 'pagination')]
+                + pagination['classified_as'])
+            property_['identified_by'] = [pagination]
         if aat := BIBLIOGRAPHY_AAT.get(domain.class_.name):
             property_['classified_as'].append(aat)
+        if property_['type'] == 'LinguisticObject':
+            property_['language'] = [LANGUAGE_EN]
         if domain.class_.name == 'external_reference':
-            web_page = aat_type('300264578', 'Web Page')
+            web_page = category_aat('300264578', 'Web Page')
             property_ = {
                 "id": entity_uri(domain),
+                "_label": domain.name,
                 "classified_as": [web_page],
                 "type": "LinguisticObject",
+                "language": [LANGUAGE_EN],
                 "digitally_carried_by": [{
                     "type": "DigitalObject",
+                    "_label": domain.name,
                     "classified_as": [web_page],
                     "format": "text/html",
-                    "_label": domain.name,
                     "access_point": [{
                         "id": domain.name,
+                        "_label": domain.name,
                         "type": "DigitalObject"}]}]}
         property_['content'] = domain.description
         return property_
@@ -518,9 +552,15 @@ class LoudFormatter:
 
     @staticmethod
     def _get_loud_end_dates(entity: Entity | Link) -> dict[str, Any]:
+        begin_of_the_end = date_to_utc_iso_str(entity.dates.end_from)
+        end_of_the_end = date_to_utc_iso_str(entity.dates.end_to)
+        if end_of_the_end is None:
+            end_of_the_end = begin_of_the_end \
+                or date_to_utc_iso_str(entity.dates.begin_to) \
+                or date_to_utc_iso_str(entity.dates.begin_from)
         data = {
-            'begin_of_the_end': date_to_utc_iso_str(entity.dates.end_from),
-            'end_of_the_end': date_to_utc_iso_str(entity.dates.end_to),
+            'begin_of_the_end': begin_of_the_end,
+            'end_of_the_end': end_of_the_end,
             'end_is_qualified_by': entity.dates.end_comment}
         return {k: v for k, v in data.items() if v is not None}
 
@@ -542,8 +582,9 @@ class LoudFormatter:
                 subject_of.append({
                     'type': 'LinguisticObject',
                     '_label': entity.name,
+                    "language": [LANGUAGE_EN],
                     "classified_as": [
-                        aat_type('300424602', 'Digital documents')],
+                        category_aat('300424602', 'Digital documents')],
                     'digitally_carried_by': [image]})
             else:
                 representation.append(image)
@@ -563,14 +604,21 @@ class LoudFormatter:
             if not (manifest_path.get('IIIFManifest')
                     and manifest_path.get('IIIFBasePath')):
                 continue
+            label = f'IIIF manifest of {link_.domain.name}'
             subject_of.append({
                 'id': skolem(link_.id, 'iif_manifest'),
                 "type": "LinguisticObject",
+                "_label": label,
+                "classified_as": [
+                    category_aat('300266076', 'metadata (descriptive)')],
+                "language": [LANGUAGE_EN],
                 "digitally_carried_by": [{
                     'id': skolem(link_.id, 'DigitalObject'),
                     "type": "DigitalObject",
+                    "_label": label,
                     "access_point": [{
                         "id": manifest_path['IIIFManifest'],
+                        "_label": label,
                         "type": "DigitalObject"}],
                     "conforms_to": [{
                         "id": "https://iiif.io/api/presentation/2.0/",
@@ -686,7 +734,8 @@ class LoudFormatter:
             "type": "LinguisticObject",
             "_label": "Description",
             "content": entity.description,
-            "classified_as": [aat_type('300435416', 'description')]}
+            "language": [LANGUAGE_EN],
+            "classified_as": [category_aat('300435416', 'description')]}
         annotations = AnnotationText.get_by_source_id(entity.id) or []
         part = [
             LoudFormatter._build_annotation(annotation, entity)
@@ -708,16 +757,20 @@ class LoudFormatter:
             "type": "LinguisticObject",
             "_label": f"Annotation: {inner_text}",
             "content": inner_text,
-            "classified_as": [aat_type('300026100', 'Annotation')],
+            "language": [LANGUAGE_EN],
+            "classified_as": [category_aat('300026100', 'Annotation')],
             "digitally_carried_by": [{
                 'id': skolem(annotation.id, 'annotation_digital_object'),
                 "type": "DigitalObject",
+                "_label": f"Annotation selector: {inner_text}",
                 "classified_as": [selector],
                 "referred_to_by": [{
                     "type": "LinguisticObject",
+                    "_label": "Text Position Selector",
                     "content": f'{annotation.text}',
-                    "classified_as": [
-                        aat_type('300055590', 'Text Position Selector')],
+                    "language": [LANGUAGE_EN],
+                    "classified_as": [category_aat(
+                        '300055590', 'Text Position Selector')],
                     "identified_by": [{
                         "type": "Identifier",
                         "_label": "start",
@@ -731,38 +784,37 @@ class LoudFormatter:
                 'id': entity_uri(linked),
                 'type': LoudFormatter._resolve_type(linked),
                 '_label': linked.name,
-                'identified_by': [{
-                    "type": "Name",
-                    "_label": linked.name,
-                    "content": linked.name}, {
-                    "type": "Identifier",
-                    "_label": "System Identifier",
-                    "content": entity_uri(linked)}]}]
+                'identified_by': [
+                    primary_name(linked.name), {
+                        "type": "Identifier",
+                        "_label": "System Identifier",
+                        "content": entity_uri(linked)}]}]
         if annotation.text:
             annotation_dict['referred_to_by'] = [{
                 "type": "LinguisticObject",
                 "_label": annotation.text,
                 "content": annotation.text,
-                "classified_as": [aat_type('300027200', 'Note')]}]
+                "language": [LANGUAGE_EN],
+                "classified_as": [category_aat('300027200', 'Note')]}]
         return annotation_dict
 
     @staticmethod
     def add_core_metadata(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
-        properties_set['identified_by'].extend([{
-            "type": "Name",
-            "_label": entity.name,
-            "content": entity.name}, {
-            "type": "Identifier",
-            "_label": "Internal Database ID",
-            "content": url_for(
-                'api.entity', id_=entity.id, _external=True, format='loud'),
-            "classified_as": [aat_type('300404629', 'local URI')]}, {
-            "type": "Identifier",
-            "_label": "Unique Identifier",
-            "content": entity_uri(entity),
-            "classified_as": [aat_type('300404012', 'unique identifier')]}])
+        properties_set['identified_by'].extend([
+            primary_name(entity.name), {
+                "type": "Identifier",
+                "_label": "Internal Database ID",
+                "content": url_for(
+                    'api.entity', id_=entity.id, _external=True,
+                    format='loud'),
+                "classified_as": [aat_type('300404629', 'local URI')]}, {
+                "type": "Identifier",
+                "_label": "Unique Identifier",
+                "content": entity_uri(entity),
+                "classified_as": [
+                    aat_type('300404012', 'unique identifier')]}])
         if entity.class_.name == 'object_location':
             if geometry := get_wkt_by_id(entity.id):
                 properties_set['defined_by'] = geometry
