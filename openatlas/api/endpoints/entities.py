@@ -88,7 +88,7 @@ class GetEntity(Resource):
 class GetEntityByUUID(Resource):
     @staticmethod
     def get(uuid: str) -> tuple[Resource, int] | Response | dict[str, Any]:
-        parser = default.parse_args()
+        parser = entity_.parse_args()
         parser['format'] = 'loud'
         return Endpoint(
             ApiEntity.get_by_uuid(uuid, types=True, aliases=True),

@@ -383,10 +383,10 @@ class LoudFormatter:
                 "id": "https://vocab.getty.edu/aat/300226816",
                 'type': "Measurement unit",
                 '_label': target.description}
-            property_['classified_as'] = {
+            property_['classified_as'] = [{
                 "id": "https://vocab.getty.edu/aat/300264087",
                 'type': "physical attributes",
-                '_label': target.description}
+                '_label': target.description}]
         return property_
 
     def _handle_p73(
@@ -898,18 +898,6 @@ def get_loud_entities(
     return formatter.finalize_output(entity, properties_set, data['links'])
 
 
-def get_crm_code(link_: Link, inverse: bool = False) -> str:
-    name = link_.range.cidoc_class.i18n['en']
-    if inverse:
-        name = link_.domain.cidoc_class.i18n['en']
-    code = link_.range.cidoc_class.code
-    if inverse:
-        code = link_.domain.cidoc_class.code
-
-    if name == 'Appellation':
-        name = 'Linguistic Appellation'
-        code = 'E33 E41'
-    return f'crm:{code} {name}'
 
 
 def get_loud_crm_relation(link_: Link, inverse: bool = False) -> str:
