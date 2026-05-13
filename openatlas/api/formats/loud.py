@@ -95,9 +95,6 @@ class LoudFormatter:
         return self.loud[
             get_loud_crm_relation(link_, is_inverse).replace(' ', '_')]
 
-    def _loud_code(self, link_: Link, is_domain: bool) -> str:
-        return self.loud[get_crm_code(link_, is_domain).replace(' ', '_')]
-
     def get_property_key(self, link_: Link, is_inverse: bool) -> str:
         code = link_.property.code
         if code == 'OA7':
@@ -120,12 +117,9 @@ class LoudFormatter:
 
     def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        type_ =  TYPE_OVERWRITES.get(
-            self._loud_code(link_, is_domain),
-            remove_spaces_dashes(target.cidoc_class.i18n['en']))
         property_: dict[str, Any] = {
             'id': entity_uri(target),
-            'type': type_,
+            'type': self._resolve_type(target),
             '_label': target.name}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
@@ -154,15 +148,18 @@ class LoudFormatter:
 
     @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
-        type_ = TYPE_OVERWRITES.get(
-            entity.class_.name,
-            remove_spaces_dashes(entity.cidoc_class.i18n['en']))
         result: dict[str, Any] = {
             'id': entity_uri(entity),
-            'type': type_,
+            'type': LoudFormatter._resolve_type(entity),
             '_label': entity.name}
         LoudFormatter._prepend_archaeology_classification(entity, result)
         return result
+
+    @staticmethod
+    def _resolve_type(entity: Entity) -> str:
+        return TYPE_OVERWRITES.get(
+            entity.class_.name,
+            remove_spaces_dashes(entity.cidoc_class.i18n['en']))
 
     @staticmethod
     def get_file_dimensions(entity: Entity) -> dict[str, Any]:
@@ -393,7 +390,7 @@ class LoudFormatter:
     def _format_type_property(self, type_: Entity) -> dict[str, Any]:
         property_: dict[str, Any] = {
             'id': entity_uri(type_),
-            'type': remove_spaces_dashes(type_.cidoc_class.i18n['en']),
+            'type': self._resolve_type(type_),
             '_label': type_.name}
         if type_.dates.begin_from or type_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(type_)
@@ -586,7 +583,7 @@ class LoudFormatter:
         skolem = LoudFormatter.generate_skolem_id
         properties_set[match_kind(link_)].append({
             "id": f'{system.resolver_url or ''}{link_.description}',
-            "type": remove_spaces_dashes(entity.cidoc_class.i18n['en'])})
+            "type": LoudFormatter._resolve_type(entity)})
         properties_set['identified_by'].append({
             'id': skolem(link_.id, 'identifier'),
             "type": "Identifier",
@@ -609,7 +606,7 @@ class LoudFormatter:
         domain = link_.domain
         group_ref = {
             'id': entity_uri(domain),
-            'type': self._loud_code(link_, is_domain=True),
+            'type': self._resolve_type(domain),
             '_label': domain.name}
         properties_set['member_of'].append(group_ref)
         if not (link_.type or link_.dates.dates_available()):
@@ -726,7 +723,7 @@ class LoudFormatter:
             linked = Entity.get_by_id(annotation.entity_id)
             annotation_dict['about'] = [{
                 'id': entity_uri(linked),
-                'type': remove_spaces_dashes(linked.cidoc_class.i18n['en']),
+                'type': LoudFormatter._resolve_type(linked),
                 '_label': linked.name,
                 'identified_by': [{
                     "type": "Name",

@@ -278,7 +278,7 @@ class Api(ApiTestCase):
         rv = c.get(url_for('api_04.entity', id_=place.id, format='loud'))
         assert 'application/json' in rv.headers.get('Content-Type')
         rv = rv.get_json()
-        assert rv['type'] == 'PhysicalThing'
+        assert rv['type'] == 'Site'
         assert rv['_label'] == 'Shire'
         assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00Z'
         assert rv['identified_by'][0]['_label'] == 'Sûza'
@@ -293,7 +293,7 @@ class Api(ApiTestCase):
         rv = c.get(url_for('api_04.entity_uuid', uuid=place.uuid))
         assert 'application/json' in rv.headers.get('Content-Type')
         rv = rv.get_json()
-        assert rv['type'] == 'PhysicalThing'
+        assert rv['type'] == 'Site'
         assert rv['_label'] == 'Shire'
 
         # Test Entity export and RDFS
