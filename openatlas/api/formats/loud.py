@@ -384,11 +384,11 @@ class LoudFormatter:
             property_['value'] = float(link_.description)
             property_['unit'] = {
                 "id": "https://vocab.getty.edu/aat/300226816",
-                'type': "Measurement unit",
+                'type': "MeasurementUnit",
                 '_label': target.description}
             property_['classified_as'] = [{
                 "id": "https://vocab.getty.edu/aat/300379096",
-                'type': "size/dimensions by unit",
+                'type': "Type",
                 '_label': target.description}]
         return property_
 
@@ -748,10 +748,13 @@ class LoudFormatter:
         is_domain = is_inverse
         if code == 'P53':
             base_property = self.format_link(link_, is_domain=is_domain)
-            if geometry := get_wkt_by_id(link_.range.id):
-                base_property['defined_by'] = geometry
-            properties_set[self.get_property_key(link_, is_inverse)] = (
-                base_property)
+            key = self.get_property_key(link_, is_inverse)
+            if not is_inverse:
+                if geometry := get_wkt_by_id(link_.range.id):
+                    base_property['defined_by'] = geometry
+                properties_set[key] = base_property
+            else:
+                properties_set[key].append(base_property)
             return
         if is_inverse and code == 'P67' \
                 and link_.domain.cidoc_class.code == 'E32':
