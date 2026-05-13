@@ -215,28 +215,28 @@ class LoudFormatter:
                     '_label': creator.name,
                     'type': 'Actor'}]}
         if license_ := get_license_type(entity):
-            digital_object['subject_to'] = [
+            digital_object['referred_to_by'] = [
                 self._build_license(license_, entity.name)]
         return digital_object
 
     def _build_license(
             self, license_: Entity, entity_name: str) -> dict[str, Any]:
-        subject_to: dict[str, Any] = {
-            'id': self.generate_skolem_id(license_.id, 'license'),
-            'type': "Right",
-            '_label': f'License of {entity_name}',
-            "identified_by": [{
-                'id': entity_uri(license_),
-                "type": "Name",
-                "content": license_.name}]}
-        classified_as = [{
+        classified_as: list[dict[str, Any]] = [
+            aat_type('300435434', 'copyright/licensing statement')]
+        classified_as.extend({
             "id": reference_url(type_link),
             "type": "Type",
             "_label": license_.name}
-            for type_link in self.type_refs.get(license_.id, [])]
-        if classified_as:
-            subject_to['classified_as'] = classified_as
-        return subject_to
+            for type_link in self.type_refs.get(license_.id, []))
+        return {
+            'id': self.generate_skolem_id(license_.id, 'license'),
+            'type': 'LinguisticObject',
+            '_label': f'License of {entity_name}',
+            'classified_as': classified_as,
+            'identified_by': [{
+                'id': entity_uri(license_),
+                'type': 'Name',
+                'content': license_.name}]}
 
     @staticmethod
     def handle_radiocarbon(
@@ -672,7 +672,10 @@ class LoudFormatter:
                 self.get_iiif_subject_of(file_links))
         if entity.class_.name == 'file' and g.files.get(entity.id):
             properties_set.update(self.get_file_dimensions(entity))
-            properties_set.update(self.get_digital_object_details(entity))
+            details = self.get_digital_object_details(entity)
+            if referred := details.pop('referred_to_by', None):
+                properties_set['referred_to_by'].extend(referred)
+            properties_set.update(details)
 
     @staticmethod
     def handle_description(
