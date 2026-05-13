@@ -265,7 +265,8 @@ class LoudFormatter:
             digital_object['access_point'] = [{
                 "id": url_for(
                     'api.display', filename=file_.stem, _external=True),
-                "type": "DigitalObject"}]
+                "type": "DigitalObject",
+                "_label": file_.stem}]
         for license_holder in entity.license_holder or []:
             digital_object['right_held_by'] = [{
                 'id': self.generate_skolem_id(
@@ -335,6 +336,7 @@ class LoudFormatter:
                     "type": "MeasurementUnit",
                     "_label": f"years {scale}"},
                 "referred_to_by": [{
+                    'id': skolem(link_.id, 'radiocarbon_error'),
                     "type": "LinguisticObject",
                     "content": str(rng),
                     "_label": "Laboratory Error Range",
@@ -447,6 +449,8 @@ class LoudFormatter:
                 "type": "LinguisticObject",
                 "language": [get_language()],
                 "digitally_carried_by": [{
+                    "id": self.generate_skolem_id(
+                        domain.id, 'web_digital_object'),
                     "type": "DigitalObject",
                     "_label": domain.name,
                     "classified_as": [web_page],
@@ -548,12 +552,12 @@ class LoudFormatter:
             'type': event_type,
             '_label': f'{event_type} of {entity.name}'}
         if has_dates:
-            timespan: dict[str, Any] = {'type': 'TimeSpan'}
-            if inner_ts_id:
-                ts_key = 'begin' if event_type in {'Birth', 'Formation'} \
-                    else 'end'
-                timespan = {'id': self.generate_skolem_id(entity.id, ts_key),
-                            'type': 'TimeSpan'} | timespan
+            ts_key = 'begin' if event_type in {'Birth', 'Formation'} \
+                else 'end'
+            timespan: dict[str, Any] = {
+                'id': self.generate_skolem_id(entity.id, ts_key),
+                'type': 'TimeSpan',
+                '_label': f'Timespan of {event_type} of {entity.name}'}
             event['timespan'] = timespan | dates
         return event
 
@@ -629,6 +633,7 @@ class LoudFormatter:
             image.update(self.get_digital_object_details(entity, mime_type))
             if mime_type == 'application/pdf':  # pragma: no cover
                 subject_of.append({
+                    'id': self.generate_skolem_id(entity.id, 'pdf_subject'),
                     'type': 'LinguisticObject',
                     '_label': entity.name,
                     "language": [get_language()],
@@ -672,7 +677,8 @@ class LoudFormatter:
                         "type": "DigitalObject"}],
                     "conforms_to": [{
                         "id": "https://iiif.io/api/presentation/2.0/",
-                        "type": "InformationObject"}],
+                        "type": "InformationObject",
+                        "_label": "IIIF Presentation API 2.0"}],
                     "format":
                         "application/ld+json;profile='https://iiif.io"
                         "/api/presentation/2/context.json'"}]})
@@ -687,7 +693,8 @@ class LoudFormatter:
         skolem = LoudFormatter.generate_skolem_id
         properties_set[match_kind(link_)].append({
             "id": f'{system.resolver_url or ''}{link_.description}',
-            "type": LoudFormatter._resolve_type(entity)})
+            "type": LoudFormatter._resolve_type(entity),
+            "_label": entity.name})
         properties_set['identified_by'].append({
             'id': skolem(link_.id, 'identifier'),
             "type": "Identifier",
@@ -698,6 +705,7 @@ class LoudFormatter:
             "attributed_by": [{
                 "id": skolem(link_.id, 'authority'),
                 "type": "AttributeAssignment",
+                "_label": f"Authority assignment by {link_.domain.name}",
                 "carried_out_by": [{
                     "id": system.website_url,
                     "type": "Group",
@@ -839,6 +847,8 @@ class LoudFormatter:
                 '_label': linked.name,
                 'identified_by': [
                     primary_name(linked.name), {
+                        'id': LoudFormatter.generate_skolem_id(
+                            linked.id, 'system_identifier'),
                         "type": "Identifier",
                         "_label": "System Identifier",
                         "content": entity_uri(linked)}]}]
@@ -856,14 +866,17 @@ class LoudFormatter:
     def add_core_metadata(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
+        skolem = LoudFormatter.generate_skolem_id
         properties_set['identified_by'].extend([
             primary_name(entity.name), {
+                'id': skolem(entity.id, 'internal_database_id'),
                 "type": "Identifier",
                 "_label": "Internal Database ID",
                 "content": url_for(
                     'api.entity', id_=entity.id, _external=True,
                     format='loud'),
                 "classified_as": [aat_type('300404629', 'local URI')]}, {
+                'id': skolem(entity.id, 'unique_identifier'),
                 "type": "Identifier",
                 "_label": "Unique Identifier",
                 "content": entity_uri(entity),
