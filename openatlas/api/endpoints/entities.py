@@ -11,9 +11,8 @@ from openatlas.api.resources.database_mapper import get_api_search, \
     get_api_simple_search
 from openatlas.api.resources.error import (
     InvalidLimitError, InvalidSystemClassError, NotATypeError, QueryEmptyError)
-from openatlas.api.resources.parser import default, entity_, presentation, \
-    properties, \
-    query, search_parser
+from openatlas.api.resources.parser import entity_, presentation, \
+    properties, query, search_parser
 from openatlas.api.resources.templates import presentation_template
 from openatlas.api.resources.util import (
     get_entities_from_type_with_subs, get_entities_linked_to_special_type,

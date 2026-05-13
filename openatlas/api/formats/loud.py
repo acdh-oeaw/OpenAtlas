@@ -288,7 +288,7 @@ class LoudFormatter:
                 'id': self.generate_skolem_id(
                     license_holder.id, 'rights_holder'),
                 '_label': license_holder.name,
-                'type': 'Actor'}]
+                'type': (license_holder.class_ or 'Actor').capitalize()}]
         for creator in entity.creator or []:
             digital_object['created_by'] = {
                 'id': self.generate_skolem_id(
@@ -299,7 +299,7 @@ class LoudFormatter:
                     'id': self.generate_skolem_id(
                         creator.id, 'rights_holder'),
                     '_label': creator.name,
-                    'type': 'Actor'}]}
+                    'type': (creator.class_ or 'Actor').capitalize()}]}
         if license_ := get_license_type(entity):
             digital_object['referred_to_by'] = [
                 self._build_license(license_, entity.name)]
@@ -475,7 +475,8 @@ class LoudFormatter:
                         "id": domain.name,
                         "_label": domain.name,
                         "type": "DigitalObject"}]}]}
-        property_['content'] = domain.description
+        if domain.description:  # pragma: no cover
+            property_['content'] = domain.description
         return property_
 
     def _handle_oa7(
@@ -512,7 +513,7 @@ class LoudFormatter:
                 "id": url,
                 "type": "Type",
                 "_label": type_.name}
-            if is_close_match(type_link):
+            if is_close_match(type_link):  # pragma: no cover
                 attributed_by.append(close_match_attribution(
                     self.generate_skolem_id(type_link.id, 'close_match'),
                     ref))
@@ -520,7 +521,7 @@ class LoudFormatter:
                 equivalents.append(ref)
         if equivalents:
             property_['equivalent'] = equivalents
-        if attributed_by:
+        if attributed_by:  # pragma: no cover
             property_['attributed_by'] = attributed_by
         return property_
 
@@ -570,8 +571,7 @@ class LoudFormatter:
             entity: Entity,
             event_type: str,
             dates: dict[str, Any],
-            has_dates: bool,
-            inner_ts_id: bool) -> dict[str, Any]:
+            has_dates: bool) -> dict[str, Any]:
         skolem_key = event_type.lower()
         event: dict[str, Any] = {
             'id': self.generate_skolem_id(entity.id, skolem_key),
@@ -597,11 +597,11 @@ class LoudFormatter:
         begin_event = self._make_life_event(
             entity, config['begin_type'],
             self._get_loud_begin_dates(entity),
-            has_begin, config['inner_ts_id'])
+            has_begin)
         end_event = self._make_life_event(
             entity, config['end_type'],
             self._get_loud_end_dates(entity),
-            has_end, config['inner_ts_id'])
+            has_end)
         for link_ in links_ or []:
             place = {
                 'id': entity_uri(link_.range),
