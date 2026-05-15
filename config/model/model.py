@@ -10,7 +10,7 @@ model: dict[str, Any] = {
     'acquisition': event.acquisition,
     'activity': event.activity,
     'administrative_unit': type_.administrative_unit,
-    'appellation': {'attributes': {}},
+    'alias': {'attributes': {}},
     'artifact': item.artifact,
     'bibliography': reference.bibliography,
     'edition': reference.edition,
@@ -27,7 +27,7 @@ model: dict[str, Any] = {
     'production': event.production,
     'reference_system': reference_system.reference_system,
     'source': source.source,
-    'source_translation': source.source_translation,
     'stratigraphic_unit': place.stratigraphic_unit,
+    'text': source.text,
     'type': type_.type_,
     'type_tools': {'label': _('type tools'), 'attributes': {}}}

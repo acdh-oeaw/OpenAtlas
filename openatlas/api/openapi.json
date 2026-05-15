@@ -4207,7 +4207,7 @@
             "reference",
             "reference_system",
             "source",
-            "source_translation",
+            "text",
             "type"
           ],
           "example": "actor"
@@ -4225,7 +4225,7 @@
             "acquisition",
             "activity",
             "administrative_unit",
-            "appellation",
+            "alias",
             "artifact",
             "bibliography",
             "creation",
@@ -4243,7 +4243,7 @@
             "production",
             "reference_system",
             "source",
-            "source_translation",
+            "text",
             "stratigraphic_unit",
             "type",
             "type_tools"
@@ -5017,7 +5017,7 @@
               "reference",
               "reference_system",
               "source",
-              "source_translation",
+              "text",
               "type"
             ]
           }
@@ -5036,7 +5036,7 @@
               "acquisition",
               "activity",
               "administrative_unit",
-              "appellation",
+              "alias",
               "artifact",
               "bibliography",
               "creation",
@@ -5053,7 +5053,7 @@
               "production",
               "reference_system",
               "source",
-              "source_translation",
+              "text",
               "stratigraphic_unit",
               "type",
               "tools"
@@ -5073,7 +5073,7 @@
               "acquisition",
               "activity",
               "administrative_unit",
-              "appellation",
+              "alias",
               "artifact",
               "bibliography",
               "creation",
@@ -5091,7 +5091,7 @@
               "production",
               "reference_system",
               "source",
-              "source_translation",
+              "text",
               "stratigraphic_unit",
               "type",
               "type_tools"
@@ -5990,7 +5990,7 @@
           "place",
           "production",
           "source",
-          "source_translation",
+          "text",
           "stratigraphic_unit"
         ],
         "properties": {
@@ -6114,7 +6114,7 @@
               "$ref": "#/components/schemas/TypesByViewClassEntry"
             }
           },
-          "source_translation": {
+          "text": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TypesByViewClassEntry"
@@ -7010,7 +7010,7 @@
           "production",
           "reference_system",
           "type",
-          "source_translation",
+          "text",
           "stratigraphic_unit",
           "source"
         ],
@@ -7059,7 +7059,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "source_translation": {
+          "text": {
             "type": "integer",
             "format": "int32"
           },
@@ -7752,7 +7752,7 @@
                   "$ref": "#/components/schemas/RelatedEntityModel"
                 }
               },
-              "appellation": {
+              "alias": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RelatedEntityModel"
@@ -7860,7 +7860,7 @@
                   "$ref": "#/components/schemas/RelatedEntityModel"
                 }
               },
-              "source_translation": {
+              "text": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RelatedEntityModel"

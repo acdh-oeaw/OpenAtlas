@@ -52,7 +52,7 @@ class_groups = {
     'source': {
         'name': 'source',
         'label': _('source'),
-        'classes': ['source', 'source_translation'],
+        'classes': ['source', 'text'],
         'table_columns': ['name', 'class', 'type', 'content'],
         'icon': 'mdi-text-box'},
     'type': {
