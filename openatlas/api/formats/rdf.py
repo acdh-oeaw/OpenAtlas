@@ -18,13 +18,25 @@ from openatlas.api.resources.resolve_endpoints import get_loud_context
 # Python value. This fires for valid BC dates (e.g. '-4712-12-31') because
 # date.fromisoformat does not accept negative years. The literal stays
 # correctly typed as xsd:date in the graph, so the warning is just noise.
-class _SuppressLexicalCastWarning(logging.Filter):
+# Per rdflib issue #2210, the recommended way is to filter on the actual
+# isoformat ValueError carried in record.exc_info, so unrelated lexical
+# cast warnings (different datatypes, different root causes) still pass
+# through and remain visible.
+class _SuppressYearBeforeCommonEraWarning(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        return 'Failed to convert Literal lexical form to value' \
-            not in record.getMessage()
+        message = record.getMessage()
+        if record.exc_info is None:
+            return True
+        _error_type, error_payload, _error_traceback = record.exc_info
+        should_suppress = (
+            message.startswith(
+                'Failed to convert Literal lexical form to value')
+            and "Invalid isoformat string: '-" in str(error_payload))
+        return not should_suppress
 
 
-logging.getLogger('rdflib.term').addFilter(_SuppressLexicalCastWarning())
+logging.getLogger('rdflib.term').addFilter(
+    _SuppressYearBeforeCommonEraWarning())
 
 # Cache the JSON-LD @context once: it is reused for every triple, every
 # entity, every export. All resolvers below close over this dict.
