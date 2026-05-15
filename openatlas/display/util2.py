@@ -25,10 +25,12 @@ def sanitize(
         return None
     if mode == 'ascii':
         return re.sub('[^A-Za-z0-9]+', '', string) or None
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
-        return BeautifulSoup(string, "html.parser").get_text().replace("<>", "") \
-            or None
+    with warnings.catch_warnings(record=False):
+        warnings.filterwarnings(
+            "ignore",
+            category=MarkupResemblesLocatorWarning)
+        return BeautifulSoup(
+            string, "html.parser").get_text().replace("<>", "") or None
 
 
 def convert_size(size_bytes: int) -> str:
