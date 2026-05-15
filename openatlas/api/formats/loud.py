@@ -205,7 +205,9 @@ class LoudFormatter:
             'id': entity_uri(target),
             'type': self._resolve_type(target),
             '_label': target.name,
-            'identified_by': [primary_name(target.name)]}
+            'identified_by': [primary_name(
+                target.name,
+                id_=self.generate_skolem_id(target.id, 'appellation'))]}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
         code_ = link_.property.code
