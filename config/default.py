@@ -26,6 +26,12 @@ LANGUAGES = {
     'fr': 'Français',
     'pl': 'Polski'}
 
+EXTERNAL_API = [
+    'cadastre',
+    'geonames',
+    'gnd',
+    'wikidata']
+
 # Paths are implemented operating system independent using pathlib.
 # To override them (in instance/production.py) either use them like here
 # or use absolute paths like e.g. pathlib.Path('/some/location/somewhere')
@@ -48,7 +54,7 @@ IMAGE_SIZE = {
     'table': '100'}
 
 # Security
-SESSION_COOKIE_SECURE = False  # Should be True in production.py if using HTTPS
+SESSION_COOKIE_SECURE = True  # Set to False if using locally without HTTPS
 REMEMBER_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 

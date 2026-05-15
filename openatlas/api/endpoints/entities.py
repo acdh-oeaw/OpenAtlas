@@ -11,8 +11,8 @@ from openatlas.api.resources.database_mapper import get_api_search, \
     get_api_simple_search
 from openatlas.api.resources.error import (
     InvalidLimitError, InvalidSystemClassError, NotATypeError, QueryEmptyError)
-from openatlas.api.resources.parser import entity_, presentation, properties, \
-    query, search_parser
+from openatlas.api.resources.parser import entity_, presentation, \
+    properties, query, search_parser
 from openatlas.api.resources.templates import presentation_template
 from openatlas.api.resources.util import (
     get_entities_from_type_with_subs, get_entities_linked_to_special_type,
@@ -84,6 +84,17 @@ class GetEntity(Resource):
             single=True).resolve()
 
 
+class GetEntityByUUID(Resource):
+    @staticmethod
+    def get(uuid: str) -> tuple[Resource, int] | Response | dict[str, Any]:
+        parser = entity_.parse_args()
+        parser['format'] = 'loud'
+        return Endpoint(
+            ApiEntity.get_by_uuid(uuid, types=True, aliases=True),
+            parser,
+            single=True).resolve()
+
+
 class GetLatest(Resource):
     @staticmethod
     def get(limit: int) -> tuple[Resource, int] | Response | dict[str, Any]:
@@ -136,11 +147,11 @@ class GetQuery(Resource):
         if parser is None:
             parser = query.parse_args()
         if not any([
-                parser['entities'],
-                parser['cidoc_classes'],
-                parser['view_classes'],
-                parser['system_classes'],
-                parser['linked_entities']]):
+            parser['entities'],
+            parser['cidoc_classes'],
+            parser['view_classes'],
+            parser['system_classes'],
+            parser['linked_entities']]):
             raise QueryEmptyError
         entities = []
         if parser['entities']:

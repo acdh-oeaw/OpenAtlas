@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any, Optional
 
 from flask import g, json, url_for
@@ -38,14 +39,17 @@ def get_license_url(entity: Entity) -> Optional[str]:
     return url
 
 
-def get_license_ids_with_links() -> dict[int, str]:
-    type_ids = Entity.get_hierarchy('License').get_sub_ids_recursive()
-    license_links = Entity.get_links_of_entities(type_ids, 'P67', inverse=True)
-    url_dict = {}
-    for link_ in license_links:
-        if link_.domain.class_.name == "external_reference":
-            url_dict[link_.range.id] = link_.domain.name
-    return url_dict
+def get_type_references() -> dict[int, list[Link]]:
+    type_links = Entity.get_links_of_entities(
+        list(g.types.keys()),
+        'P67',
+        inverse=True)
+    out: dict[int, list[Link]] = defaultdict(list)
+    for link_ in type_links:
+        if link_.domain.class_.name in \
+                ['external_reference', 'reference_system']:
+            out[link_.range.id].append(link_)
+    return out
 
 
 def to_camel_case(i: str) -> str:
@@ -216,6 +220,16 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
+# Forces 'Z' (UTC) for LOD data.
+def date_to_utc_iso_str(date: Any) -> str | None:
+    if not date:
+        return None
+    date_str = str(date)
+    if not date_str.endswith('Z'):
+        date_str = f'{date_str}Z'
+    return date_str
+
+
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:
     property_ = f' {link_.property.i18n['en']}'
     if inverse and link_.property.i18n_inverse['en']:
@@ -234,16 +248,6 @@ def get_crm_relation_x(link_: Link, inverse: bool = False) -> str:
     if inverse and link_.property.i18n_inverse['en']:
         property_ = f'i_{link_.property.i18n_inverse['en']}'
     return f'crm:{link_.property.code}{property_.replace(' ', '_')}'
-
-
-def get_crm_code(link_: Link, inverse: bool = False) -> str:
-    name = link_.range.cidoc_class.i18n['en']
-    if inverse:
-        name = link_.domain.cidoc_class.i18n['en']
-    code = link_.range.cidoc_class.code
-    if inverse:
-        code = link_.domain.cidoc_class.code
-    return f'crm:{code} {name}'
 
 
 def flatten_list_and_remove_duplicates(list_: list[Any]) -> list[Any]:

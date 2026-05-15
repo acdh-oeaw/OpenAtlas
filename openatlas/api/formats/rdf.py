@@ -138,9 +138,7 @@ def _add_triples_from_linked_art(
 
         _handle_value(graph, subject, predicate, value)
 
-        if isinstance(value, dict) and not value.get("id"):
-            _add_triples_from_linked_art(graph, value, subject, predicate)
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for item in value:
                 if isinstance(item, dict) and not item.get("id"):
                     _add_triples_from_linked_art(

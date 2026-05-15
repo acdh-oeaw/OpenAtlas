@@ -110,7 +110,7 @@ def crumbs_for_insert(
         structure: dict[str, Any] | None) -> list[Any]:
     crumbs = hierarchy_crumbs(origin or entity) + \
         [origin, f'+ {entity.class_.label}']
-    if entity.class_.group['name'] == 'artifact' and origin and structure:
+    if entity.class_.group['name'] == 'item' and origin and structure:
         if count := len([
                 i for i in structure['siblings']
                 if i.class_.name == entity.class_.name]):
@@ -258,7 +258,7 @@ def redirect_url_insert(
             'insert',
             class_=class_,
             origin_id=entity.id,
-            relation=class_.replace('human_remains', 'artifact'))
+            relation='item')
     return url
 
 
@@ -268,11 +268,11 @@ def redirect_url_delete(entity: Entity) -> str:
         root = g.types[entity.root[0]] if entity.root else None
         url = url_for('view', id_=root.id) if root \
             else url_for('index', group='type')
-    elif entity.class_.group['name'] in ['artifact', 'place']:
+    elif entity.class_.group['name'] in ['item', 'place']:
         if parent := entity.get_linked_entity(
                 'P46',
                 g.class_groups['place']['classes'] +
-                g.class_groups['artifact']['classes'],
+                g.class_groups['item']['classes'],
                 True):
             url = \
                 url_for('view', id_=parent.id) + \

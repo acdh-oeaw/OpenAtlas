@@ -35,6 +35,7 @@ class Entity:
         self.class_ = g.classes[data['openatlas_class_name']]
         self.cidoc_class = self.class_.cidoc_class
         self.id = 0
+        self.uuid = ''
         self.name = ''
         self.aliases = {}
         self.description = None
@@ -84,6 +85,7 @@ class Entity:
             self.resolver_url = data['resolver_url']
             self.example_id = data['identifier_example']
             self.system = data['system']
+            self.api = data['api']
 
     def get_linked_entity(
             self,
@@ -260,7 +262,8 @@ class Entity:
                         'name': self.name,
                         'website_url': data['website_url'],
                         'resolver_url': data['resolver_url'],
-                        'identifier_example': sanitize(data['example_id'])})
+                        'identifier_example': sanitize(data['example_id']),
+                        'api': sanitize(data['api'])})
                     if data['reference_system_classes']:
                         db.add_reference_system_classes(
                             self.id,
@@ -468,6 +471,10 @@ class Entity:
     def get_overlays(self) -> dict[int, Overlay]:
         return Overlay.get_by_entity(self)
 
+    def get_multiple_typed_entities(self) -> list[Entity]:
+        return Entity.get_by_ids(
+            db.get_multiple_linked_entities(self.get_sub_ids_recursive()))
+
     @staticmethod
     def get_file_info() -> dict[int, Any]:
         return db.get_file_info()
@@ -524,6 +531,22 @@ class Entity:
         if not data:
             if 'activity' in request.path:  # Re-raise if in user activity view
                 raise AttributeError
+            abort(418)
+        entity = Entity(data)
+        if entity.class_.name == 'place' and with_location:
+            entity.location = entity.get_linked_entity_safe('P53', types=True)
+            if types:
+                entity.types.update(entity.location.types)
+        return entity
+
+    @staticmethod
+    def get_by_uuid(
+            uuid: str,
+            types: bool = False,
+            aliases: bool = False,
+            with_location: bool = True) -> Entity:
+        data = db.get_by_uuid(uuid, types, aliases)
+        if not data:
             abort(418)
         entity = Entity(data)
         if entity.class_.name == 'place' and with_location:
@@ -815,8 +838,8 @@ def insert(data: dict[str, Any]) -> Entity:
         data['description'] = result['text']
         annotation_data = result['data']
     for item in [
-            'begin_from', 'begin_to', 'begin_comment',
-            'end_from', 'end_to', 'end_comment', 'description']:
+        'begin_from', 'begin_to', 'begin_comment',
+        'end_from', 'end_to', 'end_comment', 'description']:
         data[item] = data.get(item)
     for item in ['name', 'description']:
         data[item] = sanitize(data[item])
@@ -835,7 +858,8 @@ def insert(data: dict[str, Any]) -> Entity:
                     'name': entity.name,
                     'website_url': data['website_url'],
                     'resolver_url': data['resolver_url'],
-                    'identifier_example': sanitize(data['example_id'])})
+                    'identifier_example': sanitize(data['example_id']),
+                    'api': sanitize(data['api'])})
                 if data['reference_system_classes']:
                     db.add_reference_system_classes(
                         entity.id,

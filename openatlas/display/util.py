@@ -69,19 +69,22 @@ def reference_systems(entity: Entity) -> str:
                 class="circle bg-gray fw-bold text-black-50"
                 style="height: 16px; font-size: 12px;">{system.name.upper()[0]}
             </div>"""
-        if system.name in ['GeoNames', 'GND', 'Wikidata', 'Cadaster']:
-            name = system.name.lower()
+        if system.api:
             show = f'<span id="show">{uc_first(_('show info'))}</span>'
             hide = '<span id="hide" class="d-none">' + \
                 f'{uc_first(_('hide info'))}</span>'
             show_info_button += f"""
-                <button id="{name}-switch"
+                <button id="{system.id}-switch"
                   class="mt-1 me-1 {app.config["CSS"]["button"]["secondary"]}"
-                  onclick="ajax{uc_first(name)}Info('{link_.description}')"
+                  onclick="ajaxApiInfo(
+                        '{system.api}',
+                        '{system.id}',
+                        '{link_.description}')"
                     >{show}{hide}
                 </button>"""
-            info_div = f'<div id="{name}-info-div" class="mt-2"></div>'
-            logo = f"""<img src="/static/images/logos/{system.name}.svg" alt=""
+            info_div = f'<div id="{system.id}-info-div" class="mt-2"></div>'
+            logo = f"""
+                <img src="/static/images/logos/{system.api}.svg" alt=""
                 class="rounded-circle object-fit-cover my-1" width="16">"""
         entry = f"""
             <li class="list-group-item bg-transparent">
@@ -206,7 +209,8 @@ def bookmark_toggle(entity_id: int, for_table: bool = False) -> str:
 def format_entity_date(
         dates: Dates,
         mode: str,
-        object_: Optional[Entity] = None) -> str:
+        object_: Optional[Entity] = None,
+        with_comment: Optional[bool] = False) -> str:
     html = link(object_) if object_ else ''
     if getattr(dates, f'{mode}_from'):
         html += ', ' if html else ''
@@ -217,6 +221,8 @@ def format_entity_date(
                 end=format_date(getattr(dates, f'{mode}_to')))
         else:
             html += format_date(getattr(dates, f'{mode}_from'))
+        if with_comment and (comment := getattr(dates, f'{mode}_comment')):
+            html += f' ({comment})'
     return html
 
 
@@ -229,7 +235,7 @@ def menu(entity: Optional[Entity]) -> str:
             'event': _('event'),
             'actor': _('actor'),
             'place': _('place'),
-            'artifact': _('artifact'),
+            'item': _('item'),
             'reference': _('reference'),
             'type': _('type'),
             'file': _('file')}.items():

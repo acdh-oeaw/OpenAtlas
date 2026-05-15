@@ -1,0 +1,19 @@
+BEGIN;
+
+-- Raise database version
+UPDATE web.settings SET value = '9.3.0' WHERE name = 'database_version';
+
+-- Standard API field for external reference systems (#2737)
+ALTER TABLE web.reference_system ADD COLUMN "api" text;
+UPDATE web.reference_system SET api = 'wikidata' WHERE name = 'Wikidata';
+UPDATE web.reference_system SET api = 'geonames' WHERE name = 'GeoNames';
+UPDATE web.reference_system SET api = 'cadaster' WHERE name = 'Cadaster';
+
+-- UUID (#2796)
+ALTER TABLE model.entity ADD COLUMN IF NOT EXISTS uuid UUID;
+UPDATE model.entity SET uuid = gen_random_uuid() WHERE uuid IS NULL;
+ALTER TABLE model.entity ALTER COLUMN uuid SET NOT NULL;
+ALTER TABLE model.entity ADD CONSTRAINT entity_uuid_unique UNIQUE (uuid);
+ALTER TABLE model.entity ALTER COLUMN uuid SET DEFAULT gen_random_uuid();
+
+END;

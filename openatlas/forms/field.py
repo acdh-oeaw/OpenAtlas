@@ -140,6 +140,14 @@ class ReferenceField(Field):
         self.reference_system_id = reference_system_id
         self.data = {'value': '', 'precision': ''}
         self.row_css = 'reference-system-switch'
+        if api := g.reference_systems[reference_system_id].api:
+            match api:
+                case 'gnd' | 'wikidata':
+                    self.reference_system_js = Markup(
+                        render_template(
+                            f'autocomplete/{api}.html',
+                            system_id=reference_system_id))
+
 
     def process_formdata(self, valuelist: list[str]) -> None:
         self.data = {
