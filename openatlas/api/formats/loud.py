@@ -896,14 +896,17 @@ class LoudFormatter:
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
         skolem = LoudFormatter.generate_skolem_id
+        internal_id = url_for(
+            'api.entity',
+            id_=entity.id,
+            _external=True,
+            format='loud')
         properties_set['identified_by'].extend([
             primary_name(entity.name), {
-                'id': skolem(entity.id, 'internal_database_id'),
+                'id': internal_id,
                 "type": "Identifier",
                 "_label": "Internal Database ID",
-                "content": url_for(
-                    'api.entity', id_=entity.id, _external=True,
-                    format='loud'),
+                "content": internal_id,
                 "classified_as": [aat_type('300404629', 'local URI')]}, {
                 'id': skolem(entity.id, 'unique_identifier'),
                 "type": "Identifier",
