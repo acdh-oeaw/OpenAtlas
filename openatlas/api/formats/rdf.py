@@ -38,6 +38,23 @@ _DEFAULT_NAMESPACES: dict[str, str] = {
 
 _RESERVED_KEYS: frozenset[str] = frozenset({'id', 'type', '@context'})
 
+# Markers found in every URI we mint ourselves (see entity_uri,
+# generate_skolem_id, internal_database_id in loud.py). Anything else
+# (Wikidata, Getty AAT, CIDOC CRM, ...) is treated as an external URI:
+# we link to it but we do NOT assert rdf:type for it and we do NOT
+# expand its inline LOUD stub. Asserting types on external URIs both
+# is semantically wrong (open-world: we don't own those resources) and
+# triggers SHACL violations because we cannot supply the identifiers /
+# appellations the shapes require.
+_OWN_URI_MARKERS: tuple[str, ...] = (
+    '/api/uuid/',
+    '/api/entity/',
+    '/api/generated/')
+
+
+def _is_own_uri(uri: str) -> bool:
+    return any(marker in uri for marker in _OWN_URI_MARKERS)
+
 # Patterns used to infer an XSD datatype from a literal's string form.
 # SHACL date/time shapes only accept properly typed literals, so any
 # date-like string we emit must carry the matching xsd:* datatype.
@@ -281,7 +298,8 @@ def _emit_value(
                 if object_id := item.get('id'):
                     target = _uri_ref(object_id)
                     graph.add((subject, predicate, target))
-                    _expand_into(graph, target, item, entity_id)
+                    if _is_own_uri(object_id):
+                        _expand_into(graph, target, item, entity_id)
                 else:
                     bnode = BNode()
                     graph.add((subject, predicate, bnode))
@@ -294,7 +312,8 @@ def _emit_value(
         if object_id := value.get('id'):
             target = _uri_ref(object_id)
             graph.add((subject, predicate, target))
-            _expand_into(graph, target, value, entity_id)
+            if _is_own_uri(object_id):
+                _expand_into(graph, target, value, entity_id)
         return
     graph.add((subject, predicate, _typed_literal(value)))
 

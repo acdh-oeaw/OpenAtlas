@@ -205,9 +205,7 @@ class LoudFormatter:
             'id': entity_uri(target),
             'type': self._resolve_type(target),
             '_label': target.name,
-            'identified_by': [primary_name(
-                target.name,
-                id_=self.generate_skolem_id(target.id, 'appellation'))]}
+            'identified_by': self._inline_identifiers(target)}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
         code_ = link_.property.code
@@ -899,17 +897,16 @@ class LoudFormatter:
         return annotation_dict
 
     @staticmethod
-    def add_core_metadata(
-            entity: Entity,
-            properties_set: dict[str, Any]) -> None:
+    def _inline_identifiers(entity: Entity) -> list[dict[str, Any]]:
         skolem = LoudFormatter.generate_skolem_id
         internal_id = url_for(
             'api.entity',
             id_=entity.id,
             _external=True,
             format='loud')
-        properties_set['identified_by'].extend([
-            primary_name(entity.name, id_=skolem(entity.id, 'primary_name')), {
+        return [
+            primary_name(
+                entity.name, id_=skolem(entity.id, 'appellation')), {
                 'id': internal_id,
                 "type": "Identifier",
                 "_label": "Internal Database ID",
@@ -920,7 +917,17 @@ class LoudFormatter:
                 "_label": "Unique Identifier",
                 "content": entity_uri(entity),
                 "classified_as": [
-                    aat_type('300404012', 'unique identifier')]}])
+                    aat_type('300404012', 'unique identifier')]}]
+
+    @staticmethod
+    def add_core_metadata(
+            entity: Entity,
+            properties_set: dict[str, Any]) -> None:
+        skolem = LoudFormatter.generate_skolem_id
+        identifiers = LoudFormatter._inline_identifiers(entity)
+        identifiers[0] = primary_name(
+            entity.name, id_=skolem(entity.id, 'primary_name'))
+        properties_set['identified_by'].extend(identifiers)
         if entity.class_.name == 'object_location':
             if geometry := get_wkt_by_id(entity.id):
                 properties_set['defined_by'] = geometry
