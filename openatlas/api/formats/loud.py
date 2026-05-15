@@ -216,7 +216,7 @@ class LoudFormatter:
                 self._format_type_property(g.types[link_.type.id])]
         if code_ == 'P67' and link_.domain.class_.name == 'file':
             property_ = {
-                'id': self.generate_skolem_id(link_.domain.id, 'visual item'),
+                'id': self.generate_skolem_id(link_.domain.id, 'visual_item'),
                 "type": "VisualItem",
                 "_label": f"Visual content of {link_.domain.name}",
                 "represents": [property_]}
@@ -253,6 +253,7 @@ class LoudFormatter:
         file_size = entity.get_file_size()
         value, unit = file_size.split()
         return {'dimension': [{
+            'id': LoudFormatter.generate_skolem_id(entity.id, 'file_size'),
             "type": "Dimension",
             "_label": file_size,
             "classified_as": [aat_type('300265863', 'File Size')],
@@ -906,7 +907,7 @@ class LoudFormatter:
             _external=True,
             format='loud')
         properties_set['identified_by'].extend([
-            primary_name(entity.name), {
+            primary_name(entity.name, id_=skolem(entity.id, 'primary_name')), {
                 'id': internal_id,
                 "type": "Identifier",
                 "_label": "Internal Database ID",
