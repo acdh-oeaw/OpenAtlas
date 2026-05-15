@@ -34,7 +34,10 @@ _DEFAULT_NAMESPACES: dict[str, str] = {
     'crm': 'http://www.cidoc-crm.org/cidoc-crm/',
     'la': 'https://linked.art/ns/terms/',
     'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-    'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
+    'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    'geo': 'http://www.opengis.net/ont/geosparql#'}
+
+_GEO = Namespace('http://www.opengis.net/ont/geosparql#')
 
 _RESERVED_KEYS: frozenset[str] = frozenset({'id', 'type', '@context'})
 
@@ -65,6 +68,15 @@ _DATETIME_RE = re.compile(
 _GYEARMONTH_RE = re.compile(r'^-?\d{4}-\d{2}$')
 _GYEAR_RE = re.compile(r'^-?\d{4}$')
 
+# WKT geometry literals must be typed as geo:wktLiteral so the PFP SHACL
+# shape on crm:P168_place_is_defined_by recognizes them. Linked.Places /
+# GeoSPARQL convention; OpenAtlas only emits 2D WKT today, but the regex
+# also accepts Z/M variants for forward compatibility.
+_WKT_RE = re.compile(
+    r'^\s*(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|'
+    r'MULTIPOLYGON|GEOMETRYCOLLECTION)\s*[ZM]?\s*\(',
+    re.IGNORECASE)
+
 
 def _typed_literal(value: Any) -> Literal:
     if isinstance(value, str):
@@ -76,6 +88,8 @@ def _typed_literal(value: Any) -> Literal:
             return Literal(value, datatype=XSD.gYearMonth)
         if _GYEAR_RE.match(value):  # pragma: no cover
             return Literal(value, datatype=XSD.gYear)
+        if _WKT_RE.match(value):
+            return Literal(value, datatype=_GEO.wktLiteral)
     return Literal(value)
 
 
