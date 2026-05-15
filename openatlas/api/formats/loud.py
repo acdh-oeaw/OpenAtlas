@@ -437,7 +437,9 @@ class LoudFormatter:
             property_['classified_as'].append(
                 self._format_type_property(standard_type))
         if link_.description:
-            pagination = primary_name(link_.description)
+            pagination = primary_name(
+                link_.description,
+                id_=self.generate_skolem_id(link_.id, 'pagination'))
             pagination['classified_as'] = (
                     [aat_type('300200294', 'pagination')]
                     + pagination['classified_as'])
