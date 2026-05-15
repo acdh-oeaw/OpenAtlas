@@ -378,7 +378,8 @@ class LoudFormatter:
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        del property_['id']
+        property_['id'] = LoudFormatter.generate_skolem_id(
+            link_.id, 'appellation')
         property_['content'] = target.name
         return property_
 
