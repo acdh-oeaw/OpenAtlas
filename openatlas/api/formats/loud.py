@@ -336,6 +336,7 @@ class LoudFormatter:
             "_label": "Radiocarbon Dating",
             "classified_as": [dating],
             "assigned": [{
+                'id': skolem(link_.id, 'radiocarbon_dimension'),
                 "type": "Dimension",
                 "_label": f'{year} +/- {rng} {scale}',
                 "classified_as": [dating],
@@ -391,7 +392,10 @@ class LoudFormatter:
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        if link_.description:
+        if link_.description and isinstance(link_.description, float):
+            property_['id'] = LoudFormatter.generate_skolem_id(
+                link_.id,
+                'dimension')
             property_['type'] = 'Dimension'
             property_['value'] = float(link_.description)
             property_['unit'] = {

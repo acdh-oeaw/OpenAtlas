@@ -130,9 +130,14 @@ class Endpoint:
             return self.export_csv_network()
         self.get_entities_formatted()
         if self.parser.format in app.config['RDF_FORMATS']:
-            return Response(
+            response = Response(
                 rdf_output(self.generator_entities, self.parser.format),
                 mimetype=app.config['RDF_FORMATS'][self.parser.format])
+            if self.parser.download == 'true':
+                filename = f'export.{self.parser.format}'
+                response.headers['Content-Disposition'] = (
+                    f'attachment; filename={filename}')
+            return response
         if self.parser.format == 'gpkg':
             return send_file(
                 self.write_gpkg(),
