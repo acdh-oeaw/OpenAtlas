@@ -604,7 +604,8 @@ class LoudFormatter:
             place = {
                 'id': entity_uri(link_.range),
                 'type': 'Place',
-                '_label': link_.range.name}
+                '_label': link_.range.name,
+                'identified_by': self._inline_identifiers(link_.range)}
             if link_.property.code == 'OA8':
                 begin_event['took_place_at'] = [place]
                 has_begin = True
@@ -740,7 +741,9 @@ class LoudFormatter:
                         system.website_url
                         or skolem(link_.id, 'group'),
                     "type": "Group",
-                    "_label": link_.domain.name}]}]})
+                    "_label": link_.domain.name,
+                    "identified_by":
+                        LoudFormatter._inline_identifiers(link_.domain)}]}]})
 
     def handle_membership(
             self,
@@ -750,7 +753,8 @@ class LoudFormatter:
         group_ref = {
             'id': entity_uri(domain),
             'type': self._resolve_type(domain),
-            '_label': domain.name}
+            '_label': domain.name,
+            'identified_by': self._inline_identifiers(domain)}
         properties_set['member_of'].append(group_ref)
         if not (link_.type or link_.dates.dates_available()):
             return  # pragma: no cover
