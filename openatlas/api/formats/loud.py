@@ -204,7 +204,8 @@ class LoudFormatter:
         property_: dict[str, Any] = {
             'id': entity_uri(target),
             'type': self._resolve_type(target),
-            '_label': target.name}
+            '_label': target.name,
+            'identified_by': [primary_name(target.name)]}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
         code_ = link_.property.code

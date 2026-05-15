@@ -1,4 +1,4 @@
-import datetime
+import re
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -221,24 +221,25 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
-# Returns an xsd:date ('YYYY-MM-DD') for dates and date-only datetimes,
-# and an xsd:dateTime ('YYYY-MM-DDTHH:MM:SSZ', UTC) when a time is set.
+# Returns an xsd:date ('YYYY-MM-DD') for date-only values and an
+# xsd:dateTime ('YYYY-MM-DDTHH:MM:SSZ', UTC) when a real time is set.
+# Regex-based to preserve BC years (e.g. '-4712-12-31'), which
+# datetime.fromisoformat does not support.
+_DATE_PARTS_RE = re.compile(
+    r'^(-?\d{4,})-(\d{2})-(\d{2})'
+    r'(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?)?Z?$')
+
+
 def date_to_utc_iso_str(date: Any) -> str | None:
     if not date:
         return None
-    if not isinstance(date, (datetime.date, datetime.datetime)):
-        try:
-            date = datetime.datetime.fromisoformat(
-                str(date).replace('Z', ''))
-        except ValueError:
-            return str(date)
-    if isinstance(date, datetime.datetime):
-        if date.hour or date.minute or date.second or date.microsecond:
-            return date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        date = date.date()
-    if isinstance(date, datetime.date):
-        return date.isoformat()
-    return str(date)
+    match = _DATE_PARTS_RE.match(str(date))
+    if not match:
+        return str(date)
+    year, month, day, hour, minute, second = match.groups()
+    if hour and (int(hour) or int(minute) or int(second)):
+        return f'{year}-{month}-{day}T{hour}:{minute}:{second}Z'
+    return f'{year}-{month}-{day}'
 
 
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:
