@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Iterator
+from urllib.parse import quote
 
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef
 
@@ -72,7 +73,7 @@ def _get_subject(
         parent_predicate: URIRef | None = None) -> URIRef | BNode:
     subject_uri = data.get("id")
     if subject_uri:
-        return URIRef(subject_uri)
+        return URIRef(quote(subject_uri, safe=':/#'))
 
     subject = BNode()
     if parent_subject is not None and parent_predicate is not None:
@@ -88,11 +89,11 @@ def _handle_value(
     if isinstance(value, dict):
         object_uri = value.get("id")
         if object_uri:
-            graph.add((subject, predicate, URIRef(object_uri)))
+            graph.add((subject, predicate, URIRef(quote(object_uri, safe=':/#'))))
     elif isinstance(value, list):
         for item in value:
             if isinstance(item, dict) and item.get("id"):
-                graph.add((subject, predicate, URIRef(item["id"])))
+                graph.add((subject, predicate, URIRef(quote(item["id"], safe=':/#'))))
             elif isinstance(item, dict):
                 continue
             else:  # pragma: no cover
