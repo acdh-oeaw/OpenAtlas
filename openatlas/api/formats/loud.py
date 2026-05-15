@@ -735,7 +735,9 @@ class LoudFormatter:
                 "type": "AttributeAssignment",
                 "_label": f"Authority assignment by {link_.domain.name}",
                 "carried_out_by": [{
-                    "id": system.website_url,
+                    "id":
+                        system.website_url
+                        or skolem(link_.id, 'group'),
                     "type": "Group",
                     "_label": link_.domain.name}]}]})
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 from functools import lru_cache
@@ -11,6 +12,19 @@ from rdflib.namespace import XSD
 
 from openatlas import app
 from openatlas.api.resources.resolve_endpoints import get_loud_context
+
+
+# rdflib logs a warning every time it cannot cast a lexical date to a
+# Python value. This fires for valid BC dates (e.g. '-4712-12-31') because
+# date.fromisoformat does not accept negative years. The literal stays
+# correctly typed as xsd:date in the graph, so the warning is just noise.
+class _SuppressLexicalCastWarning(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return 'Failed to convert Literal lexical form to value' \
+            not in record.getMessage()
+
+
+logging.getLogger('rdflib.term').addFilter(_SuppressLexicalCastWarning())
 
 # Cache the JSON-LD @context once: it is reused for every triple, every
 # entity, every export. All resolvers below close over this dict.
