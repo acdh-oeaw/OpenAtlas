@@ -240,7 +240,9 @@ def _emit_value(
         for item in value:
             if isinstance(item, dict):
                 if object_id := item.get('id'):
-                    graph.add((subject, predicate, _uri_ref(object_id)))
+                    target = _uri_ref(object_id)
+                    graph.add((subject, predicate, target))
+                    _expand_into(graph, target, item, entity_id)
                 else:
                     bnode = BNode()
                     graph.add((subject, predicate, bnode))
@@ -251,7 +253,9 @@ def _emit_value(
         return
     if isinstance(value, dict):
         if object_id := value.get('id'):
-            graph.add((subject, predicate, _uri_ref(object_id)))
+            target = _uri_ref(object_id)
+            graph.add((subject, predicate, target))
+            _expand_into(graph, target, value, entity_id)
         return
     graph.add((subject, predicate, Literal(value)))
 
