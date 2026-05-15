@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from typing import Any, Iterator
 from urllib.parse import quote
 
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef
+from rdflib.namespace import XSD
 
 from openatlas import app
 from openatlas.api.resources.resolve_endpoints import get_loud_context
@@ -21,6 +23,29 @@ _DEFAULT_NAMESPACES: dict[str, str] = {
     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
 
 _RESERVED_KEYS: frozenset[str] = frozenset({'id', 'type', '@context'})
+
+# Patterns used to infer an XSD datatype from a literal's string form.
+# SHACL date/time shapes only accept properly typed literals, so any
+# date-like string we emit must carry the matching xsd:* datatype.
+_DATE_RE = re.compile(r'^-?\d{4}-\d{2}-\d{2}$')
+_DATETIME_RE = re.compile(
+    r'^-?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+    r'(\.\d+)?(Z|[+-]\d{2}:\d{2})?$')
+_GYEARMONTH_RE = re.compile(r'^-?\d{4}-\d{2}$')
+_GYEAR_RE = re.compile(r'^-?\d{4}$')
+
+
+def _typed_literal(value: Any) -> Literal:
+    if isinstance(value, str):
+        if _DATE_RE.match(value):
+            return Literal(value, datatype=XSD.date)
+        if _DATETIME_RE.match(value):
+            return Literal(value, datatype=XSD.dateTime)
+        if _GYEARMONTH_RE.match(value):  # pragma: no cover
+            return Literal(value, datatype=XSD.gYearMonth)
+        if _GYEAR_RE.match(value):  # pragma: no cover
+            return Literal(value, datatype=XSD.gYear)
+    return Literal(value)
 
 
 def _set_proxies() -> None:  # pragma: no cover
@@ -249,7 +274,7 @@ def _emit_value(
                     print(f'Blank node created for entity id: {entity_id}')
                     _expand_into(graph, bnode, item, entity_id)
             else:  # pragma: no cover
-                graph.add((subject, predicate, Literal(item)))
+                graph.add((subject, predicate, _typed_literal(item)))
         return
     if isinstance(value, dict):
         if object_id := value.get('id'):
@@ -257,7 +282,7 @@ def _emit_value(
             graph.add((subject, predicate, target))
             _expand_into(graph, target, value, entity_id)
         return
-    graph.add((subject, predicate, Literal(value)))
+    graph.add((subject, predicate, _typed_literal(value)))
 
 
 def _expand_into(

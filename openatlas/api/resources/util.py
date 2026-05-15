@@ -1,3 +1,4 @@
+import datetime
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -220,14 +221,24 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
-# Forces 'Z' (UTC) for LOD data.
+# Returns an xsd:date ('YYYY-MM-DD') for dates and date-only datetimes,
+# and an xsd:dateTime ('YYYY-MM-DDTHH:MM:SSZ', UTC) when a time is set.
 def date_to_utc_iso_str(date: Any) -> str | None:
     if not date:
         return None
-    date_str = str(date)
-    if not date_str.endswith('Z'):
-        date_str = f'{date_str}Z'
-    return date_str
+    if not isinstance(date, (datetime.date, datetime.datetime)):
+        try:
+            date = datetime.datetime.fromisoformat(
+                str(date).replace('Z', ''))
+        except ValueError:
+            return str(date)
+    if isinstance(date, datetime.datetime):
+        if date.hour or date.minute or date.second or date.microsecond:
+            return date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        date = date.date()
+    if isinstance(date, datetime.date):
+        return date.isoformat()
+    return str(date)
 
 
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:

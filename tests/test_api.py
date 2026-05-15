@@ -280,7 +280,7 @@ class Api(ApiTestCase):
         rv = rv.get_json()
         assert rv['type'] == 'Site'
         assert rv['_label'] == 'Shire'
-        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00Z'
+        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31'
         assert rv['identified_by'][0]['_label'] == 'Sûza'
         assert rv['classified_as'][0]['_label'] == 'Boundary Mark'
         assert (rv['former_or_current_location']['defined_by'] ==
@@ -598,6 +598,15 @@ class Api(ApiTestCase):
                 locale='en',
                 format='turtle'))
         assert b'Sam' in rv.data
+
+        # SHACL requires date literals to carry an xsd:date datatype.
+        from rdflib import Graph as RdfGraph
+        from rdflib.namespace import XSD
+        rdf_graph = RdfGraph().parse(data=rv.data, format='turtle')
+        date_literals = [
+            o for _, _, o in rdf_graph
+            if hasattr(o, 'datatype') and o.datatype == XSD.date]
+        assert date_literals, 'expected at least one xsd:date literal'
 
         rv = c.get(
             url_for(
