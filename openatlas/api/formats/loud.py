@@ -11,7 +11,7 @@ from openatlas import app
 from openatlas.api.resources.util import (
     date_to_utc_iso_str,
     get_iiif_manifest_and_path,
-    get_license_type, remove_spaces_dashes)
+    get_license_type, is_float, remove_spaces_dashes)
 from openatlas.database.gis import get_wkt_by_id
 from openatlas.display.util2 import get_file_path
 from openatlas.models.annotation import AnnotationText
@@ -392,7 +392,7 @@ class LoudFormatter:
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        if link_.description and isinstance(link_.description, float):
+        if link_.description and is_float(link_.description):
             property_['id'] = LoudFormatter.generate_skolem_id(
                 link_.id,
                 'dimension')

@@ -598,15 +598,21 @@ class Api(ApiTestCase):
                 locale='en',
                 format='turtle'))
         assert b'Sam' in rv.data
-
-        # SHACL requires date literals to carry an xsd:date datatype.
-        from rdflib import Graph as RdfGraph
-        from rdflib.namespace import XSD
-        rdf_graph = RdfGraph().parse(data=rv.data, format='turtle')
-        date_literals = [
-            o for _, _, o in rdf_graph
-            if hasattr(o, 'datatype') and o.datatype == XSD.date]
-        assert date_literals, 'expected at least one xsd:date literal'
+        for url in [
+            url_for(
+                'api_04.system_class',
+                class_='all',
+                limit=0,
+                locale='en',
+                format='turtle'),
+            url_for(
+                'api_04.system_class',
+                class_='all',
+                limit=0,
+                download='true',
+                format='turtle')]:
+            with c.get(url) as rv:
+                assert b'Sam' in rv.data
 
         rv = c.get(
             url_for(

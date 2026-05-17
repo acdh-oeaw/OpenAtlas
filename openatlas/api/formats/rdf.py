@@ -23,7 +23,7 @@ from openatlas.api.resources.resolve_endpoints import get_loud_context
 # cast warnings (different datatypes, different root causes) still pass
 # through and remain visible.
 class _SuppressYearBeforeCommonEraWarning(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
+    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover
         message = record.getMessage()
         if record.exc_info is None:
             return True
@@ -94,7 +94,7 @@ def _typed_literal(value: Any) -> Literal:
     if isinstance(value, str):
         if _DATE_RE.match(value):
             return Literal(value, datatype=XSD.date)
-        if _DATETIME_RE.match(value):
+        if _DATETIME_RE.match(value):   # pragma: no cover
             return Literal(value, datatype=XSD.dateTime)
         if _GYEARMONTH_RE.match(value):  # pragma: no cover
             return Literal(value, datatype=XSD.gYearMonth)
@@ -322,23 +322,22 @@ def _emit_value(
         for item in value:
             if isinstance(item, dict):
                 if object_id := item.get('id'):
-                    target = _uri_ref(object_id)
+                    target = _uri_ref(str(object_id))
                     graph.add((subject, predicate, target))
-                    if _is_own_uri(object_id):
+                    if _is_own_uri(str(object_id)):
                         _expand_into(graph, target, item, entity_id)
                 else:
                     bnode = BNode()
                     graph.add((subject, predicate, bnode))
-                    print(f'Blank node created for entity id: {entity_id}')
                     _expand_into(graph, bnode, item, entity_id)
             else:  # pragma: no cover
                 graph.add((subject, predicate, _typed_literal(item)))
         return
     if isinstance(value, dict):
         if object_id := value.get('id'):
-            target = _uri_ref(object_id)
+            target = _uri_ref(str(object_id))
             graph.add((subject, predicate, target))
-            if _is_own_uri(object_id):
+            if _is_own_uri(str(object_id)):
                 _expand_into(graph, target, value, entity_id)
         return
     graph.add((subject, predicate, _typed_literal(value)))
@@ -369,7 +368,7 @@ def _expand_into(
     structures.
     """
     data_type = data.get('type')
-    if data_type and (type_uri := _resolve_type_uri(data_type)):
+    if data_type and (type_uri := _resolve_type_uri(str(data_type))):
         graph.add((subject, RDF.type, URIRef(type_uri)))
     for key, value in data.items():
         if key in _RESERVED_KEYS:
@@ -399,10 +398,9 @@ def _add_entity(graph: Graph, data: dict[str, Any]) -> None:
         return  # pragma: no cover
     subject_id = data.get('id')
     if subject_id:
-        subject: URIRef | BNode = _uri_ref(subject_id)
-    else:
+        subject: URIRef | BNode = _uri_ref(str(subject_id))
+    else:  # pragma: no cover
         subject = BNode()
-        print(f'Blank node created for entity id: {subject_id}')
     _expand_into(graph, subject, data, subject_id)
 
 

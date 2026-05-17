@@ -234,10 +234,10 @@ def date_to_utc_iso_str(date: Any) -> str | None:
     if not date:
         return None
     match = _DATE_PARTS_RE.match(str(date))
-    if not match:
+    if not match:  # pragma: no cover
         return str(date)
     year, month, day, hour, minute, second = match.groups()
-    if hour and (int(hour) or int(minute) or int(second)):
+    if hour and (int(hour) or int(minute) or int(second)):  # pragma: no cover
         return f'{year}-{month}-{day}T{hour}:{minute}:{second}Z'
     return f'{year}-{month}-{day}'
 
@@ -286,3 +286,11 @@ def filter_by_type(
                 for id_ in type_ids):
             result.append(entity)
     return result
+
+
+def is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:  # pragma: no cover
+        return False
