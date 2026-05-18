@@ -7,6 +7,7 @@ from openatlas import app
 from openatlas.api.external.cadaster import Cadaster
 from openatlas.api.external.geonames import GeoNames
 from openatlas.api.external.gnd import GND
+from openatlas.api.external.openatlas import OpenAtlasAPI
 from openatlas.api.external.wikidata import Wikidata
 from openatlas.display.util import display_info, required_group
 from openatlas.display.util2 import uc_first
@@ -64,5 +65,6 @@ def ajax_external_api(api: str) -> str:
         'cadaster': Cadaster,
         'geonames': GeoNames,
         'gnd': GND,
+        'openatlas': OpenAtlasAPI,
         'wikidata': Wikidata}
     return display_info(apis[api].get_info(request.form['id_']))

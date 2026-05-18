@@ -30,7 +30,13 @@ EXTERNAL_API = [
     'cadastre',
     'geonames',
     'gnd',
+    'openatlas',
     'wikidata']
+
+# External APIs
+API_WIKIDATA = 'https://www.wikidata.org/w/api.php'
+API_GEONAMES = 'http://api.geonames.org/get'
+API_CADASTER = 'https://kataster.bev.gv.at/api/'
 
 # Paths are implemented operating system independent using pathlib.
 # To override them (in instance/production.py) either use them like here
@@ -77,10 +83,6 @@ CSS = {
         'secondary': 'btn btn-outline-secondary btn-sm',
         'danger': 'btn btn-outline-danger btn-sm'}}
 
-# External APIs
-API_WIKIDATA = 'https://www.wikidata.org/w/api.php'
-API_GEONAMES = 'http://api.geonames.org/get'
-API_CADASTER = 'https://kataster.bev.gv.at/api/'
 
 USER_AGENT = {
     'User-Agent':
