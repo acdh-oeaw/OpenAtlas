@@ -41,8 +41,16 @@ class ApiEntity(Entity):
 
     @staticmethod
     def get_by_view_classes(codes_: list[str]) -> list[Entity]:
-        codes: list[str] = list(g.class_groups) if "all" in codes_ else codes_
-        codes = ['item' if x == 'artifact' else x for x in codes]
+        codes_: list[str] = list(g.class_groups) if "all" in codes_ else codes_
+        codes: list[str] = []
+        for code in codes_:
+            match code:
+                case 'artifact':
+                    codes.append('item')
+                case 'source_translation':
+                    codes.append('text')  # pragma: no cover
+                case _:
+                    codes.append(code)
         if [code for code in codes if code not in g.class_groups]:
             raise InvalidViewClassError
         classes = []
@@ -52,7 +60,16 @@ class ApiEntity(Entity):
 
     @staticmethod
     def get_by_system_classes(classes: list[str]) -> list[Entity]:
-        classes = list(g.classes) if 'all' in classes else classes
+        classes_ = list(g.classes) if 'all' in classes else classes
+        classes: list[str] = []
+        for class_ in classes_:
+            match class_:
+                case 'appellation':
+                    classes.append('alias')  # pragma: no cover
+                case 'source_translation':
+                    classes.append('text')  # pragma: no cover
+                case _:
+                    classes.append(class_)
         if not all(sc in g.classes for sc in classes):
             raise InvalidSystemClassError
         return Entity.get_by_class(classes, types=True, aliases=True)

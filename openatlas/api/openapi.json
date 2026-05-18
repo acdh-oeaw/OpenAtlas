@@ -4207,7 +4207,7 @@
             "reference",
             "reference_system",
             "source",
-            "text",
+            "source_translation",
             "type"
           ],
           "example": "actor"
@@ -4225,7 +4225,7 @@
             "acquisition",
             "activity",
             "administrative_unit",
-            "alias",
+            "appellation",
             "artifact",
             "bibliography",
             "creation",
@@ -4243,7 +4243,7 @@
             "production",
             "reference_system",
             "source",
-            "text",
+            "source_translation",
             "stratigraphic_unit",
             "type",
             "type_tools"
@@ -5017,7 +5017,7 @@
               "reference",
               "reference_system",
               "source",
-              "text",
+              "source_translation",
               "type"
             ]
           }
@@ -5036,7 +5036,7 @@
               "acquisition",
               "activity",
               "administrative_unit",
-              "alias",
+              "appellation",
               "artifact",
               "bibliography",
               "creation",
@@ -5053,7 +5053,7 @@
               "production",
               "reference_system",
               "source",
-              "text",
+              "source_translation",
               "stratigraphic_unit",
               "type",
               "tools"
@@ -5073,7 +5073,7 @@
               "acquisition",
               "activity",
               "administrative_unit",
-              "alias",
+              "appellation",
               "artifact",
               "bibliography",
               "creation",
@@ -5091,7 +5091,7 @@
               "production",
               "reference_system",
               "source",
-              "text",
+              "source_translation",
               "stratigraphic_unit",
               "type",
               "type_tools"
@@ -7747,12 +7747,6 @@
                 }
               },
               "actor_relation": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/RelatedEntityModel"
-                }
-              },
-              "alias": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RelatedEntityModel"
