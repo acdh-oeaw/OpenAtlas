@@ -40,37 +40,30 @@ class ApiEntity(Entity):
         return Entity.get_by_cidoc_class(codes, types=True, aliases=True)
 
     @staticmethod
-    def get_by_view_classes(codes_: list[str]) -> list[Entity]:
-        codes_: list[str] = list(g.class_groups) if "all" in codes_ else codes_
-        codes: list[str] = []
-        for code in codes_:
-            match code:
-                case 'artifact':
-                    codes.append('item')
-                case 'source_translation':
-                    codes.append('text')  # pragma: no cover
-                case _:
-                    codes.append(code)
-        if [code for code in codes if code not in g.class_groups]:
+    def get_by_view_classes(names: list[str]) -> list[Entity]:
+        names = list(g.class_groups) if 'all' in names else names
+        # artifact group (now called item) will be deprecated in API v1
+        groups = [name.replace('artifact', 'item') for name in names]
+        if not set(groups).issubset(g.class_groups):
             raise InvalidViewClassError
         classes = []
-        for code in codes:
-            classes.extend(g.class_groups[code]['classes'])
+        for group in groups:
+            classes.extend(g.class_groups[group]['classes'])
         return Entity.get_by_class(classes, types=True, aliases=True)
 
     @staticmethod
-    def get_by_system_classes(classes: list[str]) -> list[Entity]:
-        classes_ = list(g.classes) if 'all' in classes else classes
+    def get_by_system_classes(names: list[str]) -> list[Entity]:
+        names = list(g.classes) if 'all' in names else names
         classes: list[str] = []
-        for class_ in classes_:
-            match class_:
+        for name in names:
+            match name:
                 case 'appellation':
                     classes.append('alias')  # pragma: no cover
                 case 'source_translation':
                     classes.append('text')  # pragma: no cover
                 case _:
-                    classes.append(class_)
-        if not all(sc in g.classes for sc in classes):
+                    classes.append(name)
+        if not set(classes).issubset(g.classes):
             raise InvalidSystemClassError
         return Entity.get_by_class(classes, types=True, aliases=True)
 
