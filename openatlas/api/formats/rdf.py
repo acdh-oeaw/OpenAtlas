@@ -92,6 +92,7 @@ def _is_own_uri(uri: str) -> bool:
     """
     return any(marker in uri for marker in _OWN_URI_MARKERS)
 
+
 # Patterns used to infer an XSD datatype from a literal's string form.
 # SHACL date/time shapes only accept properly typed literals, so any
 # date-like string we emit must carry the matching xsd:* datatype.

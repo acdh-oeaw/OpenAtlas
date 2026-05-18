@@ -68,7 +68,7 @@ TYPE_OVERWRITES = {
     'place': 'Site',
     'feature': 'HumanMadeFeature',
     'stratigraphic_unit':
-        'http://www.cidoc-crm.org/extensions/crmarchaeo/'
+        'https://www.cidoc-crm.org/extensions/crmarchaeo/'
         'A8_Stratigraphic_Unit'}
 
 
@@ -103,11 +103,6 @@ MIME_CLASSIFICATIONS: dict[str, list[dict[str, str]]] = {
 BIBLIOGRAPHY_AAT: dict[str, dict[str, str]] = {
     'bibliography': aat_type('300026497', 'bibliography'),
     'edition': aat_type('300121294', 'edition')}
-
-SKOS_CLOSE_MATCH: dict[str, Any] = {
-    'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
-    'type': 'Type',
-    '_label': 'Close Match'}
 
 
 def get_language() -> dict[str, Any]:
@@ -212,7 +207,10 @@ def close_match_attribution(
         'id': skolem_id,
         'type': 'AttributeAssignment',
         '_label': 'Close Match assignment',
-        'classified_as': [SKOS_CLOSE_MATCH],
+        'classified_as': [{
+            'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
+            'type': 'Type',
+            '_label': 'Close Match'}],
         'assigned': assigned}
 
 
@@ -1077,8 +1075,10 @@ class LoudFormatter:
             "type": LoudFormatter._resolve_type(entity),
             "_label": entity.name}
         if is_close_match(link_):
-            properties_set['attributed_by'].append(close_match_attribution(
-                skolem(link_.id, 'close_match'), match_reference))
+            properties_set['attributed_by'].append(
+                close_match_attribution(
+                    skolem(link_.id, 'close_match'),
+                    match_reference))
         else:
             properties_set['equivalent'].append(match_reference)
         properties_set['identified_by'].append({
@@ -1370,7 +1370,8 @@ class LoudFormatter:
         skolem = LoudFormatter.generate_skolem_id
         identifiers = LoudFormatter._inline_identifiers(entity)
         identifiers[0] = primary_name(
-            entity.name, id_=skolem(entity.id, 'primary_name'))
+            entity.name,
+            id_=skolem(entity.id, 'primary_name'))
         properties_set['identified_by'].extend(identifiers)
         if entity.class_.name == 'object_location':
             if geometry := get_wkt_by_id(entity.id):
@@ -1458,7 +1459,8 @@ def get_loud_crm_relation(link_: Link, inverse: bool = False) -> str:
     The LOUD ``@context`` (see ``loud.json``) is keyed by the
     concatenation ``crm:<code> <english label>`` (or, for inverse
     properties, ``crm:<code>i <inverse english label>``). This helper
-    reconstructs that string from a Link so :meth:`LoudFormatter._loud_relation`
+    reconstructs that string from a Link so
+    :meth:`LoudFormatter._loud_relation`
     can look the corresponding LOUD property name up in the context.
     """
     property_ = f' {link_.property.i18n['en']}'
