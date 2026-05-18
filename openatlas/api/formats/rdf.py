@@ -23,6 +23,19 @@ from openatlas.api.resources.resolve_endpoints import get_loud_context
 # cast warnings (different datatypes, different root causes) still pass
 # through and remain visible.
 class _SuppressYearBeforeCommonEraWarning(logging.Filter):
+    """Silence rdflib warnings that fire on valid BC dates.
+
+    rdflib emits a WARNING every time it cannot cast a lexical date to a
+    native Python value. ``date.fromisoformat`` does not accept negative
+    years, so every BC date in OpenAtlas (e.g. ``-4712-12-31``) triggers
+    a noisy log line on each export, even though the literal remains
+    correctly typed as ``xsd:date`` in the graph.
+
+    We intentionally match on the ValueError carried in ``exc_info`` (as
+    recommended in rdflib issue #2210) instead of a broad string match,
+    so unrelated lexical-cast warnings stay visible.
+    """
+
     def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover
         message = record.getMessage()
         if record.exc_info is None:
@@ -47,7 +60,8 @@ _DEFAULT_NAMESPACES: dict[str, str] = {
     'la': 'https://linked.art/ns/terms/',
     'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-    'geo': 'http://www.opengis.net/ont/geosparql#'}
+    'geo': 'http://www.opengis.net/ont/geosparql#',
+    'archaeo': 'http://www.cidoc-crm.org/extensions/crmarchaeo/'}
 
 _GEO = Namespace('http://www.opengis.net/ont/geosparql#')
 
@@ -68,6 +82,14 @@ _OWN_URI_MARKERS: tuple[str, ...] = (
 
 
 def _is_own_uri(uri: str) -> bool:
+    """Return ``True`` if ``uri`` is one we mint inside OpenAtlas.
+
+    External URIs (Wikidata, Getty AAT, CIDOC CRM, ...) are linked to but
+    never expanded: asserting ``rdf:type`` on a resource we don't own is
+    semantically wrong under the open-world assumption, and it also
+    triggers SHACL violations (we cannot supply the identifiers /
+    appellations the shapes require for those external classes).
+    """
     return any(marker in uri for marker in _OWN_URI_MARKERS)
 
 # Patterns used to infer an XSD datatype from a literal's string form.
@@ -91,6 +113,23 @@ _WKT_RE = re.compile(
 
 
 def _typed_literal(value: Any) -> Literal:
+    """Wrap ``value`` in an ``rdflib.Literal`` with the right XSD datatype.
+
+    rdflib has no way to guess the datatype of a plain string, so by
+    default it stores it as an untyped ``xsd:string``. Several SHACL
+    shapes we have to satisfy (PFP date shapes, GeoSPARQL place shapes,
+    ...) only accept *properly typed* literals, so we inspect the lexical
+    form and attach the matching ``xsd:*`` (or ``geo:wktLiteral``)
+    datatype ourselves:
+
+    - ISO date / dateTime / gYearMonth / gYear -> matching xsd:* type
+    - WKT geometry (POINT/POLYGON/...) -> ``geo:wktLiteral``
+    - anything else -> untyped Literal
+
+    Regex matching beats parsing here because we want to keep BC dates
+    (negative years) typed even though Python's stdlib refuses to parse
+    them; see ``_SuppressYearBeforeCommonEraWarning``.
+    """
     if isinstance(value, str):
         if _DATE_RE.match(value):
             return Literal(value, datatype=XSD.date)
