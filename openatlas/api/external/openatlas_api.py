@@ -13,7 +13,7 @@ class OpenAtlasAPI(ExternalApi):  # pylint: disable=too-few-public-methods
         info: dict[str, object] = {}
         try:
             api_url = \
-                'https://demo-dev.openatlas.eu/api''/entity_presentation_view/'
+                'https://demo-dev.openatlas.eu/api/entity_presentation_view/'
             data = requests.get(
                 # f'{g.openatlas.resolver_url}{id_}',
                 f'{api_url}/{id_}',

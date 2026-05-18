@@ -1,6 +1,7 @@
-from flask import g, url_for
+from flask import url_for
 
 from openatlas import app
+from openatlas.models.entity import get_reference_system_by_name
 from tests.base import TestBaseCase, insert
 
 
@@ -43,6 +44,7 @@ class EventTest(TestBaseCase):
         rv = c.get(url_for('insert', class_='acquisition'))
         assert b'+ Acquisition' in rv.data
 
+        wikidata = get_reference_system_by_name('wikidata')
         data = {
             'name': 'Second event',
             'given_place': [residence.id],
@@ -56,7 +58,7 @@ class EventTest(TestBaseCase):
             'super': activity_id,
             'recipient': '',
             'donor': '',
-            f'reference_system_id_{g.wikidata.id}':
+            f'reference_system_id_{wikidata.id}':
                 ['Q123', self.precision_type.subs[0]]}
 
         rv = c.post(url_for('insert', class_='acquisition'), data=data)

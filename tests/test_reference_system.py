@@ -1,5 +1,6 @@
-from flask import g, url_for
+from flask import url_for
 
+from openatlas.models.entity import get_reference_system_by_name
 from tests.base import TestBaseCase
 
 
@@ -49,9 +50,10 @@ class ReferenceSystemTest(TestBaseCase):
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data
 
+        geonames = get_reference_system_by_name('geonames')
         data['name'] = 'No name change for system classes'
         rv = c.post(
-            url_for('update', id_=g.geonames.id),
+            url_for('update', id_=geonames.id),
             data=data,
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data and b'GeoNames' in rv.data
@@ -85,20 +87,22 @@ class ReferenceSystemTest(TestBaseCase):
         rv = c.get(url_for('delete', id_=wikipedia_id), follow_redirects=True)
         assert b'The entry has been deleted' in rv.data
 
-        rv = c.get(url_for('update', id_=g.geonames.id))
+        rv = c.get(url_for('update', id_=geonames.id))
         assert b'website URL' in rv.data
 
+        gnd = get_reference_system_by_name('gnd')
+        wikidata = get_reference_system_by_name('wikidata')
         rv = c.post(
             url_for('insert', class_='person'),
             data={
                 'name': 'Actor test',
-                f'reference_system_id_{g.wikidata.id}':
+                f'reference_system_id_{wikidata.id}':
                     ['Q123', self.precision_type.subs[0]],
-                f'reference_system_id_{g.gnd.id}':
+                f'reference_system_id_{gnd.id}':
                     ['1158433263', self.precision_type.subs[0]]})
         person_id = rv.location.split('/')[-1]
 
-        rv = c.get(url_for('view', id_=g.wikidata.id))
+        rv = c.get(url_for('view', id_=wikidata.id))
         assert b'Actor test' in rv.data
 
         rv = c.get(url_for('view', id_=person_id))
@@ -113,13 +117,13 @@ class ReferenceSystemTest(TestBaseCase):
             follow_redirects=True)
         assert b'A transaction error occurred' in rv.data
 
-        rv = c.get(url_for('delete', id_=g.geonames.id))
+        rv = c.get(url_for('delete', id_=geonames.id))
         assert b'403 - Forbidden' in rv.data
 
         rv = c.get(
             url_for(
                 'reference_system_remove_class',
-                system_id=g.wikidata.id,
+                system_id=wikidata.id,
                 name='person'),
             follow_redirects=True)
         assert b'403 - Forbidden' in rv.data
@@ -131,12 +135,12 @@ class ReferenceSystemTest(TestBaseCase):
                 'residence': '',
                 'begins_in': '',
                 'ends_in': '',
-                f'reference_system_id_{g.wikidata.id}': ['invalid id', '']})
+                f'reference_system_id_{wikidata.id}': ['invalid id', '']})
         assert b'Wrong id format' in rv.data
 
         rv = c.post(
             url_for('insert', class_='place'),
             data={
                 'name': 'Test',
-                f'reference_system_id_{g.geonames.id}': ['invalid id', '']})
+                f'reference_system_id_{geonames.id}': ['invalid id', '']})
         assert b'Wrong id format' in rv.data

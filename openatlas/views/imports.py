@@ -17,7 +17,7 @@ from wtforms import (
 
 from openatlas import app
 from openatlas.api.import_scripts.util import (
-    get_match_types, get_reference_system_by_name)
+    get_match_types)
 from openatlas.api.resources.api_entity import ApiEntity
 from openatlas.api.resources.error import EntityDoesNotExistError
 from openatlas.display.tab import Tab
@@ -32,7 +32,7 @@ from openatlas.forms.display import display_form
 from openatlas.forms.field import SubmitField
 from openatlas.models.dates import (
     datetime64_to_timestamp, form_to_datetime64, format_date)
-from openatlas.models.entity import Entity
+from openatlas.models.entity import Entity, get_reference_system_by_name
 from openatlas.models.imports import (
     Project, check_duplicates, check_single_type_duplicates, check_type_id,
     clean_reference_pages, get_id_from_origin_id, get_origin_ids, import_data_)
@@ -609,7 +609,11 @@ def check_cell_value(
                 checks.set_error('invalid_parent_class', id_)
         case _ if item.startswith('reference_system_') and value:
             item = item.replace('reference_system_', '')
-            reference_system = get_reference_system_by_name(item)
+            reference_system = None
+            try:
+                reference_system = get_reference_system_by_name(item)
+            except 418:
+                pass
             if not reference_system:
                 value = error_span(value)
                 checks.set_warning('invalid_reference_system', id_)

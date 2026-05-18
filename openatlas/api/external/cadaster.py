@@ -14,7 +14,7 @@ class Cadaster(ExternalApi):  # pylint: disable=too-few-public-methods
         info = {}
         try:
             data = requests.get(
-                f'{app.config['API_CADASTER']}{endpoint}{id_}',
+                f'https://kataster.bev.gv.at/api/{endpoint}{id_}',
                 headers=app.config['USER_AGENT'],
                 proxies=app.config['PROXIES'],
                 timeout=10).json()

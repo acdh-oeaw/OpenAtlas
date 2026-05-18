@@ -15,7 +15,7 @@ class GeoNames(ExternalApi):  # pylint: disable=too-few-public-methods
             'username': {g.settings['geonames_username']}}
         try:
             data = requests.get(
-                app.config['API_GEONAMES'],
+                'http://api.geonames.org/get',
                 params=params,
                 proxies=app.config['PROXIES'],
                 timeout=10).content

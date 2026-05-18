@@ -816,8 +816,6 @@ class Entity:
                 if system.id in class_.reference_systems:
                     system.classes.append(class_.name)
             systems[system.id] = system
-            if system.system:
-                setattr(g, system.name.lower(), system)
         return systems
 
     @staticmethod
@@ -836,8 +834,8 @@ def insert(data: dict[str, Any]) -> Entity:
         data['description'] = result['text']
         annotation_data = result['data']
     for item in [
-        'begin_from', 'begin_to', 'begin_comment',
-        'end_from', 'end_to', 'end_comment', 'description']:
+            'begin_from', 'begin_to', 'begin_comment',
+            'end_from', 'end_to', 'end_comment', 'description']:
         data[item] = data.get(item)
     for item in ['name', 'description']:
         data[item] = sanitize(data[item])
@@ -935,3 +933,15 @@ def get_entity_ids_with_links(
         classes: list[str],
         inverse: bool) -> list[int]:
     return db.get_entity_ids_with_links(property_, classes, inverse)
+
+
+def get_reference_system_by_name(name: str) -> Entity:
+    result = None
+    for system in g.reference_systems.values():
+        if system.name.lower().replace('_', ' ') \
+                == name.lower().replace('_', ' '):
+            result = system
+            break
+    if not result:
+        abort(418, f'Missing reference system {name}')
+    return result

@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Any
 
-from flask import g, url_for
+from flask import url_for
 
 from openatlas import app
-from openatlas.models.entity import Entity
+from openatlas.models.entity import Entity, get_reference_system_by_name
 from tests.base import TestBaseCase, get_hierarchy, insert
 
 
@@ -17,11 +17,12 @@ class PlaceTest(TestBaseCase):
             source = insert('source', 'Necronomicon')
 
         unit_type = get_hierarchy('Administrative unit')
+        geonames = get_reference_system_by_name('geonames')
         data: dict[Any, Any] = {
             'name': 'Asgard',
             'alias-0': 'Valhöll',
             unit_type.id: str([unit_type.subs[0], unit_type.subs[1]]),
-            f'reference_system_id_{g.geonames.id}':
+            f'reference_system_id_{geonames.id}':
                 ['123456', self.precision_type.subs[0]]}
         rv = c.post(
             url_for('insert', class_='place'),

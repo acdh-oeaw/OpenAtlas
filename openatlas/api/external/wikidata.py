@@ -1,20 +1,21 @@
 import requests
-from flask import g
 
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
+from openatlas.models.entity import get_reference_system_by_name
 
 
 class Wikidata(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:
+        wikidata = get_reference_system_by_name('gnd')
 
         def add_resolver_url(wikidata_id: str) -> str:
             return link(
                 f'Q{wikidata_id}',
-                f'{g.wikidata.resolver_url}Q{wikidata_id}',
+                f'{wikidata.resolver_url}Q{wikidata_id}',
                 external=True)
 
         params = {
@@ -25,7 +26,7 @@ class Wikidata(ExternalApi):  # pylint: disable=too-few-public-methods
         info = {}
         try:
             data = requests.get(
-                app.config['API_WIKIDATA'],
+                'https://www.wikidata.org/w/api.php',
                 headers=app.config['USER_AGENT'],
                 params=params,
                 proxies=app.config['PROXIES'],

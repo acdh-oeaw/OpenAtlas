@@ -10,17 +10,17 @@ from werkzeug.wrappers import Response
 
 from openatlas import app
 from openatlas.display.display import Display
+from openatlas.display.image_processing import (
+    check_iiif_file_exist, get_iiif_file_path)
 from openatlas.display.table import entity_table
 from openatlas.display.util import (
     button, get_chart_data, hierarchy_crumbs, link, reference_systems,
     required_group)
-from openatlas.display.image_processing import (
-    check_iiif_file_exist, get_iiif_file_path)
 from openatlas.display.util2 import (
     get_file_path, is_authorized, manual, sanitize)
 from openatlas.forms.entity_form import get_entity_form, process_form
 from openatlas.forms.util import deletion_possible
-from openatlas.models.entity import Entity
+from openatlas.models.entity import Entity, get_reference_system_by_name
 from openatlas.models.gis import InvalidGeomException, get_gis_all
 from openatlas.models.openatlas_class import Relation
 
@@ -100,7 +100,8 @@ def insert(
         writable=os.access(app.config['UPLOAD_PATH'], os.W_OK),
         overlays=origin.get_overlays() if origin else None,
         title=_(entity.class_.group['name']),
-        geonames_module=entity.class_.name in g.geonames.classes,
+        geonames_module=entity.class_.name
+        in get_reference_system_by_name('geonames').classes,
         crumbs=crumbs_for_insert(entity, origin, structure))
 
 
@@ -144,7 +145,8 @@ def update(id_: int, copy: Optional[str] = None) -> str | Response:
         gis_data=gis_data,
         overlays=entity.get_overlays(),
         title=entity.name,
-        geonames_module=entity.class_.name in g.geonames.classes,
+        geonames_module=entity.class_.name
+        in get_reference_system_by_name('geonames').classes,
         crumbs=hierarchy_crumbs(entity) +
         [entity, _('copy') if copy else _('edit')])
 

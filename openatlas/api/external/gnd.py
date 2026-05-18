@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import requests
-from flask import g
 
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
+from openatlas.models.entity import get_reference_system_by_name
 
 
 class GND(ExternalApi):  # pylint: disable=too-few-public-methods
@@ -13,9 +13,10 @@ class GND(ExternalApi):  # pylint: disable=too-few-public-methods
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:
         info: dict[str, object] = {}
+        gnd = get_reference_system_by_name('gnd')
         try:
             data = requests.get(
-                f'{g.gnd.resolver_url}{id_}.json',
+                f'{gnd.resolver_url}{id_}.json',
                 proxies=app.config['PROXIES'],
                 timeout=10).json()
         except Exception:  # pragma: no cover

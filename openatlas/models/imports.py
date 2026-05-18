@@ -12,13 +12,14 @@ from shapely.errors import ShapelyError
 from shapely.geometry import LineString, Point, Polygon, mapping
 
 from openatlas.api.import_scripts.util import (
-    get_match_types, get_reference_system_by_name)
+    get_match_types)
 from openatlas.api.resources.api_entity import ApiEntity
 from openatlas.api.resources.error import EntityDoesNotExistError
 from openatlas.database import imports as db
 from openatlas.database.connect import Transaction
 from openatlas.display.util2 import sanitize
-from openatlas.models.entity import Entity, insert
+from openatlas.models.entity import Entity, get_reference_system_by_name, \
+    insert
 
 
 class Project:
@@ -240,16 +241,19 @@ def link_references(
     systems = list(set(i for i in row if i.startswith('reference_system_')))
     for header in systems:
         system = header.replace('reference_system_', '')
-        if reference_system := get_reference_system_by_name(system):
-            if ((data := row.get(header)) and
-                    class_ in reference_system.classes):
-                values = data.split(';')
-                if values[1] in match_types:
-                    reference_system.link(
-                        'P67',
-                        entity,
-                        values[0],
-                        type_id=match_types[values[1]].id)
+        try:
+            if reference_system := get_reference_system_by_name(system):
+                if ((data := row.get(header)) and
+                        class_ in reference_system.classes):
+                    values = data.split(';')
+                    if values[1] in match_types:
+                        reference_system.link(
+                            'P67',
+                            entity,
+                            values[0],
+                            type_id=match_types[values[1]].id)
+        except 418:
+            pass
 
 
 def get_coordinates_from_wkt(coordinates: str) -> dict[str, Any]:
