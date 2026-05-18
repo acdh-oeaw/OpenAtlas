@@ -187,11 +187,11 @@ class GetSearchEntities(Resource):
         simple_search = get_api_simple_search(classes, term)
         data = simple_search
         if term:
-            search = get_api_search(term, classes + ['appellation'])
+            search = get_api_search(term, classes + ['alias'])
             data = join_lists_of_dicts_remove_duplicates(simple_search, search)
         entities = []
         for row in data:
-            if row['openatlas_class_name'] == 'appellation':
+            if row['openatlas_class_name'] == 'alias':
                 entity = Entity.get_linked_entity_safe_static(
                     row['id'],
                     'P1',

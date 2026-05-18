@@ -298,9 +298,7 @@ class Entity:
             if alias.strip():
                 self.link(
                     'P1',
-                    insert({
-                        'name': alias,
-                        'openatlas_class_name': 'appellation'}))
+                    insert({'name': alias, 'openatlas_class_name': 'alias'}))
 
     def update_gis(self, gis_data: dict[str, Any], new: bool = False) -> None:
         if new:

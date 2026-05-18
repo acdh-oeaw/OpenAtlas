@@ -194,14 +194,14 @@ INSERT INTO model.link (property_code, range_id, domain_id) VALUES
   ('P127', (SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), (SELECT id FROM model.entity WHERE name='Lower Body'));
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name) VALUES
-  ('E55', 'type', 'Source translation'),
+  ('E55', 'type', 'Text'),
   ('E55', 'type', 'Original Text'),
   ('E55', 'type', 'Translation'),
   ('E55', 'type', 'Transliteration');
 INSERT INTO model.link (property_code, range_id, domain_id) VALUES
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Original Text')),
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Translation')),
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Transliteration'));
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Original Text')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Translation')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Transliteration'));
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
   ('E55', 'type', 'Dimensions', 'Physical dimensions like weight and height.'),
@@ -324,14 +324,14 @@ INSERT INTO web.hierarchy (id, name, category, multiple, directional) VALUES
   ((SELECT id FROM model.entity WHERE name='Radiocarbon'), 'Radiocarbon', 'tools', False, False),
   ((SELECT id FROM model.entity WHERE name='Sex'), 'Sex', 'custom', True, False),
   ((SELECT id FROM model.entity WHERE name='Source'), 'Source', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Source translation'), 'Source translation', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False);
+  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False),
+  ((SELECT id FROM model.entity WHERE name='Text'), 'Text', 'standard', False, False);
 
 
 INSERT INTO model.openatlas_class (name, cidoc_class_code, new_types_allowed, write_access_group_name, standard_type_id) VALUES
   ('acquisition',          'E8',  true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
   ('activity',             'E7',  true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('appellation',          'E41', false, 'contributor', NULL),
+  ('alias',                'E41', false, 'contributor', NULL),
   ('artifact',             'E22', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Artifact' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
   ('bibliography',         'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Bibliography' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
   ('edition',              'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Edition' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
@@ -348,8 +348,8 @@ INSERT INTO model.openatlas_class (name, cidoc_class_code, new_types_allowed, wr
   ('production',           'E12', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
   ('reference_system',     'E32', false, 'manager',     NULL),
   ('source',               'E33', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Source' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('source_translation',   'E33', false, 'contributor', NULL),
-  ('stratigraphic_unit',   'E18', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Stratigraphic unit' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1));
+  ('stratigraphic_unit',   'E18', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Stratigraphic unit' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('text',                 'E33', false, 'contributor', NULL);
 
 INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) VALUES
   ((SELECT id FROM web.hierarchy WHERE name='Artifact'), 'artifact'),
@@ -369,8 +369,8 @@ INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) V
   ((SELECT id FROM web.hierarchy WHERE name='External reference match'), 'reference_system'),
   ((SELECT id FROM web.hierarchy WHERE name='Sex'), 'person'),
   ((SELECT id FROM web.hierarchy WHERE name='Source'), 'source'),
-  ((SELECT id FROM web.hierarchy WHERE name='Source translation'), 'source_translation'),
-  ((SELECT id FROM web.hierarchy WHERE name='Stratigraphic unit'), 'stratigraphic_unit');
+  ((SELECT id FROM web.hierarchy WHERE name='Stratigraphic unit'), 'stratigraphic_unit'),
+  ((SELECT id FROM web.hierarchy WHERE name='Text'), 'text');
 
 -- External Reference Systems
 INSERT INTO model.entity (name, cidoc_class_code, description, openatlas_class_name) VALUES

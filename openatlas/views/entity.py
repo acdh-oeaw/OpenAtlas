@@ -277,7 +277,7 @@ def redirect_url_delete(entity: Entity) -> str:
             url = \
                 url_for('view', id_=parent.id) + \
                 f'#tab-{entity.class_.name.replace('_', '-')}'
-    elif entity.class_.name == 'source_translation':
+    elif entity.class_.name == 'text':
         source = entity.get_linked_entity_safe('P73', inverse=True)
         url = f'{url_for('view', id_=source.id)}#tab-text'
     return url
