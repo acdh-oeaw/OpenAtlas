@@ -116,7 +116,7 @@ def add_description(
                 validators=get_validators(attribute_description)))
         return
     source: Entity | None = entity
-    if entity.class_.name == 'source_translation':
+    if entity.class_.name == 'text':
         source = origin or entity.get_linked_entity('P73', inverse=True)
     setattr(
         form,

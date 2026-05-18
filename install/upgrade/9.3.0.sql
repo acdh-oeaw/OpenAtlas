@@ -16,4 +16,10 @@ ALTER TABLE model.entity ALTER COLUMN uuid SET NOT NULL;
 ALTER TABLE model.entity ADD CONSTRAINT entity_uuid_unique UNIQUE (uuid);
 ALTER TABLE model.entity ALTER COLUMN uuid SET DEFAULT gen_random_uuid();
 
+-- Renaming OpenAtlas classes (#2718)
+UPDATE model.openatlas_class SET name = 'alias' WHERE name = 'appellation';
+UPDATE model.openatlas_class SET name = 'text' WHERE name = 'source_translation';
+UPDATE model.entity SET name = 'Text' WHERE name = 'Source translation';
+UPDATE web.hierarchy SET name = 'Text' WHERE name = 'Source translation';
+
 END;

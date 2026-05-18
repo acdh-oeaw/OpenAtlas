@@ -855,7 +855,7 @@ class Api(ApiTestCase):
         assert rv.get_json()['pagination']['entities'] == 2
 
         rv = c.get(url_for('api_04.search', class_='type', term='i'))
-        assert rv.get_json()['pagination']['entities'] == 50
+        assert rv.get_json()['pagination']['entities'] == 49
 
         rv = c.get(url_for('api_04.search', class_='person'))
         assert rv.get_json()['pagination']['entities'] == 3

@@ -14,7 +14,7 @@ source = {
     'relations': {
         'text': {
             'label': _('text'),
-            'classes': ['source_translation'],
+            'classes': ['text'],
             'property': 'P73',
             'multiple': True,
             'tab': {
@@ -68,8 +68,8 @@ source = {
         'additional_tabs': {'note': {}},
         'network_color': '#FFA500'}}
 
-source_translation = {
-    'label': _('source translation'),
+text = {
+    'label': _('text'),
     'attributes': {
         'name': {
             'required': True},
