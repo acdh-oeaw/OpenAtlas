@@ -270,9 +270,9 @@ def _resolve_predicate(
     if data_type:
         type_entry = _CONTEXT.get(data_type)
         if isinstance(type_entry, dict):
-            sub_ctx = type_entry.get('@context')
-            if isinstance(sub_ctx, dict) and key in sub_ctx:
-                if uri := _entry_uri(sub_ctx[key]):
+            sub_context = type_entry.get('@context')
+            if isinstance(sub_context, dict) and key in sub_context:
+                if uri := _entry_uri(sub_context[key]):
                     return URIRef(uri)
     if uri := _entry_uri(_CONTEXT.get(key)):
         return URIRef(uri)
@@ -348,10 +348,7 @@ def _emit_value(
           structures like ``identified_by`` chains are flattened to RDF);
         * a scalar: emit it as an ``rdflib.Literal``.
     - **Dict** (not inside a list) -- only emitted when it has an ``id``;
-      a dict without ``id`` at this level is intentionally skipped. This
-      preserves the original behaviour of the previous two-pass
-      implementation, where anonymous nesting was only recognised inside
-      lists.
+      a dict without ``id`` at this level is intentionally skipped.
     - **Scalar** (string, int, bool, ...) -- emitted as an
       ``rdflib.Literal``.
 
