@@ -1,0 +1,34 @@
+  <script>
+  /**
+   * GND autocomplete
+   * Documentation: https://bootstrap-autocomplete.readthedocs.io/en/latest/
+   * Bootstrap version needs to be manually set d/t
+  */
+  $('input[data-reference-system={{ system_id }}]').autoComplete({
+    bootstrapVersion: '4',
+    resolver: 'custom',
+    formatResult: function (item) {
+      return {
+        value: item.id,
+        text: `${item.name} - ${item.description}<br><small>${item.id}</small>`
+      };
+    },
+    events: {
+      search: function (qry, callback) {
+        $.ajax({
+          url: "https://demo-dev.openatlas.eu/api/search/all",
+          dataType: "json",
+          data: {
+            term: qry
+          },
+          success: function(data) {
+            console.log(data)
+            callback(data.results);
+          }
+        })
+      }
+    }
+  }).on('autocomplete.select', function(evt,item) {
+    $('input[data-reference-system={{ system_id }}]').val(item.id.substring(item.id.lastIndexOf('/') + 1));
+  });
+</script>

@@ -142,7 +142,7 @@ class ReferenceField(Field):
         self.row_css = 'reference-system-switch'
         if api := g.reference_systems[reference_system_id].api:
             match api:
-                case 'gnd' | 'wikidata':
+                case 'gnd' | 'wikidata' | 'openatlas':
                     self.reference_system_js = Markup(
                         render_template(
                             f'autocomplete/{api}.html',
