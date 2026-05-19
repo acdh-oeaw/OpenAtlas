@@ -8,27 +8,27 @@ class ReferenceSystemTest(TestBaseCase):
     def test_reference_system(self) -> None:
         c = self.client
         rv = c.post(
-            url_for('ajax_external_api', api='wikidata'),
+            url_for('ajax_external_api', api='Wikidata'),
             data={'id_': 'Q304037'})
         assert b'National Library of Austria' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='geonames'),
+            url_for('ajax_external_api', api='GeoNames'),
             data={'id_': '747712'})
         assert b'Edirne' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='gnd'),
+            url_for('ajax_external_api', api='GND'),
             data={'id_': '118584596'})
         assert b'Mozart' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='cadaster'),
+            url_for('ajax_external_api', api='Cadaster'),
             data={'id_': '01004/784/1'})
         assert b'784/1' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='cadaster'),
+            url_for('ajax_external_api', api='Cadaster'),
             data={'id_': '01004/78/99'})
         assert b'nicht vorhanden' in rv.data
 

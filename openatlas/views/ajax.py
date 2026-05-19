@@ -4,15 +4,24 @@ from flask import Response, g, jsonify, request
 from flask_babel import gettext as _
 
 from openatlas import app
-from openatlas.api.external.cadaster import Cadaster  # type: ignore
-from openatlas.api.external.geonames import GeoNames  # type: ignore
-from openatlas.api.external.gnd import GND  # type: ignore
-from openatlas.api.external.openatlas_api import OpenAtlas  # type: ignore
-from openatlas.api.external.wikidata import Wikidata  # type: ignore
+
+from openatlas.api.external.cadaster import Cadaster
+from openatlas.api.external.geonames import GeoNames
+from openatlas.api.external.gnd import GND
+from openatlas.api.external.openatlas_api import OpenAtlas
+from openatlas.api.external.wikidata import Wikidata
 from openatlas.display.util import display_info, required_group
 from openatlas.display.util2 import uc_first
 from openatlas.models.entity import Entity, insert
 from openatlas.models.user import User
+
+
+def workaround_for_pylint() -> None:
+    Cadaster()
+    GeoNames()
+    GND()
+    OpenAtlas()
+    Wikidata()
 
 
 @app.route('/ajax/bookmark', methods=['POST'])

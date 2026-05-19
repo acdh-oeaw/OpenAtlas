@@ -4,8 +4,8 @@ from flask import g
 
 from openatlas.api.import_scripts.util import (
     get_exact_match, get_match_types, vocabs_requests)
-from openatlas.models.entity import Entity, get_reference_system_by_name_safe, \
-    insert
+from openatlas.models.entity import (
+    Entity, get_reference_system_by_name_safe, insert)
 
 
 def import_vocabs_data(
