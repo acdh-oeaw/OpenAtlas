@@ -73,14 +73,6 @@ TYPE_OVERWRITES = {
 
 
 def aat_type(id_: str, label: str) -> dict[str, str]:
-    """Build a LOUD ``Type`` stub pointing at a Getty AAT concept.
-
-    Linked Art uses Getty's Art & Architecture Thesaurus (AAT) as its
-    canonical controlled vocabulary for classifications. Whenever we want
-    to attach a ``classified_as`` to a resource, we emit a minimal stub
-    with the AAT URI as ``id`` plus a human-readable ``_label``. The
-    label is informational only — consumers should dereference the URI.
-    """
     return {
         'id': f'https://vocab.getty.edu/aat/{id_}',
         'type': 'Type',
@@ -106,24 +98,11 @@ BIBLIOGRAPHY_AAT: dict[str, dict[str, str]] = {
 
 
 def get_language() -> dict[str, Any]:
-    """Return the LOUD ``Language`` stub configured for this instance.
-
-    LinguisticObjects in LOUD must declare their language with an AAT
-    Getty URI. The active language is taken from ``ARCHE_METADATA`` in
-    the app config, defaulting to English when unset or unknown.
-    """
     code = app.config.get('ARCHE_METADATA', {}).get('language', 'en')
     return LANGUAGES.get(code, LANGUAGES['en'])
 
 
 def category_aat(id_: str, label: str) -> dict[str, Any]:
-    """Like :func:`aat_type` but flagged as a category of *documents*.
-
-    Some Linked Art shapes (e.g. on LinguisticObject.classified_as)
-    expect the classifier itself to be classified as a 'documents (by
-    form)' (AAT 300137954). This helper just bundles that extra layer so
-    we don't repeat it at every call site.
-    """
     return aat_type(id_, label) \
         | {'classified_as': [aat_type('300137954', 'documents (by form)')]}
 
@@ -132,13 +111,6 @@ def primary_name(
         content: str,
         label: str | None = None,
         id_: str | None = None) -> dict[str, Any]:
-    """Build a LOUD ``Name`` stub flagged as a primary appellation.
-
-    Linked Art models human-readable names as nested ``Name`` resources
-    under ``identified_by``, classified with AAT 300404670 ('primary
-    name'). This helper produces such a stub with the configured
-    language attached so the surrounding code only has to pass the text.
-    """
     name: dict[str, Any] = {
         'type': 'Name',
         '_label': label or content,
@@ -151,26 +123,10 @@ def primary_name(
 
 
 def entity_uri(entity: Entity) -> str:
-    """Return the stable, externally resolvable URI for ``entity``.
-
-    All OpenAtlas entities are addressed by their UUID through the
-    ``api.entity_uuid`` endpoint. We use the UUID-based route (not the
-    integer id) on purpose: integer ids are local to a database
-    instance, UUIDs are globally stable identifiers and therefore the
-    only ones safe to publish as Linked Open Data.
-    """
     return url_for('api.entity_uuid', uuid=entity.uuid, _external=True)
 
 
 def reference_url(type_link: Link) -> str:
-    """Compute the external URL described by a reference-system Link.
-
-    A 'reference_system' entity (Wikidata, GeoNames, ...) stores a base
-    URL on the system itself; the Link's ``description`` carries the
-    record id within that system. We concatenate them to obtain the full
-    external URI. For non reference-system links we fall back to the
-    domain's display name, matching the legacy LOUD contract.
-    """
     if type_link.domain.class_.name == 'reference_system':
         system = g.reference_systems[type_link.domain.id]
         return f'{system.resolver_url or ''}{type_link.description}'
@@ -178,14 +134,6 @@ def reference_url(type_link: Link) -> str:
 
 
 def is_close_match(link_: Link) -> bool:
-    """True if a reference link expresses a skos:closeMatch.
-
-    OpenAtlas users can flag external references as 'close' matches
-    instead of strict equivalents. In LOUD this distinction is preserved
-    by wrapping the reference in an ``AttributeAssignment`` classified as
-    ``skos:closeMatch`` (see :func:`close_match_attribution`) rather than
-    listing it under ``equivalent``.
-    """
     return bool(
         link_.type
         and g.types.get(link_.type.id)
@@ -195,14 +143,6 @@ def is_close_match(link_: Link) -> bool:
 def close_match_attribution(
         skolem_id: str,
         assigned: dict[str, Any]) -> dict[str, Any]:
-    """Wrap an external reference into a skos:closeMatch attribution.
-
-    LOUD doesn't allow ``skos:closeMatch`` to be used as a direct
-    predicate; instead the convention is to attach an
-    ``AttributeAssignment`` whose ``classified_as`` is the closeMatch
-    AAT, and whose ``assigned`` slot carries the reference itself. This
-    keeps the graph SHACL-valid while preserving the user's intent.
-    """
     return {
         'id': skolem_id,
         'type': 'AttributeAssignment',
@@ -215,23 +155,6 @@ def close_match_attribution(
 
 
 class LoudFormatter:
-    """Builds a LOUD/Linked-Art JSON-LD document for a single entity.
-
-    The formatter is instantiated once per top-level entity (see
-    :func:`get_loud_entities`) and accumulates output into a
-    ``properties_set`` ``defaultdict(list)`` that the caller passes in.
-
-    Why a class instead of a flat module of functions?
-
-    - The CIDOC-CRM property to LOUD key mapping is *not* a simple table:
-      several codes (P1, P2, P67, P73, OA7) need bespoke shaping. We use
-      a per-instance ``handlers`` dict so ``format_link`` stays a small
-      dispatcher.
-    - The JSON-LD ``@context`` and the entity-wide ``type_references``
-      cache are read in dozens of places. Storing them on ``self`` is
-      cheaper and clearer than threading them through every call.
-    """
-
     def __init__(
             self,
             loud_context: dict[str, str],
@@ -246,39 +169,10 @@ class LoudFormatter:
             'OA7': self._handle_oa7}
 
     def _loud_relation(self, link_: Link, is_inverse: bool) -> str:
-        """Map a CRM property code to its canonical LOUD property name.
-
-        The LOUD ``@context`` is keyed by the human-readable, snake-cased
-        version of CIDOC-CRM property labels (e.g. ``part_of`` for
-        ``crm:P46``). :func:`get_loud_crm_relation` reconstructs that
-        label from the link; we just normalize the spaces and look the
-        key up. Used as the fallback when no special-case rule applies
-        in :meth:`get_property_key`.
-        """
         return self.loud[
             get_loud_crm_relation(link_, is_inverse).replace(' ', '_')]
 
     def get_property_key(self, link_: Link, is_inverse: bool) -> str:
-        """Decide under which LOUD key a Link is rendered.
-
-        Most CRM properties map 1:1 to a LOUD predicate via the
-        ``@context`` (handled by :meth:`_loud_relation`). A handful of
-        them, however, are remodelled by Linked Art:
-
-        - ``OA7`` (relationship) always becomes ``participated_in``
-          because the relationship is reified as an Event;
-        - inverse ``P67`` on an external_reference flips to ``subject_of``
-          (the external page is *about* this entity);
-        - ``P67`` on a file flips to ``digitally_carries`` so the file is
-          modelled as a DigitalObject;
-        - ``P53`` on an artifact narrows to ``current_location``;
-        - ``P2`` with a numeric description becomes a ``Dimension``;
-        - ``P127`` swaps direction (``part``/``part_of``);
-        - ``P46`` on artifact/human_remains uses ``occupies`` to express
-          the spatial container relation Linked Art prefers.
-
-        Anything else falls through to the context lookup.
-        """
         code = link_.property.code
         if code == 'OA7':
             return 'participated_in'
@@ -305,24 +199,6 @@ class LoudFormatter:
         return self._loud_relation(link_, is_inverse)
 
     def format_link(self, link_: Link, is_domain: bool) -> dict[str, Any]:
-        """Render the *target* side of a Link as a LOUD resource stub.
-
-        Produces the minimum stub Linked Art consumers expect: an ``id``,
-        a ``type``, a ``_label`` and an ``identified_by`` block carrying
-        the inline appellations / system identifiers. On top of that:
-
-        - If the link has dates, attach a ``timespan``.
-        - For most properties, attach the link's own type as
-          ``classified_as`` (P2 is excluded because there the type is
-          used differently, see :meth:`_handle_p2`).
-        - If the target is a file linked through ``P67``, wrap the stub
-          inside a ``VisualItem`` (``represents`` chain) so the bitstream
-          is properly distinguished from the conceptual content.
-        - Prepend archaeology-specific AAT classifications when the
-          target class is artifact / human_remains.
-        - Finally dispatch to a per-code handler (``self.handlers``) for
-          the codes that need bespoke shaping (P1, P2, P67, P73, OA7).
-        """
         target = link_.domain if is_domain else link_.range
         property_: dict[str, Any] = {
             'id': entity_uri(target),
@@ -350,28 +226,12 @@ class LoudFormatter:
     def _prepend_archaeology_classification(
             entity: Entity,
             property_: dict[str, Any]) -> None:
-        """Prepend an archaeology AAT type onto an existing stub.
-
-        Artefacts and human remains need an extra ``classified_as`` entry
-        pointing at the matching AAT concept (see ``ARCHAEOLOGY_AAT``).
-        We *prepend* it on purpose: the more specific archaeology
-        classification should appear first so LOUD consumers that pick
-        the head of the list still get the right semantics.
-        """
         if aat := ARCHAEOLOGY_AAT.get(entity.class_.name):
             property_['classified_as'] = (
                     [aat] + property_.get('classified_as', []))
 
     @staticmethod
     def base_entity_dict(entity: Entity) -> dict[str, Any]:
-        """Return the root LOUD dict (id/type/_label) for a top-level entity.
-
-        Called once per export to seed the output document with the
-        canonical identity triple of the entity being serialised. The
-        archaeology classification is prepended here too so it always
-        ends up at the top of the output, not buried inside a nested
-        property.
-        """
         result: dict[str, Any] = {
             'id': entity_uri(entity),
             'type': LoudFormatter._resolve_type(entity),
@@ -381,28 +241,12 @@ class LoudFormatter:
 
     @staticmethod
     def _resolve_type(entity: Entity) -> str:
-        """Pick the LOUD ``type`` string for an entity.
-
-        Linked Art uses its own class vocabulary that does not match
-        CIDOC-CRM 1:1 (e.g. CRM's E18 Physical Thing becomes ``Site``
-        for places, ``HumanMadeFeature`` for features, ...). The
-        ``TYPE_OVERWRITES`` table encodes those substitutions; everything
-        else falls back to the CIDOC class label with whitespace removed
-        so it becomes a valid JSON-LD term.
-        """
         return TYPE_OVERWRITES.get(
             entity.class_.name,
             remove_spaces_dashes(entity.cidoc_class.i18n['en']))
 
     @staticmethod
     def get_file_dimensions(entity: Entity) -> dict[str, Any]:
-        """Build a LOUD ``Dimension`` describing a file's size in bytes/KB/...
-
-        DigitalObjects in Linked Art carry their size as a nested
-        ``Dimension`` with the value and an AAT MeasurementUnit. We use
-        a skolemised id (deterministic blank-node URI) so the same file
-        always produces the same dimension URI across exports.
-        """
         file_size = entity.get_file_size()
         value, unit = file_size.split()
         return {'dimension': [{
@@ -420,22 +264,6 @@ class LoudFormatter:
             self,
             entity: Entity,
             mime_type: str | None = None) -> dict[str, Any]:
-        """Collect the DigitalObject-level metadata for a file entity.
-
-        Returns a dict combining
-
-        - ``format`` (MIME type),
-        - ``classified_as`` driven by ``MIME_CLASSIFICATIONS`` (so a PDF
-          gets the 'Digital documents' AAT, an image the 'Digital image'
-          AAT, etc.),
-        - ``access_point`` (the API URL that resolves to the bitstream),
-        - ``right_held_by`` / ``created_by`` from the file's metadata,
-        - ``referred_to_by`` carrying the license LinguisticObject when
-          a license is attached.
-
-        Used both for files that are themselves the root entity and for
-        files linked as media to another entity.
-        """
         if not mime_type:
             mime_type, _ = mimetypes.guess_type(g.files[entity.id])
         digital_object: dict[str, Any] = {'format': mime_type}
@@ -473,14 +301,6 @@ class LoudFormatter:
 
     def _build_license(
             self, license_: Entity, entity_name: str) -> dict[str, Any]:
-        """Render a license entity as a LOUD LinguisticObject stub.
-
-        Licenses in OpenAtlas are themselves Entities (so they can carry
-        translations, references, ...) but in LOUD they are exposed as a
-        nested LinguisticObject classified as 'copyright/licensing
-        statement', with any external reference (e.g. a CC URL) added as
-        extra ``classified_as`` entries.
-        """
         classified_as: list[dict[str, Any]] = [
             aat_type('300435434', 'copyright/licensing statement')]
         classified_as.extend(
@@ -501,16 +321,6 @@ class LoudFormatter:
     @staticmethod
     def handle_radiocarbon(
             link_: Link, properties_set: dict[str, Any]) -> None:
-        """Emit a LOUD ``AttributeAssignment`` for a radiocarbon date.
-
-        Radiocarbon datings live on a ``P2`` link whose ``description``
-        is a Python-literal dict (year / range / scale / lab id / spec
-        id). They are *not* a normal P2 classification, so we model them
-        explicitly as an AttributeAssignment carrying a Dimension with
-        upper/lower limits, plus Identifier nodes for the lab and the
-        specimen, plus a Group for the lab itself. This shape matches
-        the Linked Art recipe for scientific datings.
-        """
         data = ast.literal_eval(link_.description)
         year = int(data['radiocarbonYear'])
         rng = int(data['range'])
@@ -569,14 +379,6 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
-        """Customise the stub for a ``P1 is identified by`` link.
-
-        For P1 the *target* is conceptually a Name/Appellation, not a
-        full resource, so we replace the auto-generated entity URI with
-        a skolemised one specific to this appellation and copy the
-        target's display name into ``content`` to match the LOUD Name
-        shape.
-        """
         target = link_.domain if is_domain else link_.range
         property_['id'] = LoudFormatter.generate_skolem_id(
             link_.id, 'appellation')
@@ -588,15 +390,6 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
-        """Customise the stub for a ``P2 has type`` link.
-
-        A plain P2 is just a classification (handled by the default
-        path). When the link carries a numeric ``description`` it is
-        actually a measurement: the type entity then describes the unit
-        and the description holds the value. We rewrite the stub into a
-        Linked Art ``Dimension`` with value / unit / classified_as so
-        the consumer can read it as a number, not a vocabulary term.
-        """
         target = link_.domain if is_domain else link_.range
         if link_.description and is_float(link_.description):
             property_['id'] = LoudFormatter.generate_skolem_id(
@@ -619,14 +412,6 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
-        """Customise the stub for a ``P73 has translation`` link.
-
-        On the inverse side (this entity *is* the translation), we pull
-        the translated content out of the range's description and attach
-        its standard type as ``classified_as`` so the LinguisticObject
-        carries the translated text directly. On the domain side the
-        stub is fine as-is.
-        """
         if is_domain:
             return property_
         property_['content'] = link_.range.description
@@ -640,21 +425,6 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
-        """Customise the stub for a ``P67 refers to`` link.
-
-        P67 is the most overloaded property in our model: depending on
-        the domain class it represents a file (DigitalObject), a source
-        (LinguisticObject with historical context), a bibliography
-        entry, an external web reference, etc. This handler picks the
-        right LOUD shape for each case and, where applicable, attaches
-        pagination information from ``link_.description`` as an extra
-        primary name.
-
-        For external_reference domains we completely rebuild the stub
-        into a LinguisticObject + DigitalObject pair: the entity itself
-        is the *description* of the web page, while the actual URL
-        lives on the carried DigitalObject.
-        """
         if not is_domain:
             if link_.description:
                 property_['content'] = link_.description
@@ -715,15 +485,6 @@ class LoudFormatter:
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> Any:
-        """Reify an ``OA7 has relationship to`` link as a LOUD Event.
-
-        OA7 is OpenAtlas' relationship property. Linked Art has no
-        binary 'related to' predicate; it instead expects relationships
-        to be reified as Events with both parties as ``had_participant``.
-        We always emit such an Event with the link's own type attached
-        as ``classified_as``. The domain side gets the event wrapped in
-        a list so it can be consumed under ``participated_in``.
-        """
         first, second = (link_.range, link_.domain) \
             if is_domain else (link_.domain, link_.range)
         relationship: dict[str, Any] = {
@@ -737,20 +498,6 @@ class LoudFormatter:
         return [relationship] if is_domain else relationship
 
     def _format_type_property(self, type_: Entity) -> dict[str, Any]:
-        """Render an internal Type entity as a LOUD ``Type`` stub.
-
-        OpenAtlas Types can carry references to external vocabularies
-        (Wikidata, AAT, GeoNames, ...). For each such reference we emit
-        either:
-
-        - an ``equivalent`` link, when the reference is a strict match,
-        - an ``attributed_by`` ``AttributeAssignment`` classified as
-          ``skos:closeMatch`` (see :func:`close_match_attribution`),
-          when the reference is flagged as a close match.
-
-        This preserves the user's intent and stays SHACL-valid because
-        ``skos:closeMatch`` is never used as a direct predicate.
-        """
         property_: dict[str, Any] = {
             'id': entity_uri(type_),
             'type': self._resolve_type(type_),
@@ -781,23 +528,6 @@ class LoudFormatter:
 
     @staticmethod
     def generate_skolem_id(id_: int, type_name: str) -> str:
-        """Generate a deterministic skolem URI for a nested resource.
-
-        A *skolem* URI is the standard RDF way to give a stable name to
-        something that would otherwise be a blank node (see RDF 1.1
-        §3.5). We need this for every nested object that does *not*
-        correspond to a first-class OpenAtlas entity — timespans, name
-        appellations, dimensions, identifiers, etc. — because Linked Art
-        consumers and SHACL validators expect every resource to have an
-        ``id``.
-
-        The id is derived from the parent entity/link id plus a
-        type-specific suffix, hashed to 16 hex chars and resolved
-        through the ``api.skolem_proxy`` endpoint. The hash means the
-        URIs are short and opaque; determinism means the same export
-        always produces the same URIs, which is required for diffing
-        and caching downstream.
-        """
         seed = f"{id_}_{type_name}".encode('utf-8')
         identifier_hash = hashlib.sha256(seed).hexdigest()[:16]
         return url_for(
@@ -823,22 +553,6 @@ class LoudFormatter:
             self,
             entity: Entity | Link,
             links_: list[Link] | None = None) -> dict[str, Any]:
-        """Return the LOUD timespan block for an entity or link.
-
-        Three shapes are produced depending on the input:
-
-        - **Persons / groups** — expanded to a full birth/death (or
-          formation/dissolution) Event pair via
-          :meth:`_get_life_event_timespan` because Linked Art models the
-          life span of an actor through such events rather than a flat
-          TimeSpan.
-        - **Any other entity or Link with dates** — a single ``timespan``
-          key whose value is a skolemised ``TimeSpan`` carrying the
-          begin/end dates (see :meth:`_get_loud_begin_dates` /
-          :meth:`_get_loud_end_dates`).
-        - **No dates** — an empty dict, so callers can safely splat it
-          into the output without producing empty keys.
-        """
         if not isinstance(entity, Link) \
                 and entity.class_.name in self.LIFE_EVENT_CONFIG:
             return self._get_life_event_timespan(entity, links_)
@@ -859,16 +573,6 @@ class LoudFormatter:
             event_type: str,
             dates: dict[str, Any],
             has_dates: bool) -> dict[str, Any]:
-        """Build a Birth/Death/Formation/Dissolution Event stub.
-
-        Persons and groups don't carry their dates directly in LOUD;
-        instead the dates live on a dedicated event resource. This
-        helper produces that event stub, optionally embedding a
-        TimeSpan when ``has_dates`` is true. The event is always emitted
-        even without dates because it may still carry a place
-        (``took_place_at``) added later in
-        :meth:`_get_life_event_timespan`.
-        """
         skolem_key = event_type.lower()
         event: dict[str, Any] = {
             'id': self.generate_skolem_id(entity.id, skolem_key),
@@ -888,16 +592,6 @@ class LoudFormatter:
             self,
             entity: Entity,
             links_: list[Link] | None) -> dict[str, Any]:
-        """Build the begin/end life events for a Person or Group.
-
-        Walks the entity's begin/end dates plus any place links
-        (``OA8`` = took place at birth/formation, ``OA9`` = took place
-        at death/dissolution) and packages them into the LOUD keys
-        defined in ``LIFE_EVENT_CONFIG`` (e.g. ``born`` / ``died_in``
-        for persons, ``formed_by`` / ``dissolved_by`` for groups). An
-        event is included only if it has dates *or* a place — we don't
-        emit empty Birth/Death stubs.
-        """
         config = self.LIFE_EVENT_CONFIG[entity.class_.name]
         has_begin = bool(entity.dates.begin_from or entity.dates.begin_to)
         has_end = bool(entity.dates.end_from or entity.dates.end_to)
@@ -930,15 +624,6 @@ class LoudFormatter:
 
     @staticmethod
     def _get_loud_begin_dates(entity: Entity | Link) -> dict[str, Any]:
-        """Translate OpenAtlas begin dates to LOUD TimeSpan keys.
-
-        OpenAtlas stores an interval as four dates (begin_from /
-        begin_to / end_from / end_to). Linked Art's TimeSpan uses
-        ``begin_of_the_begin`` / ``end_of_the_begin`` etc. We map them
-        one-to-one and additionally pass through ``begin_comment`` as
-        ``beginning_is_qualified_by``. ``None`` values are dropped so
-        the resulting dict can be merged without producing nulls.
-        """
         data = {
             'begin_of_the_begin':
                 date_to_utc_iso_str(entity.dates.begin_from),
@@ -948,15 +633,6 @@ class LoudFormatter:
 
     @staticmethod
     def _get_loud_end_dates(entity: Entity | Link) -> dict[str, Any]:
-        """Translate OpenAtlas end dates to LOUD TimeSpan keys.
-
-        Counterpart of :meth:`_get_loud_begin_dates` for the closing
-        side of an interval. We add one bit of best-effort recovery: if
-        the user only provided an *open-ended* interval (no end dates
-        at all), we still emit an ``end_of_the_end`` derived from the
-        next-best-available date, because SHACL shapes on Linked Art
-        TimeSpans require both bounds to be present.
-        """
         begin_of_the_end = date_to_utc_iso_str(entity.dates.end_from)
         end_of_the_end = date_to_utc_iso_str(entity.dates.end_to)
         if end_of_the_end is None:
@@ -973,15 +649,6 @@ class LoudFormatter:
             self,
             image_links: list[Link],
             properties_set: dict[str, Any]) -> None:
-        """Attach image / PDF media to the entity as LOUD representations.
-
-        Each linked image becomes a ``VisualWorks`` enriched with its
-        DigitalObject details and bundled under a single ``VisualItem``
-        on the entity's ``representation`` slot. PDFs are handled
-        differently: they are not visual works in the Linked Art sense,
-        so they are exposed under ``subject_of`` as LinguisticObjects
-        digitally carried by the PDF DigitalObject.
-        """
         representation = []
         subject_of = []
         for link_ in image_links:
@@ -1013,15 +680,6 @@ class LoudFormatter:
 
     @staticmethod
     def get_iiif_subject_of(image_links: list[Link]) -> list[dict[str, Any]]:
-        """Build ``subject_of`` stubs pointing at IIIF manifests, if any.
-
-        For files that have an associated IIIF manifest we expose the
-        manifest as a LinguisticObject (the descriptive metadata
-        document) digitally carried by a DigitalObject whose
-        ``access_point`` is the manifest URL and which ``conforms_to``
-        the IIIF Presentation API 2.0. Files without a manifest are
-        silently skipped so callers can use the result as-is.
-        """
         subject_of = []
         skolem = LoudFormatter.generate_skolem_id
         for link_ in image_links:
@@ -1059,15 +717,6 @@ class LoudFormatter:
             link_: Link,
             properties_set: dict[str, Any],
             entity: Entity) -> None:
-        """Materialise an inverse ``P67`` link from an authority reference.
-
-        When an entity is referenced by an external authority record
-        (``E32 Authority Document`` in CIDOC) we want two things in
-        LOUD: a same-as link (``equivalent`` or close-match attribution)
-        for graph reasoners, *and* a proper ``Identifier`` under
-        ``identified_by`` so the reference is also discoverable through
-        the entity's identifier list. This helper writes both at once.
-        """
         system = g.reference_systems[link_.domain.id]
         skolem = LoudFormatter.generate_skolem_id
         match_reference = {
@@ -1105,15 +754,6 @@ class LoudFormatter:
             self,
             link_: Link,
             properties_set: dict[str, Any]) -> None:
-        """Render an inverse ``P107 is member of`` link.
-
-        Linked Art expresses membership both *statically* (the entity is
-        in ``member_of``) and *dynamically* (an Activity describing the
-        role and its dates is added under ``carried_out``). We emit the
-        static link always and add the activity only when the
-        membership has a role type or dates worth exporting — otherwise
-        the activity would carry no information.
-        """
         domain = link_.domain
         group_ref = {
             'id': entity_uri(domain),
@@ -1144,22 +784,6 @@ class LoudFormatter:
             properties_set: dict[str, Any],
             is_inverse: bool,
             root_entity: Entity) -> None:
-        """Top-level dispatcher: route one Link to the right LOUD shape.
-
-        Special cases are handled first because they don't fit the
-        generic ``format_link`` -> ``properties_set[key].append`` pipe:
-
-        - ``P53`` (current/has location) for the *domain* side becomes
-          a single dict with the WKT geometry inlined as ``defined_by``;
-        - inverse ``P67`` from an E32 Authority Document delegates to
-          :meth:`handle_authority_reference`;
-        - inverse ``P107`` delegates to :meth:`handle_membership`;
-        - ``P2`` with a 'Radiocarbon' range delegates to
-          :meth:`handle_radiocarbon`.
-
-        Everything else takes the regular path: format the link's
-        target as a stub and append it under the resolved property key.
-        """
         code = link_.property.code
         is_domain = is_inverse
         if code == 'P53':
@@ -1191,20 +815,6 @@ class LoudFormatter:
             file_links: list[Link],
             properties_set: dict[str, Any],
             entity: Entity) -> None:
-        """Attach all media-related blocks for a given entity.
-
-        Three things happen here, in order:
-
-        1. Linked files become ``representation`` / ``subject_of``
-           entries via :meth:`get_loud_representations`.
-        2. Linked files that expose a IIIF manifest add additional
-           ``subject_of`` entries via :meth:`get_iiif_subject_of`.
-        3. When the entity itself *is* a file (the root entity is a
-           DigitalObject) the file's own size, mime, license and rights
-           metadata are merged into ``properties_set``. The license is
-           moved into ``referred_to_by`` so it doesn't clobber any
-           license entries coming from other sources.
-        """
         if file_links:
             self.get_loud_representations(file_links, properties_set)
             if iiif := self.get_iiif_subject_of(file_links):
@@ -1220,13 +830,6 @@ class LoudFormatter:
     def handle_description(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
-        """Emit the entity's description as a LinguisticObject.
-
-        Plain text descriptions in OpenAtlas become ``referred_to_by``
-        LinguisticObjects classified as 'description'. If the
-        description carries inline text annotations we also attach them
-        as ``part`` LinguisticObjects (see :meth:`_build_annotation`).
-        """
         description: dict[str, Any] = {
             'id': LoudFormatter.generate_skolem_id(entity.id, 'description'),
             "type": "LinguisticObject",
@@ -1246,18 +849,6 @@ class LoudFormatter:
     def _build_annotation(
             annotation: AnnotationText,
             entity: Entity) -> dict[str, Any]:  # pragma: no cover
-        """Render an inline text annotation as a LOUD LinguisticObject.
-
-        Annotations carry a slice of the parent description plus an
-        optional link to another entity. We mirror that in LOUD with:
-
-        - a LinguisticObject containing the annotated substring,
-        - a digitally_carried_by DigitalObject acting as the *selector*
-          (offset-based Text Position Selector, per Web Annotations),
-        - optionally an ``about`` link to the referenced entity,
-        - optionally a separate ``referred_to_by`` carrying the user's
-          own note.
-        """
         skolem = LoudFormatter.generate_skolem_id
         text = entity.description or ''
         inner_text = text[annotation.link_start:annotation.link_end]
@@ -1316,23 +907,6 @@ class LoudFormatter:
 
     @staticmethod
     def _inline_identifiers(entity: Entity) -> list[dict[str, Any]]:
-        """Build the canonical ``identified_by`` list for an entity.
-
-        Every entity gets three identifiers, in this fixed order so
-        diffing across exports stays stable:
-
-        1. its primary name (the human-readable label, see
-           :func:`primary_name`),
-        2. its internal database URL (``api.entity`` with ``format=loud``
-           — the entry point a developer would hit to retrieve the
-           machine-readable LOUD document),
-        3. its globally unique URI (``entity_uri``).
-
-        The third one duplicates ``id`` on purpose: SHACL shapes on
-        ``Identifier`` require ``content``, so we need an Identifier
-        node carrying the URI as content even when the same URI is
-        already the resource's ``id``.
-        """
         skolem = LoudFormatter.generate_skolem_id
         internal_id = url_for(
             'api.entity',
@@ -1358,15 +932,6 @@ class LoudFormatter:
     def add_core_metadata(
             entity: Entity,
             properties_set: dict[str, Any]) -> None:
-        """Inject the entity's identifiers (and geometry, if any) at the root.
-
-        Differs from :meth:`_inline_identifiers` only in that the
-        primary name's skolem id is ``primary_name`` instead of
-        ``appellation`` — the root-level appellation gets a stable id
-        of its own so downstream consumers can link to it. For
-        ``object_location`` entities we additionally inline the WKT
-        geometry as ``defined_by`` (PFP / GeoSPARQL convention).
-        """
         skolem = LoudFormatter.generate_skolem_id
         identifiers = LoudFormatter._inline_identifiers(entity)
         identifiers[0] = primary_name(
@@ -1382,20 +947,6 @@ class LoudFormatter:
             entity: Entity,
             properties_set: dict[str, Any],
             links_data: list[Link]) -> dict[str, Any]:
-        """Assemble the final LOUD JSON-LD document for the root entity.
-
-        Order of keys matters for human readability of the JSON output,
-        so we merge with ``|`` in this deliberate sequence:
-
-        1. ``@context`` first — conventionally the very first JSON-LD
-           key consumers expect to see;
-        2. the root entity's id/type/_label/archaeology classification;
-        3. the timespan / life-events block;
-        4. all the accumulated property triples (``identified_by``,
-           ``classified_as``, ``referred_to_by``, ...).
-
-        Returns a plain dict ready to be serialised as JSON-LD.
-        """
         self.add_core_metadata(entity, properties_set)
         if entity.description:
             self.handle_description(entity, properties_set)
@@ -1409,28 +960,6 @@ def get_loud_entities(
         data: dict[str, Any],
         loud: dict[str, str],
         type_references: dict[int, list[Link]]) -> Any:
-    """Build the full LOUD JSON-LD document for one OpenAtlas entity.
-
-    This is the public entry point used by the API. ``data`` is the
-    bundle prepared upstream and contains:
-
-    - ``entity`` — the root :class:`Entity`,
-    - ``links`` — outgoing Links (``entity`` is the domain),
-    - ``links_inverse`` — incoming Links (``entity`` is the range).
-
-    Processing happens in three passes:
-
-    1. Outgoing links are dispatched to :meth:`LoudFormatter.process_link`,
-       except for ``OA8`` / ``OA9`` (birth/death/formation/dissolution
-       places) which are consumed later by the timespan logic instead.
-    2. Incoming links go through the same dispatcher, with one
-       optimisation: file links are collected separately so they can be
-       batched into :meth:`process_media_links`. Doing them one-by-one
-       would produce N independent ``representation`` containers
-       instead of one.
-    3. ``finalize_output`` assembles everything into a single JSON-LD
-       dict, including the ``@context``.
-    """
     entity = data['entity']
     formatter = LoudFormatter(loud, type_references)
     properties_set: dict[str, Any] = defaultdict(list)
@@ -1454,15 +983,6 @@ def get_loud_entities(
 
 
 def get_loud_crm_relation(link_: Link, inverse: bool = False) -> str:
-    """Build the CIDOC-CRM property label used as a LOUD context key.
-
-    The LOUD ``@context`` (see ``loud.json``) is keyed by the
-    concatenation ``crm:<code> <english label>`` (or, for inverse
-    properties, ``crm:<code>i <inverse english label>``). This helper
-    reconstructs that string from a Link so
-    :meth:`LoudFormatter._loud_relation`
-    can look the corresponding LOUD property name up in the context.
-    """
     property_ = f' {link_.property.i18n['en']}'
     if inverse and link_.property.i18n_inverse['en']:
         property_ = f'i {link_.property.i18n_inverse['en']}'
