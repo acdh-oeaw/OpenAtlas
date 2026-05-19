@@ -20,7 +20,7 @@ class ReferenceSystemTest(TestBaseCase):
                 'ajax_external_api',
                 system_id=get_reference_system_by_name_safe('GeoNames').id),
             data={'id_': '747712'})
-        # assert b'Edirne' in rv.data
+        assert b'Edirne' in rv.data
 
         rv = c.post(
             url_for(
