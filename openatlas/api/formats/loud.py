@@ -595,13 +595,23 @@ class LoudFormatter:
         config = self.LIFE_EVENT_CONFIG[entity.class_.name]
         has_begin = bool(entity.dates.begin_from or entity.dates.begin_to)
         has_end = bool(entity.dates.end_from or entity.dates.end_to)
+        begin_dates = self._get_loud_begin_dates(entity)
+        if 'end_of_the_begin' in begin_dates:
+            begin_dates['end_of_the_end'] = begin_dates.pop('end_of_the_begin')
+        elif 'begin_of_the_begin' in begin_dates:
+            begin_dates['end_of_the_end'] = begin_dates['begin_of_the_begin']
         begin_event = self._make_life_event(
             entity, config['begin_type'],
-            self._get_loud_begin_dates(entity),
+            begin_dates,
             has_begin)
+        end_dates = self._get_loud_end_dates(entity)
+        if 'begin_of_the_end' in end_dates:
+            end_dates['begin_of_the_begin'] = end_dates.pop('begin_of_the_end')
+        elif 'end_of_the_end' in end_dates:
+            end_dates['begin_of_the_begin'] = end_dates['end_of_the_end']
         end_event = self._make_life_event(
             entity, config['end_type'],
-            self._get_loud_end_dates(entity),
+            end_dates,
             has_end)
         for link_ in links_ or []:
             place = {
