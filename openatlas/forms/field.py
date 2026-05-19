@@ -3,6 +3,7 @@ from __future__ import annotations
 # pylint: disable=too-few-public-methods
 # mypy: ignore-errors, too much trouble to mypy check form elements
 import ast
+from pathlib import Path
 from typing import Any, Optional
 
 from flask import g, render_template, request
@@ -140,14 +141,13 @@ class ReferenceField(Field):
         self.reference_system_id = reference_system_id
         self.data = {'value': '', 'precision': ''}
         self.row_css = 'reference-system-switch'
-        if api := g.reference_systems[reference_system_id].api:
-            match api:
-                case 'gnd' | 'wikidata' | 'openatlas':
-                    self.reference_system_js = Markup(
-                        render_template(
-                            f'autocomplete/{api}.html',
-                            system_id=reference_system_id))
-
+        if (api := g.reference_systems[reference_system_id].api) and \
+                (Path(app.root_path) / app.template_folder / 'autocomplete'
+                    / f'{api}.html').exists():
+            self.reference_system_js = Markup(
+                render_template(
+                    f'autocomplete/{api}.html',
+                    system_id=reference_system_id))
 
     def process_formdata(self, valuelist: list[str]) -> None:
         self.data = {

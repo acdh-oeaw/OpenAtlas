@@ -381,10 +381,10 @@ INSERT INTO model.entity (name, cidoc_class_code, description, openatlas_class_n
 
 INSERT INTO web.reference_system (system, name, api, entity_id, resolver_url, website_url, identifier_example)
 VALUES
-  (true, 'GeoNames', 'geonames', (SELECT id FROM model.entity WHERE name = 'GeoNames' AND cidoc_class_code = 'E32'), 'https://www.geonames.org/', 'https://www.geonames.org/', '1234567'),
-  (true, 'Wikidata', 'wikidata', (SELECT id FROM model.entity WHERE name = 'Wikidata' AND cidoc_class_code = 'E32'), 'https://www.wikidata.org/entity/', 'https://www.wikidata.org', 'Q123'),
-  (true, 'GND',      'gnd',      (SELECT id FROM model.entity WHERE name = 'GND'      AND cidoc_class_code = 'E32'), 'https://lobid.org/gnd/', 'https://d-nb.info/standards/elementset/gnd', '119338467'),
-  (true, 'Cadaster',  Null,      (SELECT id FROM model.entity WHERE name = 'Cadaster' AND cidoc_class_code = 'E32'), 'https://kataster.bev.gv.at/api/gst/', 'https://kataster.bev.gv.at/', '01004/784/1');
+  (true, 'GeoNames', 'GeoNames', (SELECT id FROM model.entity WHERE name = 'GeoNames' AND cidoc_class_code = 'E32'), 'https://www.geonames.org/', 'https://www.geonames.org/', '1234567'),
+  (true, 'Wikidata', 'Wikidata', (SELECT id FROM model.entity WHERE name = 'Wikidata' AND cidoc_class_code = 'E32'), 'https://www.wikidata.org/entity/', 'https://www.wikidata.org', 'Q123'),
+  (true, 'GND',      'GND',      (SELECT id FROM model.entity WHERE name = 'GND'      AND cidoc_class_code = 'E32'), 'https://lobid.org/gnd/', 'https://d-nb.info/standards/elementset/gnd', '119338467'),
+  (true, 'Cadaster', 'Cadaster', (SELECT id FROM model.entity WHERE name = 'Cadaster' AND cidoc_class_code = 'E32'), 'https://kataster.bev.gv.at/api/gst/', 'https://kataster.bev.gv.at/', '01004/784/1');
 
 INSERT INTO model.link (property_code, range_id, domain_id) VALUES
   ('P2', (SELECT id FROM model.entity WHERE name='exact match'), (SELECT id FROM model.entity WHERE name='Cadaster'));

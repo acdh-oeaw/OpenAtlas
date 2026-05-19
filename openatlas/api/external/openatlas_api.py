@@ -6,7 +6,7 @@ from openatlas import app
 from openatlas.api.external.base import ExternalApi
 
 
-class OpenAtlasAPI(ExternalApi):  # pylint: disable=too-few-public-methods
+class OpenAtlas(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:

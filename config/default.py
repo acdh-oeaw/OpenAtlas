@@ -27,11 +27,11 @@ LANGUAGES = {
     'pl': 'Polski'}
 
 EXTERNAL_API = [
-    'cadastre',
-    'geonames',
-    'gnd',
-    'openatlas_api',
-    'wikidata']
+    'Cadaster',
+    'GeoNames',
+    'GND',
+    'OpenAtlas',
+    'Wikidata']
 
 # Paths are implemented operating system independent using pathlib.
 # To override them (in instance/production.py) either use them like here
