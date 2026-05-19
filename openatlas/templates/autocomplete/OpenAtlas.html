@@ -8,9 +8,12 @@
     bootstrapVersion: '4',
     resolver: 'custom',
     formatResult: function (item) {
+      const formattedClass = item.system_class.replace(/_/g, ' ');
+      const systemClass = formattedClass.charAt(0).toUpperCase() + formattedClass.slice(1);
+      const desc = item.description ? `<br><small>${item.description}</small>` : '';
       return {
         value: item.id,
-        text: `${item.name} - ${item.description}<br><small>${item.id}</small>`
+        text: `${item.name} - ${systemClass}${desc}`
       };
     },
     events: {
