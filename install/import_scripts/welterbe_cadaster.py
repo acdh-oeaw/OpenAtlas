@@ -4,7 +4,7 @@ from pathlib import Path
 
 from openatlas import app
 from openatlas.models.entity import (
-    Entity, get_reference_system_by_name, insert)
+    Entity, get_reference_system_by_name_safe, insert)
 
 # Download data from (Tab 'Distributionen/Distributions')
 # https://www.data.gv.at/datasets/5a56bef7-7b60-4822-9da7-1d118f312a4d
@@ -30,7 +30,7 @@ with app.test_request_context():
     app.preprocess_request()
 
     cadaster_hierarchy = Entity.get_by_id(CADASTER_HIERARCHY_ID)
-    cadaster_reference_system = get_reference_system_by_name('Cadaster')
+    cadaster_reference_system = get_reference_system_by_name_safe('Cadaster')
     entries = import_csv_data()
     cadaster_hierarchy_subs = {
         e.name: e for e in Entity.get_by_ids(cadaster_hierarchy.subs)}

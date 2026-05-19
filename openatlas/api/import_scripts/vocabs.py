@@ -4,7 +4,7 @@ from flask import g
 
 from openatlas.api.import_scripts.util import (
     get_exact_match, get_match_types, vocabs_requests)
-from openatlas.models.entity import Entity, get_reference_system_by_name, \
+from openatlas.models.entity import Entity, get_reference_system_by_name_safe, \
     insert
 
 
@@ -189,7 +189,7 @@ def get_external_references_from_mapping(
         match mapping['vocabName']:
             case 'www.wikidata.org':
                 link_name = str(mapping['hrefLink'].rsplit('/', 1)[-1])
-                if ref_system := get_reference_system_by_name('Wikidata'):
+                if ref_system := get_reference_system_by_name_safe('Wikidata'):
                     out.append((link_name, ref_system, match_type))
     return out
 
