@@ -4,12 +4,13 @@ from flask import g
 
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
+from openatlas.models.entity import Entity
 
 
 class GeoNames(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str) -> dict[str, object]:
+    def get_info(id_: str, system: Entity) -> dict[str, object]:
         params = {
             'geonameId': {id_},
             'username': {g.settings['geonames_username']}}

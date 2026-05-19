@@ -194,7 +194,7 @@ async function ajaxAPICall(props, id){
 async function ajaxApiInfo(api, system_id, data) {
   ajaxAPICall({
       type: 'post',
-      url: '/ajax/api/' + api,
+      url: '/ajax/api/' + system_id,
       data: 'id_=' + data},
     system_id)
 }

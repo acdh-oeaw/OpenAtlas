@@ -4,16 +4,16 @@ import requests
 
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
+from openatlas.models.entity import Entity
 
 
 class OpenAtlas(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str) -> dict[str, object]:
+    def get_info(id_: str, system: Entity) -> dict[str, object]:
         info: dict[str, object] = {}
         try:
-            api_url = \
-                'https://demo-dev.openatlas.eu/api/entity_presentation_view/'
+            api_url = f'{system.website_url}/api/entity_presentation_view/'
             data = requests.get(
                 # f'{g.openatlas.resolver_url}{id_}',
                 f'{api_url}/{id_}',

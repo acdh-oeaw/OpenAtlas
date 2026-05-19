@@ -5,18 +5,17 @@ import requests
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
-from openatlas.models.entity import get_reference_system_by_name_safe
+from openatlas.models.entity import Entity
 
 
 class GND(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str) -> dict[str, object]:
+    def get_info(id_: str, system: Entity) -> dict[str, object]:
         info: dict[str, object] = {}
-        gnd = get_reference_system_by_name_safe('gnd')
         try:
             data = requests.get(
-                f'{gnd.resolver_url}{id_}.json',
+                f'{system.resolver_url}{id_}.json',
                 proxies=app.config['PROXIES'],
                 timeout=10).json()
         except Exception:  # pragma: no cover

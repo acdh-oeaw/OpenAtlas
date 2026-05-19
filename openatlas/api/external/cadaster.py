@@ -9,7 +9,7 @@ from openatlas.display.util import link
 class Cadaster(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str) -> dict[str, object]:
+    def get_info(id_: str, system_id: int) -> dict[str, object]:
         endpoint = 'gst/' if '/' in id_ else 'kgnr/'
         info = {}
         try:

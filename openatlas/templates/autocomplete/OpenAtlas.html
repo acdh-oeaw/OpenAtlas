@@ -4,7 +4,7 @@
    * Documentation: https://bootstrap-autocomplete.readthedocs.io/en/latest/
    * Bootstrap version needs to be manually set d/t
   */
-  $('input[data-reference-system={{ system_id }}]').autoComplete({
+  $('input[data-reference-system={{ system.id }}]').autoComplete({
     bootstrapVersion: '4',
     resolver: 'custom',
     formatResult: function (item) {
@@ -16,7 +16,7 @@
     events: {
       search: function (qry, callback) {
         $.ajax({
-          url: "https://demo-dev.openatlas.eu/api/search/all",
+          url: "{{ system.website_url }}/api/search/all",
           dataType: "json",
           data: {
             term: qry
@@ -29,6 +29,6 @@
       }
     }
   }).on('autocomplete.select', function(evt,item) {
-    $('input[data-reference-system={{ system_id }}]').val(item.id.substring(item.id.lastIndexOf('/') + 1));
+    $('input[data-reference-system={{ system.id }}]').val(item.id.substring(item.id.lastIndexOf('/') + 1));
   });
 </script>
