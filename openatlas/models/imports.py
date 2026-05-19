@@ -18,8 +18,8 @@ from openatlas.api.resources.error import EntityDoesNotExistError
 from openatlas.database import imports as db
 from openatlas.database.connect import Transaction
 from openatlas.display.util2 import sanitize
-from openatlas.models.entity import Entity, get_reference_system_by_name, \
-    insert
+from openatlas.models.entity import (
+    Entity, get_reference_system_by_name, insert)
 
 
 class Project:
@@ -241,19 +241,16 @@ def link_references(
     systems = list(set(i for i in row if i.startswith('reference_system_')))
     for header in systems:
         system = header.replace('reference_system_', '')
-        try:
-            if reference_system := get_reference_system_by_name(system):
-                if ((data := row.get(header)) and
-                        class_ in reference_system.classes):
-                    values = data.split(';')
-                    if values[1] in match_types:
-                        reference_system.link(
-                            'P67',
-                            entity,
-                            values[0],
-                            type_id=match_types[values[1]].id)
-        except 418:
-            pass
+        if reference_system := get_reference_system_by_name(system):
+            if ((data := row.get(header)) and
+                    class_ in reference_system.classes):
+                values = data.split(';')
+                if values[1] in match_types:
+                    reference_system.link(
+                        'P67',
+                        entity,
+                        values[0],
+                        type_id=match_types[values[1]].id)
 
 
 def get_coordinates_from_wkt(coordinates: str) -> dict[str, Any]:
@@ -264,10 +261,10 @@ def get_coordinates_from_wkt(coordinates: str) -> dict[str, Any]:
     geometries = []
     if wkt_:
         if wkt_.geom_type in {
-                "MultiPoint",
-                "MultiLineString",
-                "MultiPolygon",
-                "GeometryCollection"}:
+            "MultiPoint",
+            "MultiLineString",
+            "MultiPolygon",
+            "GeometryCollection"}:
             for poly in wkt_.geoms:
                 geometries.append(convert_wkt_to_geojson(poly))
         else:

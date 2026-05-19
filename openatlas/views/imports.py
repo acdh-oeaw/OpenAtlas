@@ -39,7 +39,6 @@ from openatlas.models.imports import (
 
 _('invalid columns')
 _('possible duplicates')
-_('invalid administrative units')
 _('invalid dates')
 _('invalid reference system class')
 _('invalid reference system')
@@ -450,8 +449,6 @@ def get_allowed_columns(class_: str) -> dict[str, list[str]]:
         columns.extend(['parent_id', 'openatlas_parent_id'])
     if class_ in ['place', 'type']:
         columns.extend(['openatlas_class'])
-    if class_ in ['place']:
-        columns.extend(['administrative_unit_id', 'historical_place_id'])
     return {
         'allowed': columns,
         'valid': [],
@@ -583,12 +580,6 @@ def check_cell_value(
                 row[item] = ''
                 value = '' if str(value) == 'NaT' else error_span(value)
                 checks.set_warning('invalid_dates', id_)
-        case 'administrative_unit_id' | 'historical_place_id' if value:
-            if ((not str(value).isdigit() or int(value) not in g.types) or
-                    g.types[g.types[int(value)].root[0]].name not in [
-                        'Administrative unit', 'Historical place']):
-                value = error_span(value)
-                checks.set_warning('invalid_administrative_units', id_)
         case 'openatlas_class' if value:
             if (value.lower().replace(' ', '_') not in (
                     g.class_groups['place']['classes'] +
@@ -609,11 +600,7 @@ def check_cell_value(
                 checks.set_error('invalid_parent_class', id_)
         case _ if item.startswith('reference_system_') and value:
             item = item.replace('reference_system_', '')
-            reference_system = None
-            try:
-                reference_system = get_reference_system_by_name(item)
-            except 418:
-                pass
+            reference_system = get_reference_system_by_name(item)
             if not reference_system:
                 value = error_span(value)
                 checks.set_warning('invalid_reference_system', id_)

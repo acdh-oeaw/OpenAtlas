@@ -1,6 +1,6 @@
 from flask import url_for
 
-from openatlas.models.entity import get_reference_system_by_name
+from openatlas.models.entity import get_reference_system_by_name_safe
 from tests.base import TestBaseCase
 
 
@@ -50,7 +50,7 @@ class ReferenceSystemTest(TestBaseCase):
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data
 
-        geonames = get_reference_system_by_name('geonames')
+        geonames = get_reference_system_by_name_safe('geonames')
         data['name'] = 'No name change for system classes'
         rv = c.post(
             url_for('update', id_=geonames.id),
@@ -90,8 +90,8 @@ class ReferenceSystemTest(TestBaseCase):
         rv = c.get(url_for('update', id_=geonames.id))
         assert b'website URL' in rv.data
 
-        gnd = get_reference_system_by_name('gnd')
-        wikidata = get_reference_system_by_name('wikidata')
+        gnd = get_reference_system_by_name_safe('gnd')
+        wikidata = get_reference_system_by_name_safe('wikidata')
         rv = c.post(
             url_for('insert', class_='person'),
             data={

@@ -4,7 +4,7 @@ from typing import Any
 from flask import url_for
 
 from openatlas import app
-from openatlas.models.entity import Entity, get_reference_system_by_name
+from openatlas.models.entity import Entity, get_reference_system_by_name_safe
 from tests.base import TestBaseCase, get_hierarchy, insert
 
 
@@ -17,7 +17,7 @@ class PlaceTest(TestBaseCase):
             source = insert('source', 'Necronomicon')
 
         unit_type = get_hierarchy('Administrative unit')
-        geonames = get_reference_system_by_name('geonames')
+        geonames = get_reference_system_by_name_safe('geonames')
         data: dict[Any, Any] = {
             'name': 'Asgard',
             'alias-0': 'Valhöll',

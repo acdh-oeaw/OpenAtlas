@@ -3,14 +3,14 @@ import requests
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
-from openatlas.models.entity import get_reference_system_by_name
+from openatlas.models.entity import get_reference_system_by_name_safe
 
 
 class Wikidata(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_info(id_: str) -> dict[str, object]:
-        wikidata = get_reference_system_by_name('gnd')
+        wikidata = get_reference_system_by_name_safe('gnd')
 
         def add_resolver_url(wikidata_id: str) -> str:
             return link(

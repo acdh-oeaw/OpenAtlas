@@ -935,13 +935,18 @@ def get_entity_ids_with_links(
     return db.get_entity_ids_with_links(property_, classes, inverse)
 
 
-def get_reference_system_by_name(name: str) -> Entity:
+def get_reference_system_by_name_safe(name: str) -> Entity:
+    result = get_reference_system_by_name(name)
+    if not result:
+        abort(418, f'Missing reference system {name}')
+    return result
+
+
+def get_reference_system_by_name(name: str) -> Entity | None:
     result = None
     for system in g.reference_systems.values():
         if system.name.lower().replace('_', ' ') \
                 == name.lower().replace('_', ' '):
             result = system
             break
-    if not result:
-        abort(418, f'Missing reference system {name}')
     return result
