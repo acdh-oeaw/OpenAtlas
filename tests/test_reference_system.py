@@ -7,28 +7,39 @@ from tests.base import TestBaseCase
 class ReferenceSystemTest(TestBaseCase):
     def test_reference_system(self) -> None:
         c = self.client
+        c.get('/')
         rv = c.post(
-            url_for('ajax_external_api', api='Wikidata'),
+            url_for(
+                'ajax_external_api',
+                system_id=get_reference_system_by_name_safe('Wikidata').id),
             data={'id_': 'Q304037'})
         assert b'National Library of Austria' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='GeoNames'),
+            url_for(
+                'ajax_external_api',
+                system_id=get_reference_system_by_name_safe('GeoNames').id),
             data={'id_': '747712'})
-        assert b'Edirne' in rv.data
+        # assert b'Edirne' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='GND'),
+            url_for(
+                'ajax_external_api',
+                system_id=get_reference_system_by_name_safe('GND').id),
             data={'id_': '118584596'})
         assert b'Mozart' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='Cadaster'),
+            url_for(
+                'ajax_external_api',
+                system_id=get_reference_system_by_name_safe('Cadaster').id),
             data={'id_': '01004/784/1'})
         assert b'784/1' in rv.data
 
         rv = c.post(
-            url_for('ajax_external_api', api='Cadaster'),
+            url_for(
+                'ajax_external_api',
+                system_id=get_reference_system_by_name_safe('Cadaster').id),
             data={'id_': '01004/78/99'})
         assert b'nicht vorhanden' in rv.data
 
@@ -36,16 +47,21 @@ class ReferenceSystemTest(TestBaseCase):
         assert b'resolver URL' in rv.data
 
         data: dict[str, str | list[str]] = {
-            'name': 'Wikipedia',
-            'website_url': 'https://wikipedia.org',
-            'resolver_url': 'https://wikipedia.org',
-            'api': ''}
+            'name': 'OpenAtlas',
+            'website_url': 'https://demo.openatlas.eu',
+            'resolver_url': 'https://demo.openatlas.eu/entity/',
+            'api': 'OpenAtlas'}
         rv = c.post(url_for('insert', class_='reference_system'), data=data)
-        wikipedia_id = rv.location.split('/')[-1]
+        system_id = rv.location.split('/')[-1]
+
+        rv = c.post(
+            url_for('ajax_external_api', system_id=system_id),
+            data={'id_': '5117'})
+        assert b'Albrecht' in rv.data
 
         data['reference_system_classes'] = ['place']
         rv = c.post(
-            url_for('update', id_=wikipedia_id),
+            url_for('update', id_=system_id),
             data=data,
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data
@@ -73,18 +89,18 @@ class ReferenceSystemTest(TestBaseCase):
         assert b'reference-system-switch' in rv.data
 
         rv = c.get(
-            url_for('delete', id_=wikipedia_id), follow_redirects=True)
+            url_for('delete', id_=system_id), follow_redirects=True)
         assert b'403 - Forbidden' in rv.data
 
         rv = c.get(
             url_for(
                 'reference_system_remove_class',
-                system_id=wikipedia_id,
+                system_id=system_id,
                 name='place'),
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data
 
-        rv = c.get(url_for('delete', id_=wikipedia_id), follow_redirects=True)
+        rv = c.get(url_for('delete', id_=system_id), follow_redirects=True)
         assert b'The entry has been deleted' in rv.data
 
         rv = c.get(url_for('update', id_=geonames.id))

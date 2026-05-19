@@ -4,12 +4,13 @@ from shapely.geometry import shape
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
 from openatlas.display.util import link
+from openatlas.models.entity import Entity
 
 
 class Cadaster(ExternalApi):  # pylint: disable=too-few-public-methods
 
     @staticmethod
-    def get_info(id_: str, system_id: int) -> dict[str, object]:
+    def get_info(id_: str, system: Entity) -> dict[str, object]:
         endpoint = 'gst/' if '/' in id_ else 'kgnr/'
         info = {}
         try:

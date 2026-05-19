@@ -142,8 +142,8 @@ class ReferenceField(Field):
         self.data = {'value': '', 'precision': ''}
         self.row_css = 'reference-system-switch'
         system = g.reference_systems[reference_system_id]
-        if system.api and (Path(app.root_path) / app.template_folder / 'autocomplete'
-                    / f'{system.api}.html').exists():
+        if system.api and (Path(app.root_path) / app.template_folder /
+                'autocomplete' / f'{system.api}.html').exists():
             self.reference_system_js = Markup(
                 render_template(
                     f'autocomplete/{system.api}.html',

@@ -60,7 +60,7 @@ def ajax_create_entity() -> str:
     return str(entity.id)
 
 
-@app.route('/ajax/api/<int:system_id>', methods=['POST'])
+@app.route('/ajax/api/<int:system_id>', methods=['GET', 'POST'])
 @required_group('readonly')
 def ajax_external_api(system_id: int) -> str:
     system = g.reference_systems[system_id]
