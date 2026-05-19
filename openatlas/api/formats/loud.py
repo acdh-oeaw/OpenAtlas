@@ -11,7 +11,7 @@ from openatlas import app
 from openatlas.api.resources.util import (
     date_to_utc_iso_str,
     get_iiif_manifest_and_path,
-    get_license_type, remove_spaces_dashes)
+    get_license_type, is_float, remove_spaces_dashes)
 from openatlas.database.gis import get_wkt_by_id
 from openatlas.display.util2 import get_file_path
 from openatlas.models.annotation import AnnotationText
@@ -67,7 +67,9 @@ TYPE_OVERWRITES = {
     'human_remains': 'BiologicalObject',
     'place': 'Site',
     'feature': 'HumanMadeFeature',
-    'stratigraphic_unit': 'StratigraphicUnit'}
+    'stratigraphic_unit':
+        'https://www.cidoc-crm.org/extensions/crmarchaeo/'
+        'A8_Stratigraphic_Unit'}
 
 
 def aat_type(id_: str, label: str) -> dict[str, str]:
@@ -93,11 +95,6 @@ MIME_CLASSIFICATIONS: dict[str, list[dict[str, str]]] = {
 BIBLIOGRAPHY_AAT: dict[str, dict[str, str]] = {
     'bibliography': aat_type('300026497', 'bibliography'),
     'edition': aat_type('300121294', 'edition')}
-
-SKOS_CLOSE_MATCH: dict[str, Any] = {
-    'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
-    'type': 'Type',
-    '_label': 'Close Match'}
 
 
 def get_language() -> dict[str, Any]:
@@ -150,12 +147,14 @@ def close_match_attribution(
         'id': skolem_id,
         'type': 'AttributeAssignment',
         '_label': 'Close Match assignment',
-        'classified_as': [SKOS_CLOSE_MATCH],
+        'classified_as': [{
+            'id': 'http://www.w3.org/2004/02/skos/core#closeMatch',
+            'type': 'Type',
+            '_label': 'Close Match'}],
         'assigned': assigned}
 
 
 class LoudFormatter:
-
     def __init__(
             self,
             loud_context: dict[str, str],
@@ -204,7 +203,8 @@ class LoudFormatter:
         property_: dict[str, Any] = {
             'id': entity_uri(target),
             'type': self._resolve_type(target),
-            '_label': target.name}
+            '_label': target.name,
+            'identified_by': self._inline_identifiers(target)}
         if link_.dates.begin_from or link_.dates.end_from:
             property_ = property_ | self.get_loud_timespan(link_)
         code_ = link_.property.code
@@ -213,7 +213,7 @@ class LoudFormatter:
                 self._format_type_property(g.types[link_.type.id])]
         if code_ == 'P67' and link_.domain.class_.name == 'file':
             property_ = {
-                'id': self.generate_skolem_id(link_.domain.id, 'visual item'),
+                'id': self.generate_skolem_id(link_.domain.id, 'visual_item'),
                 "type": "VisualItem",
                 "_label": f"Visual content of {link_.domain.name}",
                 "represents": [property_]}
@@ -250,6 +250,7 @@ class LoudFormatter:
         file_size = entity.get_file_size()
         value, unit = file_size.split()
         return {'dimension': [{
+            'id': LoudFormatter.generate_skolem_id(entity.id, 'file_size'),
             "type": "Dimension",
             "_label": file_size,
             "classified_as": [aat_type('300265863', 'File Size')],
@@ -302,12 +303,12 @@ class LoudFormatter:
             self, license_: Entity, entity_name: str) -> dict[str, Any]:
         classified_as: list[dict[str, Any]] = [
             aat_type('300435434', 'copyright/licensing statement')]
-        classified_as.extend({
-                                 "id": reference_url(type_link),
-                                 "type": "Type",
-                                 "_label": license_.name}
-                             for type_link in
-                             self.type_refs.get(license_.id, []))
+        classified_as.extend(
+            {
+                "id": reference_url(type_link),
+                "type": "Type",
+                "_label": license_.name}
+            for type_link in self.type_refs.get(license_.id, []))
         return {
             'id': self.generate_skolem_id(license_.id, 'license'),
             'type': 'LinguisticObject',
@@ -334,6 +335,7 @@ class LoudFormatter:
             "_label": "Radiocarbon Dating",
             "classified_as": [dating],
             "assigned": [{
+                'id': skolem(link_.id, 'radiocarbon_dimension'),
                 "type": "Dimension",
                 "_label": f'{year} +/- {rng} {scale}',
                 "classified_as": [dating],
@@ -378,7 +380,8 @@ class LoudFormatter:
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        del property_['id']
+        property_['id'] = LoudFormatter.generate_skolem_id(
+            link_.id, 'appellation')
         property_['content'] = target.name
         return property_
 
@@ -388,7 +391,10 @@ class LoudFormatter:
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
         target = link_.domain if is_domain else link_.range
-        if link_.description:
+        if link_.description and is_float(link_.description):
+            property_['id'] = LoudFormatter.generate_skolem_id(
+                link_.id,
+                'dimension')
             property_['type'] = 'Dimension'
             property_['value'] = float(link_.description)
             property_['unit'] = {
@@ -432,7 +438,9 @@ class LoudFormatter:
             property_['classified_as'].append(
                 self._format_type_property(standard_type))
         if link_.description:
-            pagination = primary_name(link_.description)
+            pagination = primary_name(
+                link_.description,
+                id_=self.generate_skolem_id(link_.id, 'pagination'))
             pagination['classified_as'] = (
                     [aat_type('300200294', 'pagination')]
                     + pagination['classified_as'])
@@ -587,19 +595,30 @@ class LoudFormatter:
         config = self.LIFE_EVENT_CONFIG[entity.class_.name]
         has_begin = bool(entity.dates.begin_from or entity.dates.begin_to)
         has_end = bool(entity.dates.end_from or entity.dates.end_to)
+        begin_dates = self._get_loud_begin_dates(entity)
+        if 'end_of_the_begin' in begin_dates:
+            begin_dates['end_of_the_end'] = begin_dates.pop('end_of_the_begin')
+        elif 'begin_of_the_begin' in begin_dates:
+            begin_dates['end_of_the_end'] = begin_dates['begin_of_the_begin']
         begin_event = self._make_life_event(
             entity, config['begin_type'],
-            self._get_loud_begin_dates(entity),
+            begin_dates,
             has_begin)
+        end_dates = self._get_loud_end_dates(entity)
+        if 'begin_of_the_end' in end_dates:
+            end_dates['begin_of_the_begin'] = end_dates.pop('begin_of_the_end')
+        elif 'end_of_the_end' in end_dates:
+            end_dates['begin_of_the_begin'] = end_dates['end_of_the_end']
         end_event = self._make_life_event(
             entity, config['end_type'],
-            self._get_loud_end_dates(entity),
+            end_dates,
             has_end)
         for link_ in links_ or []:
             place = {
                 'id': entity_uri(link_.range),
                 'type': 'Place',
-                '_label': link_.range.name}
+                '_label': link_.range.name,
+                'identified_by': self._inline_identifiers(link_.range)}
             if link_.property.code == 'OA8':
                 begin_event['took_place_at'] = [place]
                 has_begin = True
@@ -715,8 +734,10 @@ class LoudFormatter:
             "type": LoudFormatter._resolve_type(entity),
             "_label": entity.name}
         if is_close_match(link_):
-            properties_set['attributed_by'].append(close_match_attribution(
-                skolem(link_.id, 'close_match'), match_reference))
+            properties_set['attributed_by'].append(
+                close_match_attribution(
+                    skolem(link_.id, 'close_match'),
+                    match_reference))
         else:
             properties_set['equivalent'].append(match_reference)
         properties_set['identified_by'].append({
@@ -731,9 +752,13 @@ class LoudFormatter:
                 "type": "AttributeAssignment",
                 "_label": f"Authority assignment by {link_.domain.name}",
                 "carried_out_by": [{
-                    "id": system.website_url,
+                    "id":
+                        system.website_url
+                        or skolem(link_.id, 'group'),
                     "type": "Group",
-                    "_label": link_.domain.name}]}]})
+                    "_label": link_.domain.name,
+                    "identified_by":
+                        LoudFormatter._inline_identifiers(link_.domain)}]}]})
 
     def handle_membership(
             self,
@@ -743,7 +768,8 @@ class LoudFormatter:
         group_ref = {
             'id': entity_uri(domain),
             'type': self._resolve_type(domain),
-            '_label': domain.name}
+            '_label': domain.name,
+            'identified_by': self._inline_identifiers(domain)}
         properties_set['member_of'].append(group_ref)
         if not (link_.type or link_.dates.dates_available()):
             return  # pragma: no cover
@@ -890,25 +916,38 @@ class LoudFormatter:
         return annotation_dict
 
     @staticmethod
-    def add_core_metadata(
-            entity: Entity,
-            properties_set: dict[str, Any]) -> None:
+    def _inline_identifiers(entity: Entity) -> list[dict[str, Any]]:
         skolem = LoudFormatter.generate_skolem_id
-        properties_set['identified_by'].extend([
-            primary_name(entity.name), {
-                'id': skolem(entity.id, 'internal_database_id'),
+        internal_id = url_for(
+            'api.entity',
+            id_=entity.id,
+            _external=True,
+            format='loud')
+        return [
+            primary_name(
+                entity.name, id_=skolem(entity.id, 'appellation')), {
+                'id': internal_id,
                 "type": "Identifier",
                 "_label": "Internal Database ID",
-                "content": url_for(
-                    'api.entity', id_=entity.id, _external=True,
-                    format='loud'),
+                "content": internal_id,
                 "classified_as": [aat_type('300404629', 'local URI')]}, {
                 'id': skolem(entity.id, 'unique_identifier'),
                 "type": "Identifier",
                 "_label": "Unique Identifier",
                 "content": entity_uri(entity),
                 "classified_as": [
-                    aat_type('300404012', 'unique identifier')]}])
+                    aat_type('300404012', 'unique identifier')]}]
+
+    @staticmethod
+    def add_core_metadata(
+            entity: Entity,
+            properties_set: dict[str, Any]) -> None:
+        skolem = LoudFormatter.generate_skolem_id
+        identifiers = LoudFormatter._inline_identifiers(entity)
+        identifiers[0] = primary_name(
+            entity.name,
+            id_=skolem(entity.id, 'primary_name'))
+        properties_set['identified_by'].extend(identifiers)
         if entity.class_.name == 'object_location':
             if geometry := get_wkt_by_id(entity.id):
                 properties_set['defined_by'] = geometry

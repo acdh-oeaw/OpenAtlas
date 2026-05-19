@@ -181,7 +181,9 @@ class GetSearchEntities(Resource):
         parser['format'] = 'search'
         term = parser['term']
         classes = list(g.classes) if 'all' in class_ else [class_]
-        classes = [class_ for class_ in classes if class_ != 'type_tools']
+        classes = [
+            class_ for class_ in classes if class_ not in [
+                'type_tools', 'object_location']]
         if not all(sc in g.classes for sc in classes):
             raise InvalidSystemClassError
         simple_search = get_api_simple_search(classes, term)

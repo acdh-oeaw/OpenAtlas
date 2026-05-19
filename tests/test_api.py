@@ -280,7 +280,7 @@ class Api(ApiTestCase):
         rv = rv.get_json()
         assert rv['type'] == 'Site'
         assert rv['_label'] == 'Shire'
-        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31T00:00:00Z'
+        assert rv['timespan']['begin_of_the_begin'] == '2018-01-31'
         assert rv['identified_by'][0]['_label'] == 'Sûza'
         assert rv['classified_as'][0]['_label'] == 'Boundary Mark'
         assert (rv['former_or_current_location']['defined_by'] ==
@@ -598,6 +598,21 @@ class Api(ApiTestCase):
                 locale='en',
                 format='turtle'))
         assert b'Sam' in rv.data
+        for url in [
+            url_for(
+                'api_04.system_class',
+                class_='all',
+                limit=0,
+                locale='en',
+                format='turtle'),
+            url_for(
+                'api_04.system_class',
+                class_='all',
+                limit=0,
+                download='true',
+                format='turtle')]:
+            with c.get(url) as rv:
+                assert b'Sam' in rv.data
 
         rv = c.get(
             url_for(

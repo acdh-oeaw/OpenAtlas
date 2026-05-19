@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -220,14 +221,25 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
-# Forces 'Z' (UTC) for LOD data.
+# Returns an xsd:date ('YYYY-MM-DD') for date-only values and an
+# xsd:dateTime ('YYYY-MM-DDTHH:MM:SSZ', UTC) when a real time is set.
+# Regex-based to preserve BC years (e.g. '-4712-12-31'), which
+# datetime.fromisoformat does not support.
+_DATE_PARTS_RE = re.compile(
+    r'^(-?\d{4,})-(\d{2})-(\d{2})'
+    r'(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?)?Z?$')
+
+
 def date_to_utc_iso_str(date: Any) -> str | None:
     if not date:
         return None
-    date_str = str(date)
-    if not date_str.endswith('Z'):
-        date_str = f'{date_str}Z'
-    return date_str
+    match = _DATE_PARTS_RE.match(str(date))
+    if not match:  # pragma: no cover
+        return str(date)
+    year, month, day, hour, minute, second = match.groups()
+    if hour and (int(hour) or int(minute) or int(second)):  # pragma: no cover
+        return f'{year}-{month}-{day}T{hour}:{minute}:{second}Z'
+    return f'{year}-{month}-{day}'
 
 
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:
@@ -274,3 +286,11 @@ def filter_by_type(
                 for id_ in type_ids):
             result.append(entity)
     return result
+
+
+def is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:  # pragma: no cover
+        return False
