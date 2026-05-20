@@ -75,14 +75,19 @@ def apis_proxy() -> Response | tuple[Response, int]:
     system_url = request.args.get('system_url', '').rstrip('/')
     apis_api_url = f'{system_url}/api/entities/'
     try:
-        data = requests.get(
+        response = requests.get(
             apis_api_url,
             params={
                 'search': request.args.get('search', ''),
                 'format': 'json'},
             headers={'User-Agent': 'Mozilla/5.0'},
             timeout=10)
-        data.raise_for_status()
-        return jsonify(data.json())
+        response.raise_for_status()
+        json_data = response.json()
+        if isinstance(json_data, dict) and 'results' in json_data:
+            data = json_data['results']  # pragma: no cover
+        else:
+            data = json_data
+        return jsonify(data)
     except requests.exceptions.RequestException as e:
         return jsonify({'error': str(e), 'results': []}), 502
