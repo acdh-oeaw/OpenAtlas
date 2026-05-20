@@ -50,7 +50,7 @@ class ReferenceSystemTest(TestBaseCase):
         try:
             get_reference_system_by_name_safe('non-existing')
         except ImATeapot:
-            """Just testing exceptions"""
+            pass
 
         data: dict[str, str | list[str]] = {
             'name': 'OpenAtlas',
