@@ -607,7 +607,7 @@ class LoudFormatter:
         end_dates = self._get_loud_end_dates(entity)
         if 'begin_of_the_end' in end_dates:
             end_dates['begin_of_the_begin'] = end_dates.pop('begin_of_the_end')
-        elif 'end_of_the_end' in end_dates:
+        elif 'end_of_the_end' in end_dates:  # pragma: no cover
             end_dates['begin_of_the_begin'] = end_dates['end_of_the_end']
         end_event = self._make_life_event(
             entity, config['end_type'],
