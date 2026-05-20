@@ -67,6 +67,8 @@ class Display:
         elif self.linked_places:
             self.gis_data = get_gis_all(list(self.linked_places.values()))
         resolver_url = g.settings['frontend_resolver_url']
+        self.data |= {
+            _('class'): self.entity.class_.name.capitalize().replace('_', ' ')}
         if hasattr(current_user, 'settings'):
             self.data |= get_system_data(self.entity)
             resolver_url = current_user.settings['frontend_resolver_url']
