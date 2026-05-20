@@ -3,7 +3,7 @@ INSERT INTO model.entity (
 VALUES
     ('E18', 'place', 'Shire','The Shire was the homeland of the hobbits.','2018-01-31', '2018-03-01', 'Begin of the shire', '2019-01-31',  '2019-03-01','Descent of Shire', '2022-09-21 16:38:01.923431','2022-09-21 16:38:05.923431'),
     ('E21', 'person', 'Sam', 'That is Sam','200-01-31', '200-03-01', 'Begin of the shire', '700-01-31', '800-03-01','Descent of Shire', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('E74', 'group', 'The Fellowship', '','215-01-31', '216-05-23', '', '700-01-31', '800-03-01','', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('E74', 'group', 'The Fellowship', '','215-01-31', NULL, '', '700-01-31', NULL,'', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description, modified)
 VALUES

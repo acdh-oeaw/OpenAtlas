@@ -674,7 +674,7 @@ class Api(ApiTestCase):
                     "operator": "lesserThan",
                     "values": ["2020-01-01"],
                     "logicalOperator": "and"}]}]),
-            (3, [{
+            (2, [{
                 "beginTo": [{
                     "operator": "lesserThanEqual",
                     "values": ["2018-03-01"],
