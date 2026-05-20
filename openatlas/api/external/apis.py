@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import requests
-from flask import jsonify
 
 from openatlas import app
 from openatlas.api.external.base import ExternalApi
@@ -26,7 +25,7 @@ class APIS(ExternalApi):  # pylint: disable=too-few-public-methods
                 timeout=10)
             response.raise_for_status()
             data = response.json()
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:  # pragma: no cover
             pass
 
         info['forename'] = data.get('forename')

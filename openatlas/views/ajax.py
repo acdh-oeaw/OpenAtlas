@@ -1,12 +1,10 @@
 from typing import Optional
-from urllib.parse import urljoin
 
 import requests
 from flask import Response, g, jsonify, request
 from flask_babel import gettext as _
 
 from openatlas import app
-
 # pylint: disable=unused-import
 from openatlas.api.external.apis import APIS  # noqa
 from openatlas.api.external.cadaster import Cadaster  # noqa
@@ -73,8 +71,9 @@ def ajax_external_api(system_id: int) -> str:
 
 
 @app.route('/proxy/apis', methods=['GET'])
-def apis_proxy():
-    apis_api_url = urljoin(request.args.get('system_url', ''), 'api/entities/')
+def apis_proxy() -> Response | tuple[Response, int]:
+    system_url = request.args.get('system_url', '').rstrip('/')
+    apis_api_url = f'{system_url}/api/entities/'
     try:
         data = requests.get(
             apis_api_url,
@@ -86,5 +85,4 @@ def apis_proxy():
         data.raise_for_status()
         return jsonify(data.json())
     except requests.exceptions.RequestException as e:
-        print(f'Error fetching {apis_api_url}: {str(e)}')
         return jsonify({'error': str(e), 'results': []}), 502
