@@ -334,7 +334,7 @@ def check_data_for_table_representation(
     file_.save(str(file_path))
     data_frame: DataFrame = cast(
         DataFrame,
-        pd.read_csv(  # type: ignore[call-overload]
+        pd.read_csv(  # noqa
             str(file_path),
             dtype=str,
             skipinitialspace=True,

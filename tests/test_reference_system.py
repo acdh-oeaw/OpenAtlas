@@ -1,4 +1,5 @@
 from flask import url_for
+from werkzeug.exceptions import ImATeapot
 
 from openatlas.models.entity import get_reference_system_by_name_safe
 from tests.base import TestBaseCase
@@ -46,6 +47,11 @@ class ReferenceSystemTest(TestBaseCase):
         rv = c.get(url_for('insert', class_='reference_system'))
         assert b'resolver URL' in rv.data
 
+        try:
+            get_reference_system_by_name_safe('non-existing')
+        except ImATeapot:
+            """Just testing exceptions"""
+
         data: dict[str, str | list[str]] = {
             'name': 'OpenAtlas',
             'website_url': 'https://demo.openatlas.eu',
@@ -56,8 +62,8 @@ class ReferenceSystemTest(TestBaseCase):
 
         rv = c.post(
             url_for('ajax_external_api', system_id=system_id),
-            data={'id_': '5117'})
-        assert b'Albrecht' in rv.data
+            data={'id_': '156'})
+        assert b'Urkunde' in rv.data
 
         data['reference_system_classes'] = ['place']
         rv = c.post(
