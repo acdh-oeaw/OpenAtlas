@@ -65,6 +65,26 @@ class ReferenceSystemTest(TestBaseCase):
             data={'id_': '156'})
         assert b'Urkunde' in rv.data
 
+        apis_url = 'https://discworld.acdh-dev.oeaw.ac.at/'
+        apis: dict[str, str | list[str]] = {
+            'name': 'APIS',
+            'website_url': apis_url,
+            'resolver_url': f'{apis_url}/api/entity/',
+            'api': 'APIS'}
+        rv = c.post(url_for('insert', class_='reference_system'), data=apis)
+        system_id = rv.location.split('/')[-1]
+
+        rv = c.post(
+            url_for('ajax_external_api', system_id=system_id),
+            data={'id_': '12'})
+        assert b'Carrot' in rv.data
+
+        rv = c.get(url_for('apis_proxy', system_url=apis_url, search='Carr'))
+        assert b'Carrot' in rv.data
+
+        rv = c.get(url_for('apis_proxy', system_url='wrong', search='Carr'))
+        assert b'error' in rv.data
+
         data['reference_system_classes'] = ['place']
         rv = c.post(
             url_for('update', id_=system_id),
