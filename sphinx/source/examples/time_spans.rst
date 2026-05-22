@@ -17,7 +17,7 @@ Where to find the input fields
 * :doc:`Places</entity/place>`
 * :doc:`Features</entity/feature>`
 * :doc:`Stratigraphic Units</entity/stratigraphic_unit>`
-* :doc:`Artifacts</entity/artifact>`
+* :doc:`Artifacts </entity/item>`
 
 It is not provided for the input of:
 

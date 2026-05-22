@@ -41,7 +41,7 @@ Please fill out the form:
 * Decide if the type is single or multiple select (only available for custom
   types)
 * Choose to which classes the new type will be added, e.g.
-  :doc:`/entity/artifact` or :doc:`/entity/place`; the typ will only be
+  :doc:`/entity/item` or :doc:`/entity/place`; the typ will only be
   shown in the related form
 * You can also enter text into the **description** field which will be
   displayed when you mouse-over the information button next to the type’s

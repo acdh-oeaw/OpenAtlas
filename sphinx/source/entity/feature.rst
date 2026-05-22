@@ -23,7 +23,7 @@ Can be linked via tabs to
 -------------------------
 * :doc:`source` - use, if a feature is referenced in it
 * :doc:`reference`
-* :doc:`artifact`
+* :doc:`item`
 * :doc:`stratigraphic_unit` is used to link a subunit of a feature (e.g. a
   skeleton (stratigraphic unit) in a grave (feature))
 * :doc:`file`
