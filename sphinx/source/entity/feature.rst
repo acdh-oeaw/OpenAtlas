@@ -17,6 +17,7 @@ Form fields
 * :doc:`/ui/description`
 * **Super** - A :doc:`place` the feature is a part of
 * :doc:`/tools/map`
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------

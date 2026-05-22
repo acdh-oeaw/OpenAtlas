@@ -35,6 +35,7 @@ Form fields
   a sub event of a war), they can be linked here
 * **Preceding event** - Events can follow up other events, useful for e.g.
   entering a journey, link them here
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------

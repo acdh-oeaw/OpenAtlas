@@ -82,6 +82,7 @@ Form fields
 * :doc:`reference_system`
 * :doc:`/ui/date`
 * A super (type) if it is a sub-type of another type
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------

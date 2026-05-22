@@ -19,6 +19,7 @@ Form fields
   on an :doc:`/entity/artifact` or a :doc:`/entity/human_remains`
 * **Content** - a summary or the whole text of the source.
   :doc:`/tools/text_annotation` can be used.
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------

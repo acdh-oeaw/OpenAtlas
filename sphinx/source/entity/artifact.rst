@@ -18,11 +18,11 @@ Form fields
 * :doc:`/ui/description`
 * **Carrier of source** - if a :doc:`source` is depicted on the artifact
 * :doc:`/tools/map`
-* :doc:`reference_system`
 * **Super** - A :doc:`place`, :doc:`feature`, :doc:`stratigraphic_unit`, or
   artifact, which the entered artifact is a part of
 * **Owned by** - Link the artifact to an :doc:`actor` (person or group) who
   owns it, such as a museum or a collector
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------
