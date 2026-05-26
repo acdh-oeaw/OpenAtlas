@@ -3,6 +3,9 @@ Artifacts
 
 .. toctree::
 
+.. Note:: May need adaptions to reflect new tab navigation and menu label
+  changes.
+
 This tutorial describes how to create a new artifact and add information to it.
 The following elements are involved:
 

@@ -3,6 +3,9 @@ Time Spans
 
 .. toctree::
 
+.. Note:: May need adaptions to reflect new tab navigation and menu label
+  changes.
+
 This section is focused on how the :doc:`Date</ui/date>` input fields work
 and how to enter time spans correctly.
 

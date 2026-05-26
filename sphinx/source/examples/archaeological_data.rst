@@ -3,6 +3,9 @@ Archaeological data
 
 .. toctree::
 
+.. Note:: May need adaptions to reflect new tab navigation and menu label
+  changes.
+
 The following steps describe how to enter archaeological data into OpenAtlas.
 These elements are involved in the procedure:
 

@@ -3,6 +3,9 @@ Types
 
 .. toctree::
 
+.. Note:: May need adaptions to reflect new tab navigation and menu label
+  changes.
+
 :doc:`Types</entity/type>` are used to add information to all entities.
 They are organized hierarchically into trees and specific for each project.
 Furthermore, types help to show information in an organized way on a

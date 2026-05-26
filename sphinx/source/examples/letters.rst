@@ -3,6 +3,9 @@ Letters
 
 .. toctree::
 
+.. Note:: May need adaptions to reflect new tab navigation and menu label
+  changes.
+
 The following step by step instruction describes how to enter a letter
 exchange event.
 The following elements are involved in the procedure:
