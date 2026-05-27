@@ -15,6 +15,7 @@ def index_changelog() -> str:
 
 
 versions = {
+    '9.4.0': ['TBA', {}],
     '9.3.0': ['2026-05-27', {
         'feature': {
             '2600': 'External references for references',
