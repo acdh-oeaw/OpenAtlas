@@ -11,8 +11,11 @@ from openatlas import app
 from openatlas.display.tab import Tab
 from openatlas.display.table import entity_table
 from openatlas.display.util import (
-    check_iiif_activation, check_iiif_file_exist, convert_image_to_iiif,
-    delete_iiif_image, required_group)
+    required_group)
+from openatlas.display.image_processing import (check_iiif_activation,
+                                                check_iiif_file_exist,
+                                                convert_image_to_iiif,
+                                                delete_iiif_image)
 from openatlas.display.util2 import is_authorized
 from openatlas.models.entity import Entity
 from openatlas.models.settings import set_logo
@@ -73,7 +76,7 @@ def view_iiif(id_: int) -> str:
             if file_.class_.group['name'] == 'file' \
                     and check_iiif_file_exist(file_.id):
                 manifests.append(get_manifest_url(file_.id))
-    return render_template('iiif.html', manifests=manifests)
+    return render_template('util/iiif.html', manifests=manifests)
 
 
 def get_manifest_url(id_: int) -> str:

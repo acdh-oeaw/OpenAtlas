@@ -15,6 +15,26 @@ def index_changelog() -> str:
 
 
 versions = {
+    '9.3.0': ['2026-05-27', {
+        'feature': {
+            '2600': 'External references for references',
+            '2718': 'Renaming OpenAtlas classes',
+            '2796': 'Integration of UUID',
+            '2775': 'Advanced image validation',
+            '2781': 'Display OpenAtlas class at entity detail views',
+            '2705': 'Case study system type',
+            '2525': 'API: OpenAtlas to OpenAtlas interface',
+            '2319': 'API: OpenAtlas to APIS interface',
+            '2803': 'API: Refined linked.art format',
+            '2773': 'API: Generic functions for reference systems',
+            '2774': 'Vocabs: include external links',
+            '2782': 'Vocabs: Import top collection as type',
+            '2779': 'Replace fuzzywuzzy with RapidFuzz',
+            '2802': 'ACDH GitHub tests fail if hyphen in branch name',
+            '2790': 'Refactor and minor improvements'},
+        'fix': {
+            '2789': 'Missing start/end dates in some tabs',
+            '2801': 'Type issues'}}],
     '9.2.0': ['2026-04-15', {
         'feature': {
             '2570': 'Improved tracking of file creator and license holder',

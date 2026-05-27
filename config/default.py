@@ -5,7 +5,7 @@ from rdflib import Namespace
 
 from config.database_versions import DATABASE_VERSIONS
 
-VERSION = '9.2.0'
+VERSION = '9.3.0'
 DATABASE_VERSION = DATABASE_VERSIONS[0]
 DEMO_MODE = False  # If activated some options are disabled, login is prefilled
 DEBUG = False
@@ -25,6 +25,14 @@ LANGUAGES = {
     'es': 'Español',
     'fr': 'Français',
     'pl': 'Polski'}
+
+EXTERNAL_API = [
+    'APIS',
+    'Cadaster',
+    'GeoNames',
+    'GND',
+    'OpenAtlas',
+    'Wikidata']
 
 # Paths are implemented operating system independent using pathlib.
 # To override them (in instance/production.py) either use them like here
@@ -48,7 +56,7 @@ IMAGE_SIZE = {
     'table': '100'}
 
 # Security
-SESSION_COOKIE_SECURE = False  # Should be True in production.py if using HTTPS
+SESSION_COOKIE_SECURE = True  # Set to False if using locally without HTTPS
 REMEMBER_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -71,10 +79,6 @@ CSS = {
         'secondary': 'btn btn-outline-secondary btn-sm',
         'danger': 'btn btn-outline-danger btn-sm'}}
 
-# External APIs
-API_WIKIDATA = 'https://www.wikidata.org/w/api.php'
-API_GEONAMES = 'http://api.geonames.org/get'
-API_CADASTER = 'https://kataster.bev.gv.at/api/'
 
 USER_AGENT = {
     'User-Agent':
