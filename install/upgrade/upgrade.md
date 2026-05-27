@@ -32,7 +32,7 @@ Node packages are updated. Please run following command in
 **openatlas/static/**
 
     cd openatlas/static
-    npm install --legacy-peer-deps
+    npm install
 
 SESSION_COOKIE_SECURE in config/default.py now defaults to **True**.
 In case OpenAtlas is installed locally without https it may has to be
