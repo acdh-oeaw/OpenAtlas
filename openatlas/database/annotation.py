@@ -1,5 +1,3 @@
-from typing import Any
-
 from flask import g
 
 ANNOTATION_IMAGE_SELECT = \
@@ -28,21 +26,21 @@ ANNOTATION_TEXT_SELECT = \
     """
 
 
-def get_annotation_image_by_id(id_: int) -> dict[str, Any]:
+def get_annotation_image_by_id(id_: int) -> dict[str, object]:
     g.cursor.execute(
         ANNOTATION_IMAGE_SELECT + ' WHERE id =  %(id)s;',
         {'id': id_})
     return g.cursor.fetchone()
 
 
-def get_annotation_image_by_file_id(id_: int) -> list[dict[str, Any]]:
+def get_annotation_image_by_file_id(id_: int) -> list[dict[str, object]]:
     g.cursor.execute(
         ANNOTATION_IMAGE_SELECT + ' WHERE image_id =  %(id)s;',
         {'id': id_})
     return list(g.cursor)
 
 
-def get_annotation_text_by_source_id(id_: int) -> list[dict[str, Any]]:
+def get_annotation_text_by_source_id(id_: int) -> list[dict[str, object]]:
     g.cursor.execute(
         ANNOTATION_TEXT_SELECT +
         """
@@ -54,7 +52,33 @@ def get_annotation_text_by_source_id(id_: int) -> list[dict[str, Any]]:
     return list(g.cursor)
 
 
-def get_annotation_image_orphans() -> list[dict[str, Any]]:
+def get_annotation_text_orphans() -> list[dict[str, object]]:
+    g.cursor.execute(
+        """
+        SELECT
+            a.id,
+            a.source_id,
+            a.entity_id,
+            a.link_start,
+            a.link_end,
+            a.text,
+            a.created,
+            l2.domain_id AS source_root
+        FROM model.annotation_text a
+        LEFT JOIN model.link l ON l.domain_id = a.source_id 
+            AND l.range_id = a.entity_id 
+            AND l.property_code = 'P67'
+        LEFT JOIN model.link l2 ON l2.range_id = a.source_id
+            AND l2.property_code = 'P73'
+        LEFT JOIN model.link l3 ON l3.domain_id = l2.domain_id
+            AND l3.range_id = a.entity_id 
+            AND l3.property_code = 'P67'
+        WHERE l.id IS NULL AND a.entity_id IS NOT NULL AND l3.id IS NULL
+        """)
+    return list(g.cursor)
+
+
+def get_annotation_image_orphans() -> list[dict[str, object]]:
     g.cursor.execute(
         """
         SELECT
@@ -73,7 +97,7 @@ def get_annotation_image_orphans() -> list[dict[str, Any]]:
     return list(g.cursor)
 
 
-def insert_annotation_image(data: dict[str, Any]) -> None:
+def insert_annotation_image(data: dict[str, object]) -> None:
     g.cursor.execute(
         """
         INSERT INTO model.annotation_image (
@@ -90,7 +114,7 @@ def insert_annotation_image(data: dict[str, Any]) -> None:
         data)
 
 
-def update_annotation_image(data: dict[str, Any]) -> None:
+def update_annotation_image(data: dict[str, object]) -> None:
     g.cursor.execute(
         """
         UPDATE model.annotation_image
@@ -124,7 +148,19 @@ def remove_entity_from_annotation_image(
         {'annotation_id': annotation_id, 'entity_id': entity_id})
 
 
-def insert_annotation_text(data: dict[str, Any]) -> None:
+def remove_entity_from_annotation_text(
+        annotation_id: int,
+        entity_id: int) -> None:
+    g.cursor.execute(
+        """
+        UPDATE model.annotation_text
+        SET entity_id = NULL
+        WHERE id = %(annotation_id)s AND entity_id = %(entity_id)s;
+        """,
+        {'annotation_id': annotation_id, 'entity_id': entity_id})
+
+
+def insert_annotation_text(data: dict[str, object]) -> None:
     g.cursor.execute(
         """
         INSERT INTO model.annotation_text (

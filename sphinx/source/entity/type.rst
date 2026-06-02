@@ -48,6 +48,12 @@ multiple checkbox is greyed out and not selectable, the multiple option is
 used for at least one entity already. Check entries in type overview at
 **multiple linked entities** and make changes if necessary.
 
+**Case study** is a special case. It is provided by default and can't be
+deleted or renamed. It won't show up in forms initialy because it has no
+entries and is not connected to classes. But once set up it can be used to
+mark entries for different case studies on the same OpenAtlas instance which
+can in turn be used to e.g. filter data for presentation sites.
+
 Value types
 -----------
 Value types can be created, deleted, and renamed. They are used to add
@@ -60,6 +66,20 @@ types
 * Values can be entered as decimals in forms
 * A unit such as centimetre, gram, or percentage can be specified
 
+.. _place hierarchies:
+
+Place hierarchies
+-----------------
+Place hierarchies can be used to add information about e.g.
+administrative units or historical places. Unlike custom types they will only
+be available for place entities. Entries here are classified as places in
+the model but be aware that it isn't possible to add geolocations to these
+entries.
+
+System types
+------------
+Types listed here can't be modified but we still thought it useful to provide
+information about them.
 
 Form fields
 -----------
@@ -68,6 +88,7 @@ Form fields
 * :doc:`reference_system`
 * :doc:`/ui/date`
 * A super (type) if it is a sub-type of another type
+* :doc:`reference_system`
 
 Can be linked via tabs to
 -------------------------
@@ -84,5 +105,5 @@ Please keep in mind that not all users can add new types when making a type
 required. This might lead to situations where a user is unable to choose a
 fitting type for an entity and might therefore reduce data quality.
 
-Existing entries that were entered before a typ was set to required and have
+Existing entries that were entered before a type was set to required and have
 no set values for this specific type can not be updated anymore afterwards.

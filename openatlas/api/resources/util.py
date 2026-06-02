@@ -1,12 +1,14 @@
+import re
+from collections import defaultdict
 from typing import Any, Optional
 
 from flask import g, json, url_for
 
 from openatlas.api.resources.api_entity import ApiEntity
-from openatlas.display.util import check_iiif_activation, check_iiif_file_exist
+from openatlas.display.image_processing import (check_iiif_activation,
+                                                check_iiif_file_exist)
 from openatlas.models.entity import Entity, Link
-from openatlas.models.gis import Gis
-from openatlas.models.reference_system import ReferenceSystem
+from openatlas.models.gis import get_gis_all
 
 
 def get_license_name(entity: Entity) -> Optional[str]:
@@ -18,15 +20,37 @@ def get_license_name(entity: Entity) -> Optional[str]:
     return license_
 
 
+def get_license_type(entity: Entity) -> Optional[Entity]:
+    license_ = None
+    for type_ in entity.types:
+        if g.types[type_.root[0]].name == 'License':
+            license_ = type_
+            break
+    return license_
+
+
 def get_license_url(entity: Entity) -> Optional[str]:
     url = ''
     for type_ in entity.types:
         if g.types[type_.root[0]].name == 'License':
             for link_ in type_.get_links('P67', inverse=True):
-                if link_.domain.class_.label == "External reference":
+                if link_.domain.class_.name == "external_reference":
                     url = link_.domain.name
             break
     return url
+
+
+def get_type_references() -> dict[int, list[Link]]:
+    type_links = Entity.get_links_of_entities(
+        list(g.types.keys()),
+        'P67',
+        inverse=True)
+    out: dict[int, list[Link]] = defaultdict(list)
+    for link_ in type_links:
+        if link_.domain.class_.name in \
+                ['external_reference', 'reference_system']:
+            out[link_.range.id].append(link_)
+    return out
 
 
 def to_camel_case(i: str) -> str:
@@ -49,7 +73,7 @@ def get_linked_entities_api(id_: int | list[int]) -> list[Entity]:
     return [*range_, *domain]
 
 
-def get_linked_entities_id_api(id_: int) -> list[Entity]:
+def get_linked_entities_id_api(id_: int) -> list[int]:
     domain_ids = [
         link_.range.id for link_ in Entity.get_links_of_entities(id_)]
     range_ids = [
@@ -111,21 +135,24 @@ def remove_spaces_dashes(string: str) -> str:
 def get_reference_systems(links_inverse: list[Link]) -> list[dict[str, Any]]:
     ref = []
     for link_ in links_inverse:
-        if isinstance(link_.domain, ReferenceSystem) and link_.type:
+        if isinstance(link_.domain, Entity) \
+                and link_.type \
+                and g.reference_systems.get(link_.domain.id):
             system = g.reference_systems[link_.domain.id]
             ref.append({
                 'referenceURL': system.website_url,
                 'id': link_.description,
                 'resolverURL': system.resolver_url,
                 'identifier':
-                    f"{system.resolver_url or ''}{link_.description}",
+                    f'{system.resolver_url or ''}{link_.description}',
                 'type': to_camel_case(g.types[link_.type.id].name),
                 'referenceSystem': system.name})
     return ref
 
+
 def get_iiif_manifest_and_path(img_id: int) -> dict[str, str]:
     iiif_manifest = ''
-    iiif_base_path= ''
+    iiif_base_path = ''
     if check_iiif_activation() and check_iiif_file_exist(img_id):
         iiif_manifest = url_for(
             'api.iiif_manifest',
@@ -134,94 +161,55 @@ def get_iiif_manifest_and_path(img_id: int) -> dict[str, str]:
             _external=True)
         if g.files.get(img_id):
             iiif_base_path = \
-                f"{g.settings['iiif_url']}{img_id}{g.files[img_id].suffix}"
+                f'{g.settings['iiif_url']}{img_id}{g.files[img_id].suffix}'
     return {'IIIFManifest': iiif_manifest, 'IIIFBasePath': iiif_base_path}
-
-def get_geometric_collection(
-        entity: Entity,
-        links: list[Link],
-        parser: Any) -> Optional[dict[str, Any]]:
-    geometry = None
-    match entity.class_.view:
-        case 'place' | 'artifact':
-            geometry = get_geoms_by_entity(
-                get_location_id(links),
-                parser.centroid)
-        case 'actor':
-            geoms = [
-                Gis.get_by_id(link_.range.id) for link_ in links
-                if link_.property.code in ['P74', 'OA8', 'OA9']]
-            if parser.centroid:
-                centroids = []
-                for link_ in links:  # pragma: no cover
-                    if link_.property.code in ['P7', 'P26', 'P27']:
-                        if centroid_result := (
-                                Gis.get_centroids_by_id(link_.range.id)):
-                            centroids.append(centroid_result)
-                if centroids:
-                    geoms.extend(centroids)  # pragma: no cover
-            geometry = {
-                'type': 'GeometryCollection',
-                'geometries': [geom for sublist in geoms for geom in sublist]}
-        case 'event':
-            geoms = [
-                Gis.get_by_id(link_.range.id) for link_ in links
-                if link_.property.code in ['P7', 'P26', 'P27']]
-            if parser.centroid:
-                centroids = []
-                for link_ in links:
-                    if link_.property.code in ['P7', 'P26', 'P27']:
-                        if centroid_result := (
-                                Gis.get_centroids_by_id(link_.range.id)):
-                            centroids.append(centroid_result)
-                if centroids:
-                    geoms.extend(centroids)
-            geometry = {
-                'type': 'GeometryCollection',
-                'geometries': [geom for sublist in geoms for geom in sublist]}
-        case _ if entity.class_.name == 'object_location':
-            geometry = get_geoms_by_entity(entity.id, parser.centroid)
-    return geometry
-
-
-def get_location_id(links: list[Link]) -> int:
-    return [l_.range.id for l_ in links if l_.property.code == 'P53'][0]
-
-
-def get_location_links(links: list[Link]) -> list[Link]:
-    return [link_ for link_ in links if link_.property.code == 'P53']
 
 
 def get_location_link(links: list[Link]) -> Link:
     return [l_ for l_ in links if l_.property.code == 'P53'][0]
 
 
-def get_geoms_by_entity(
-        location_id: int,
-        centroid: Optional[bool] = False) -> Optional[dict[str, Any]]:
-    geoms = Gis.get_by_id(location_id)
+def geometry_to_geojson(
+        geoms: Optional[list[dict[str, Any]]] = None) \
+        -> Optional[dict[str, Any]]:
     if not geoms:
         return None
-    if centroid:
-        if centroid_result := Gis.get_centroids_by_id(location_id):
-            geoms.extend(centroid_result)
     if len(geoms) == 1:
         return geoms[0]
     return {'type': 'GeometryCollection', 'geometries': geoms}
 
 
-def get_geojson_geometries(geoms: list[dict[str, Any]]) -> dict[str, Any]:
-    if len(geoms) == 1:
-        return geoms[0]
-    return {'type': 'GeometryCollection', 'geometries': geoms}
+def geometry_to_feature_collection(
+        geoms: Optional[list[dict[str, Any]]] = None) \
+        -> Optional[dict[str, Any]]:
+    if not geoms:
+        return None
+    features = [generate_feature(geom) for geom in geoms]
+    if len(features) == 1:
+        return features[0]
+    return {'type': 'FeatureCollection', 'features': features}
+
+
+def generate_feature(geom: dict[str, Any]) -> dict[str, Any]:
+    return {
+        'type': 'Feature',
+        'geometry': {
+            'type': geom['type'],
+            'coordinates': geom['coordinates']},
+        'properties': {
+            'title': geom['title'],
+            'description': geom['description'],
+            'shapeType': geom['shapeType'],
+            'entityId': geom['placeId'],
+            'locationId': geom['locationId']}}
 
 
 def get_geometries(parser: dict[str, Any]) -> list[dict[str, Any]]:
     choices = [
-        'gisPointAll', 'gisPointSupers', 'gisPointSubs',
-        'gisPointSibling', 'gisLineAll', 'gisPolygonAll']
-    all_geoms = Gis.get_all()
+        'gisPointAll', 'gisPointSupers', 'gisPointSubs', 'gisPointSibling',
+        'gisLineAll', 'gisPolygonAll']
     out = []
+    all_geoms = get_gis_all()
     for item in choices \
             if 'gisAll' in parser['geometry'] else parser['geometry']:
         for geom in json.loads(all_geoms[item]):
@@ -233,11 +221,32 @@ def date_to_str(date: Any) -> Optional[str]:
     return str(date) if date else None
 
 
+# Returns an xsd:date ('YYYY-MM-DD') for date-only values and an
+# xsd:dateTime ('YYYY-MM-DDTHH:MM:SSZ', UTC) when a real time is set.
+# Regex-based to preserve BC years (e.g. '-4712-12-31'), which
+# datetime.fromisoformat does not support.
+_DATE_PARTS_RE = re.compile(
+    r'^(-?\d{4,})-(\d{2})-(\d{2})'
+    r'(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?)?Z?$')
+
+
+def date_to_utc_iso_str(date: Any) -> str | None:
+    if not date:
+        return None
+    match = _DATE_PARTS_RE.match(str(date))
+    if not match:  # pragma: no cover
+        return str(date)
+    year, month, day, hour, minute, second = match.groups()
+    if hour and (int(hour) or int(minute) or int(second)):  # pragma: no cover
+        return f'{year}-{month}-{day}T{hour}:{minute}:{second}Z'
+    return f'{year}-{month}-{day}'
+
+
 def get_crm_relation(link_: Link, inverse: bool = False) -> str:
-    property_ = f"i {link_.property.i18n_inverse['en']}" \
-        if inverse and link_.property.i18n_inverse['en'] \
-        else f" {link_.property.i18n['en']}"
-    return f"crm:{link_.property.code}{property_}"
+    property_ = f' {link_.property.i18n['en']}'
+    if inverse and link_.property.i18n_inverse['en']:
+        property_ = f'i {link_.property.i18n_inverse['en']}'
+    return f'crm:{link_.property.code}{property_}'
 
 
 def get_crm_relation_label_x(link_: Link, inverse: bool = False) -> str:
@@ -247,32 +256,14 @@ def get_crm_relation_label_x(link_: Link, inverse: bool = False) -> str:
 
 
 def get_crm_relation_x(link_: Link, inverse: bool = False) -> str:
-    property_ = f"i_{link_.property.i18n_inverse['en']}" \
-        if inverse and link_.property.i18n_inverse['en'] \
-        else f"_{link_.property.i18n['en']}"
-    return f"crm:{link_.property.code}{property_.replace(' ', '_')}"
-
-
-def get_crm_code(link_: Link, inverse: bool = False) -> str:
-    name = link_.range.cidoc_class.i18n['en']
-    if inverse:
-        name = link_.domain.cidoc_class.i18n['en']
-    code = link_.range.cidoc_class.code
-    if inverse:
-        code = link_.domain.cidoc_class.code
-    return f"crm:{code} {name}"
+    property_ = f'_{link_.property.i18n['en']}'
+    if inverse and link_.property.i18n_inverse['en']:
+        property_ = f'i_{link_.property.i18n_inverse['en']}'
+    return f'crm:{link_.property.code}{property_.replace(' ', '_')}'
 
 
 def flatten_list_and_remove_duplicates(list_: list[Any]) -> list[Any]:
     return [item for sublist in list_ for item in sublist if item not in list_]
-
-
-def get_geoms_dict(geoms: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
-    if len(geoms) == 0:
-        return None
-    if len(geoms) == 1:
-        return geoms[0]
-    return {'type': 'GeometryCollection', 'geometries': geoms}
 
 
 def get_value_for_types(type_: Entity, links: list[Link]) -> dict[str, str]:
@@ -283,3 +274,23 @@ def get_value_for_types(type_: Entity, links: list[Link]) -> dict[str, str]:
             if link.range.id == type_.id and type_.description:
                 type_dict['unit'] = type_.description
     return type_dict
+
+
+def filter_by_type(
+        entities: list[Entity],
+        type_ids: list[int]) -> list[Entity]:
+    result = []
+    for entity in entities:
+        if any(
+                id_ in [type_.id for type_ in entity.types]
+                for id_ in type_ids):
+            result.append(entity)
+    return result
+
+
+def is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:  # pragma: no cover
+        return False

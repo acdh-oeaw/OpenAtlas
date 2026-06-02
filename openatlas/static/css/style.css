@@ -8,6 +8,12 @@ a {
   text-decoration: none;
 }
 
+/* Override Bootstrap reset.css to color links without href, e.g. at table select */
+a:not([href]):not([class]), a:not([href]):not([class]):hover {
+  color: #0d6efd;
+  cursor: pointer;
+}
+
 h1, h2, h3 {
   font-size: 100%;
 }
@@ -265,4 +271,16 @@ img.schema_image {
 :not(.active) > span > .tab-counter.badge {
   background-color: var(--bs-primary);
   color: white;
+}
+
+.tooltip-inner {
+    text-align: left;
+}
+
+.circle {
+  aspect-ratio: 1/1;
+  border-radius: 100%;
+  line-height: normal;
+  align-content: center;
+  text-align: center;
 }

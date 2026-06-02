@@ -6,17 +6,18 @@ from flask import g, jsonify, render_template, request
 from openatlas import app
 from openatlas.api.resources.error import (
     AccessDeniedError, DisplayFileNotFoundError, EntityDoesNotExistError,
-    InvalidCidocClassCodeError, InvalidLimitError, InvalidSearchCategoryError,
-    InvalidSearchSyntax, InvalidSearchValueError, InvalidSystemClassError,
-    InvalidViewClassError, LastEntityError, LogicalOperatorError,
-    NoLicenseError, NoSearchStringError, NotAPlaceError, NotATypeError,
-    NotPublicError, OperatorError, OperatorNotSupported, QueryEmptyError,
-    UrlNotValid, ValueNotIntegerError)
+    EntityNotAFileError, EntityNotAnEventError, FileIdNotInteger,
+    IIIFMetadataNotFound, InvalidCidocClassCodeError, InvalidLimitError,
+    InvalidSearchCategoryError, InvalidSearchSyntax, InvalidSearchValueError,
+    InvalidSystemClassError, InvalidViewClassError, LastEntityError,
+    LogicalOperatorError, NoLicenseError, NoSearchStringError, NotAPlaceError,
+    NotATypeError, NotPublicError, OperatorError, OperatorNotSupported,
+    QueryEmptyError, UrlNotValid, ValueNotIntegerError)
 
 
 @app.errorhandler(400)
 def bad_request(e: Exception) -> tuple[str, int]:
-    return render_template(  # pragma: no cover
+    return render_template(
         'error/400.html',
         crumbs=['400 - Bad Request'],
         e=e), 400
@@ -103,6 +104,26 @@ def entity_does_not_exist(_e: Exception) -> tuple[Any, int]:
         'status': 404}), 404
 
 
+@app.errorhandler(EntityNotAnEventError)
+def entity_not_an_event(_e: Exception) -> tuple[Any, int]:
+    return jsonify({
+        'title': 'Entity is not an event',
+        'message': 'The requested entity has to be an event.',
+        'url': request.url,
+        'timestamp': datetime.now(),
+        'status': 404}), 404
+
+
+@app.errorhandler(EntityNotAFileError)
+def entity_not_a_file(_e: Exception) -> tuple[Any, int]:
+    return jsonify({
+        'title': 'Entity is not a file',
+        'message': 'The requested entity has to be a file.',
+        'url': request.url,
+        'timestamp': datetime.now(),
+        'status': 404}), 404
+
+
 @app.errorhandler(InvalidCidocClassCodeError)
 def invalid_cidoc_class_code(_e: Exception) -> tuple[Any, int]:
     return jsonify({
@@ -156,7 +177,7 @@ def invalid_view_class(_e: Exception) -> tuple[Any, int]:
         'title': 'Invalid view_classes value',
         'message':
             'The view_classes value is invalid, use "all" or '
-            + str(list(g.view_class_mapping)),
+            + str(list(g.class_groups)),
         'url': request.url,
         'timestamp': datetime.now(),
         'status': 400}), 400
@@ -310,6 +331,18 @@ def value_not_an_integer(_e: Exception) -> tuple[Any, int]:
         'status': 400}), 400
 
 
+@app.errorhandler(FileIdNotInteger)
+def file_id_not_an_integer(_e: Exception) -> tuple[Any, int]:
+    return jsonify({
+        'title': 'Filename is not an integer',
+        'message':
+            'Filename has to be an integer. It has the same ID as the related'
+            'file entity.',
+        'url': request.url,
+        'timestamp': datetime.now(),
+        'status': 400}), 400
+
+
 @app.errorhandler(UrlNotValid)
 def url_not_valid(_e: UrlNotValid) -> tuple[Any, int]:
     return jsonify({
@@ -320,3 +353,14 @@ def url_not_valid(_e: UrlNotValid) -> tuple[Any, int]:
         'url': request.url,
         'timestamp': datetime.now(),
         'status': 400}), 400
+
+
+@app.errorhandler(IIIFMetadataNotFound)
+def iiif_metadata_not_found(_e: IIIFMetadataNotFound) -> tuple[Any, int]:
+    return jsonify({
+        'title': 'IIIF info not found',
+        'message':
+            f'{_e.url} is not found. Please contact the system administrator.',
+        'url': request.url,
+        'timestamp': datetime.now(),
+        'status': 400}), 400  # pragma: no cover

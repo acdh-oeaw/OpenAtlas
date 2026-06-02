@@ -9,7 +9,6 @@ from tests.base import TestBaseCase, get_hierarchy, insert
 
 
 class FileTest(TestBaseCase):
-
     def test_file(self) -> None:
         c = self.client
         with app.test_request_context():
@@ -22,13 +21,16 @@ class FileTest(TestBaseCase):
             app.root_path) / 'static' / 'images' / 'layout' / 'logo.png'
         with open(logo, 'rb') as img_1, open(logo, 'rb') as img_2:
             rv: Any = c.post(
-                url_for('insert', class_='file', origin_id=place.id),
+                url_for('insert', class_='file'),
                 data={
                     'name': 'OpenAtlas logo',
                     'public': True,
                     'file': [img_1, img_2]},
                 follow_redirects=True)
         assert b'An entry has been created' in rv.data
+
+        rv = c.get(url_for('display_custom_logo', ext='no.logo'))
+        assert b'404' in rv.data
 
         with app.test_request_context():
             app.preprocess_request()
@@ -48,13 +50,15 @@ class FileTest(TestBaseCase):
                     str(license_type.id): license_type.subs[0]},
                 follow_redirects=True)
         assert b'An entry has been created' in rv.data
-
+        with app.test_request_context():
+            app.preprocess_request()
+            rights_holder_ids = [rh.id for rh in g.rights_holder]
         with open(logo, 'rb') as img:
             data = {
                 'name': 'IIIF File',
                 'file': img,
-                'creator': 'Max',
-                'license_holder': 'Moritz',
+                'creator': f'{rights_holder_ids}',
+                'license_holder': f'{rights_holder_ids}',
                 'public': True}
             rv = c.post(url_for('insert', class_='file'), data=data)
             iiif_id = rv.location.split('/')[-1]
@@ -75,7 +79,7 @@ class FileTest(TestBaseCase):
         assert b'License' in rv.data
 
         rv = c.post(
-            url_for('insert', class_='external_reference', origin_id=iiif_id),
+            url_for('link_insert_detail', name='reference', origin_id=iiif_id),
             data={'name': 'https://openatlas.eu'},
             follow_redirects=True)
         assert b'page' in rv.data
@@ -92,17 +96,20 @@ class FileTest(TestBaseCase):
         assert b'IIIF files are deleted' in rv.data
 
         filename = f'{iiif_id}.png'
-        with c.get(url_for('display_logo', filename=filename)):
+        with c.get(url_for('display_custom_logo', ext=".png")):
             pass
 
-        with c.get(url_for('download', filename=filename)):
+        with c.get(url_for('download', name=filename)):
             pass
 
-        rv = c.get(url_for('logo'), data={'file': iiif_id})
+        rv = c.get(url_for('logo'))
         assert b'OpenAtlas logo' in rv.data
 
         rv = c.get(url_for('logo', id_=iiif_id), follow_redirects=True)
-        assert b'remove custom logo' in rv.data
+        assert b'Remove custom logo' in rv.data
+
+        rv = c.get(url_for('logo', id_=iiif_id), follow_redirects=True)
+        assert rv.status_code == 418
 
         rv = c.get(
             url_for('logo_remove', action='remove_logo'),
@@ -115,18 +122,14 @@ class FileTest(TestBaseCase):
                 url_for('insert', class_='file', origin_id=place.id),
                 data={'name': 'Invalid file', 'file': invalid_file},
                 follow_redirects=True)
+
         assert b'File type not allowed' in rv.data
 
-        rv = c.get(
-            url_for('remove_profile_image', entity_id=place.id),
-            follow_redirects=True)
-        assert b'Unset' not in rv.data
-
         rv = c.post(
-            url_for('reference_add', id_=reference.id, view='file'),
-            data={'file': iiif_id, 'page': '777'},
+            url_for('link_insert_detail', origin_id=reference.id, name='file'),
+            data={'file': iiif_id},
             follow_redirects=True)
-        assert b'777' in rv.data
+        assert b'Ancient Books' in rv.data
 
         rv = c.post(
             url_for('update', id_=iiif_id),
@@ -134,11 +137,11 @@ class FileTest(TestBaseCase):
             follow_redirects=True)
         assert b'Changes have been saved' in rv.data
 
-        rv = c.get(url_for('file_add', id_=iiif_id, view='actor'))
-        assert b'link actor' in rv.data
+        rv = c.get(url_for('link_insert', origin_id=iiif_id, name='actor'))
+        assert b'actor' in rv.data
 
         rv = c.post(
-            url_for('file_add', id_=iiif_id, view='actor'),
+            url_for('link_insert', origin_id=iiif_id, name='actor'),
             data={'checkbox_values': [place.id]},
             follow_redirects=True)
         assert b'File keeper' in rv.data
@@ -147,13 +150,16 @@ class FileTest(TestBaseCase):
         assert b'File keeper' in rv.data
 
         rv = c.post(
-            url_for('entity_add_file', id_=get_hierarchy('Sex').subs[0]),
-            data={'checkbox_values': str([iiif_id])},
+            url_for(
+                'link_insert',
+                origin_id=get_hierarchy('Sex').subs[0],
+                name='file'),
+            data={'checkbox_values': [iiif_id]},
             follow_redirects=True)
         assert b'Updated file' in rv.data
 
         rv = c.get(url_for('view', id_=iiif_id))
-        assert b'enable IIIF view' in rv.data
+        assert b'Enable IIIF view' in rv.data
 
         rv = c.get(
             url_for('make_iiif_available', id_=iiif_id),
@@ -164,7 +170,7 @@ class FileTest(TestBaseCase):
         assert b'View in IIIF' in rv.data
 
         rv = c.get(url_for('view', id_=place.id))
-        assert b'view all IIIF images' in rv.data
+        assert b'View all IIIF images' in rv.data
 
         with app.test_request_context():
             app.preprocess_request()
@@ -225,6 +231,16 @@ class FileTest(TestBaseCase):
             follow_redirects=True)
         assert b'An interesting annotation' in rv.data
 
+        rv = c.post(
+            url_for('annotation_image_insert', id_=iiif_id),
+            data={
+                'coordinate': '1.6,1.6,1.4,9.6,8.6,9.6,8.6,1.6',
+                'text': '<h1>Test Annotation</h1>',
+                'entity': place.id},
+            follow_redirects=True)
+        assert b'<h1>Test Annotation</h1>' not in rv.data
+        assert b'Test Annotation' in rv.data
+
         rv = c.get(url_for('view_iiif', id_=iiif_id))
         assert b'Mirador' in rv.data
 
@@ -264,26 +280,26 @@ class FileTest(TestBaseCase):
 
         with app.test_request_context():
             app.preprocess_request()
-            iiif_file.delete_links(['P67'])
+            iiif_file.delete_links('P67', classes=['file', 'place'])
 
         rv = c.get(url_for('orphans'))
         assert b'File keeper' in rv.data
 
         rv = c.get(
             url_for(
-                'admin_annotation_relink',
-                image_id=iiif_id,
+                'annotation_image_relink',
+                origin_id=iiif_id,
                 entity_id=place.id),
             follow_redirects=True)
         assert b'Entities relinked' in rv.data
 
         with app.test_request_context():
             app.preprocess_request()
-            iiif_file.delete_links(['P67'])
+            iiif_file.delete_links('P67', classes=['file', 'place'])
 
         rv = c.get(
             url_for(
-                'admin_annotation_remove_entity',
+                'annotation_image_remove_entity',
                 annotation_id=1,
                 entity_id=place.id),
             follow_redirects=True)
@@ -309,10 +325,10 @@ class FileTest(TestBaseCase):
 
         with app.test_request_context():
             app.preprocess_request()
-            iiif_file.delete_links(['P67'])
+            iiif_file.delete_links('P67', classes=['file', 'place'])
 
         rv = c.get(
-            url_for('admin_annotation_delete', id_=2),
+            url_for('annotation_image_delete', id_=2, origin='orphan'),
             follow_redirects=True)
         assert b'Annotation deleted' in rv.data
 

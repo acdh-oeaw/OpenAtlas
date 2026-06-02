@@ -13,7 +13,6 @@
   </div>
   <div id="{{ field.id }}-clear-field" class="col-auto" {% if not selection %}style="display: none;"{% endif %}>
     <a
-        href="#"
         id="{{ field.id }}-clear"
         class="{{ config.CSS.button.secondary }}"
         onclick="clearSelect('{{ field.id }}');">
@@ -29,7 +28,7 @@
     aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header justify-content-between">
         <h5 class="modal-title">
           {{ root.name|uc_first }}
         </h5>
@@ -42,7 +41,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="d-flex">
+        <div class="d-flex mb-2">
           <input
               class="tree-filter {{ config.CSS.string_field }}"
               id="{{ field.id }}-tree-search"
@@ -71,7 +70,7 @@
   <div class="modal fade" id="add-type-modal-{{ field.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header justify-content-between">
           <h5 class="modal-title">{{ _('Add Type to %(hierarchy)s', hierarchy= _(root.name)|uc_first|safe) }}</h5>
           <button
               type="button"
@@ -92,7 +91,8 @@
           </button>
           <button
             id="{{ field.id }}-add-type"
-            disabled type="button"
+            disabled
+            type="submit"
             class="btn btn-outline-primary btn-sm">{{ _('insert')|uc_first }}
           </button>
         </div>
@@ -121,12 +121,16 @@
       const typeId = await ajaxAddType(data, {{field.id}}, {{field.type_id}});
       selectFromTree('{{field.type_id}}', typeId, name);
       $(this).prop("disabled", false).text('{{ _('insert')|uc_first }}');
+      $(this).prop("type", "button");
       e.preventDefault();
     });
   </script>
 {% endif %}
 
 <script>
+  $("#{{ field.id }}-modal")?.on("hidden.bs.modal", function (e) {
+   document.getElementById("save")?.focus({preventScroll:true})
+  })
   variables['{{field.id}}-isAddDynamicall'] = '{{field.form}}' !== 'None';
   if (variables['{{field.id}}-isAddDynamicall'])
     $("#{{ field.id }}-modal .toolbar").hide()

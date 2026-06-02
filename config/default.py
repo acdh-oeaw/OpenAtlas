@@ -2,9 +2,11 @@
 import os
 from pathlib import Path
 
+from rdflib import Namespace
+
 from config.database_versions import DATABASE_VERSIONS
 
-VERSION = '8.10.1'
+VERSION = '9.4.0'
 DATABASE_VERSION = DATABASE_VERSIONS[0]
 DEMO_MODE = False  # If activated some options are disabled, login is prefilled
 DEBUG = False
@@ -22,7 +24,16 @@ LANGUAGES = {
     'de': 'Deutsch',
     'en': 'English',
     'es': 'Español',
-    'fr': 'Français'}
+    'fr': 'Français',
+    'pl': 'Polski'}
+
+EXTERNAL_API = [
+    'APIS',
+    'Cadaster',
+    'GeoNames',
+    'GND',
+    'OpenAtlas',
+    'Wikidata']
 
 # Paths are implemented operating system independent using pathlib.
 # To override them (in instance/production.py) either use them like here
@@ -31,6 +42,9 @@ FILES_PATH = Path(__file__).parent.parent / 'files'
 if 'INSTANCE_PATH' in os.environ:
     FILES_PATH = Path(os.environ['INSTANCE_PATH']) / 'files'
 EXPORT_PATH = Path(FILES_PATH) / 'export'
+SQL_PATH = Path(EXPORT_PATH) / 'sql'
+ARCHE_PATH = Path(EXPORT_PATH) / 'arche'
+RDF_PATH = Path(EXPORT_PATH) / 'rdf'
 UPLOAD_PATH = Path(FILES_PATH) / 'uploads'
 TMP_PATH = Path('/tmp')  # For processing files e.g. at import and export
 
@@ -45,7 +59,7 @@ IMAGE_SIZE = {
     'table': '100'}
 
 # Security
-SESSION_COOKIE_SECURE = False  # Should be True in production.py if using HTTPS
+SESSION_COOKIE_SECURE = True  # Set to False if using locally without HTTPS
 REMEMBER_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -65,11 +79,43 @@ CSS = {
     'string_field': 'form-control form-control-sm',
     'button': {
         'primary': 'btn btn-outline-primary btn-sm',
-        'secondary': 'btn btn-outline-secondary btn-sm'}}
+        'secondary': 'btn btn-outline-secondary btn-sm',
+        'danger': 'btn btn-outline-danger btn-sm'}}
 
-# Tests
-LOAD_WINDOWS_TEST_SQL = False
 
-# External APIs
-API_WIKIDATA = 'https://www.wikidata.org/w/api.php'
-API_GEONAMES = 'http://api.geonames.org/get'
+USER_AGENT = {
+    'User-Agent':
+        f'OpenAtlas/{VERSION} (https://github.com/craws/OpenAtlas; '
+        'openatlas@oeaw.ac.at)'}
+
+CSP_HEADER = "frame-ancestors 'self'"
+
+# ARCHE export
+ACDH = Namespace("https://vocabs.acdh.oeaw.ac.at/schema#")
+ARCHE_URI_RULES = \
+    'https://raw.githubusercontent.com/acdh-oeaw/arche-assets' \
+    '/refs/heads/master/AcdhArcheAssets/uriNormRules.json'
+ARCHE_METADATA = {
+    'topCollection': '',
+    'language': 'en',
+    'depositor': [],
+    'acceptedDate': '',
+    'hasMetadataCreator': [],
+    'curator': [],
+    'principalInvestigator': [],
+    'relatedDiscipline': [],
+    'typeIds': [],
+    'excludeReferenceSystems': []}
+
+# Configure map point colors
+# Defined colors for type_ids override the default, top ones are prioritised
+MAP_TYPE_COLOR = {
+    'default': '#007bd9',
+    '123': '#007bd9'}
+
+# These are special types because they are used for links instead of entities
+PROPERTY_TYPES = [
+    'Actor relation',
+    'Actor function',
+    'External reference match',
+    'Involvement']

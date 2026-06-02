@@ -1,9 +1,9 @@
 -- Default types and OpenAtlas classes
 
-INSERT INTO model.openatlas_class (name, cidoc_class_code, alias_allowed, reference_system_allowed, new_types_allowed, write_access_group_name, layout_color, layout_icon, standard_type_id) VALUES
-  ('administrative_unit',  'E53', false, false, false, 'contributor', NULL,      'mdi-map-marker', NULL),
-  ('type',                 'E55', false, true,  false, 'editor',      NULL,      NULL,             NULL),
-  ('type_tools',    'E55', false, false, false, 'admin',       NULL,      NULL,             NULL);
+INSERT INTO model.openatlas_class (name, cidoc_class_code, new_types_allowed, write_access_group_name, standard_type_id) VALUES
+  ('administrative_unit',  'E53', false, 'editor',  NULL),
+  ('type',                 'E55', false, 'editor',  NULL),
+  ('type_tools',           'E55', false, 'admin',   NULL);
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
   ('E55', 'type', 'Bibliography', 'Categories for bibliographical entries as used for example in BibTeX, e.g. Book, Inbook, Article etc.'),
@@ -193,47 +193,15 @@ INSERT INTO model.link (property_code, range_id, domain_id) VALUES
   ('P127', (SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), (SELECT id FROM model.entity WHERE name='Upper Body')),
   ('P127', (SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), (SELECT id FROM model.entity WHERE name='Lower Body'));
 
-INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
-  ('E53', 'administrative_unit', 'Administrative unit', 'Hierarchy of administrative units like "Austria", "Germany", "Italy" and their respective subunits like "Lower Austria", "Styria" and their subunits etc.'),
-  ('E53', 'administrative_unit', 'Austria', Null),
-  ('E53', 'administrative_unit', 'Wien', Null),
-  ('E53', 'administrative_unit', 'Niederösterreich', Null),
-  ('E53', 'administrative_unit', 'Germany', Null),
-  ('E53', 'administrative_unit', 'Italy', Null),
-  ('E53', 'administrative_unit', 'Czech Republic', Null),
-  ('E53', 'administrative_unit', 'Slovakia', Null),
-  ('E53', 'administrative_unit', 'Slovenia', Null);
-INSERT INTO model.link (property_code, range_id, domain_id) VALUES
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Austria')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Italy')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Germany')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Czech Republic')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Slovakia')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Administrative unit'), (SELECT id FROM model.entity WHERE name='Slovenia')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Austria'), (SELECT id FROM model.entity WHERE name='Wien')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Austria'), (SELECT id FROM model.entity WHERE name='Niederösterreich'));
-
-INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
-  ('E53', 'administrative_unit', 'Historical place', 'Hierarchy of historical places respectively historical administrative units like: Duchy of Bavaria, Lombard Kingdom etc.'),
-  ('E53', 'administrative_unit', 'Carantania', Null),
-  ('E53', 'administrative_unit', 'Marcha Orientalis', Null),
-  ('E53', 'administrative_unit', 'Comitatus Iauntal', Null),
-  ('E53', 'administrative_unit', 'Kingdom of Serbia', Null);
-INSERT INTO model.link (property_code, range_id, domain_id) VALUES
-  ('P89', (SELECT id FROM model.entity WHERE name='Historical place'), (SELECT id FROM model.entity WHERE name='Carantania')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Historical place'), (SELECT id FROM model.entity WHERE name='Marcha Orientalis')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Historical place'), (SELECT id FROM model.entity WHERE name='Comitatus Iauntal')),
-  ('P89', (SELECT id FROM model.entity WHERE name='Historical place'), (SELECT id FROM model.entity WHERE name='Kingdom of Serbia'));
-
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name) VALUES
-  ('E55', 'type', 'Source translation'),
+  ('E55', 'type', 'Text'),
   ('E55', 'type', 'Original Text'),
   ('E55', 'type', 'Translation'),
   ('E55', 'type', 'Transliteration');
 INSERT INTO model.link (property_code, range_id, domain_id) VALUES
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Original Text')),
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Translation')),
-  ('P127', (SELECT id FROM model.entity WHERE name='Source translation'), (SELECT id FROM model.entity WHERE name='Transliteration'));
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Original Text')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Translation')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Text'), (SELECT id FROM model.entity WHERE name='Transliteration'));
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
   ('E55', 'type', 'Dimensions', 'Physical dimensions like weight and height.'),
@@ -242,6 +210,9 @@ INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, descript
 INSERT INTO model.link (property_code, range_id, domain_id) VALUES
   ('P127', (SELECT id FROM model.entity WHERE name='Dimensions'), (SELECT id FROM model.entity WHERE name='Height')),
   ('P127', (SELECT id FROM model.entity WHERE name='Dimensions'), (SELECT id FROM model.entity WHERE name='Weight'));
+
+INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
+  ('E55', 'type', 'Case study', 'Mark entities for different case studies, used e.g. for presentation sites.');
 
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
   ('E55', 'type_tools', 'Features for sexing', 'Bone features used for biological sex estimation of human remains.'),
@@ -340,9 +311,9 @@ INSERT INTO model.link (property_code, domain_id, range_id) VALUES
 INSERT INTO web.hierarchy (id, name, category, multiple, directional) VALUES
   ((SELECT id FROM model.entity WHERE name='Actor function'), 'Actor function', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Actor relation'), 'Actor relation', 'standard', False, True),
-  ((SELECT id FROM model.entity WHERE name='Administrative unit'), 'Administrative unit', 'place', True, False),
   ((SELECT id FROM model.entity WHERE name='Artifact'), 'Artifact', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Bibliography'), 'Bibliography', 'standard', False, False),
+  ((SELECT id FROM model.entity WHERE name='Case study'), 'Case study', 'custom', True, False),
   ((SELECT id FROM model.entity WHERE name='Dimensions'), 'Dimensions', 'value', True, False),
   ((SELECT id FROM model.entity WHERE name='Edition'), 'Edition', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Event'), 'Event', 'standard', False, False),
@@ -350,85 +321,77 @@ INSERT INTO web.hierarchy (id, name, category, multiple, directional) VALUES
   ((SELECT id FROM model.entity WHERE name='External reference match'), 'External reference match', 'system', False, False),
   ((SELECT id FROM model.entity WHERE name='Feature'), 'Feature', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Features for sexing'), 'Features for sexing', 'tools', False, False),
-  ((SELECT id FROM model.entity WHERE name='Historical place'), 'Historical place', 'place', True, False),
   ((SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), 'Human remains', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Involvement'), 'Involvement', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='License'), 'License', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Place'), 'Place', 'standard', False, False),
   ((SELECT id FROM model.entity WHERE name='Radiocarbon'), 'Radiocarbon', 'tools', False, False),
-  ((SELECT id FROM model.entity WHERE name='Sex'), 'Sex', 'custom', False, False),
+  ((SELECT id FROM model.entity WHERE name='Sex'), 'Sex', 'custom', True, False),
   ((SELECT id FROM model.entity WHERE name='Source'), 'Source', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Source translation'), 'Source translation', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False);
+  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False),
+  ((SELECT id FROM model.entity WHERE name='Text'), 'Text', 'standard', False, False);
 
 
-INSERT INTO model.openatlas_class (name, cidoc_class_code, alias_allowed, reference_system_allowed, new_types_allowed, write_access_group_name, layout_color, layout_icon, standard_type_id) VALUES
-  ('acquisition',          'E8',  false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('activity',             'E7',  false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('actor_relation',       NULL,  false, false, false, 'contributor', NULL,      NULL,             (SELECT id FROM model.entity WHERE name = 'Actor relation' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('actor_function',       NULL,  false, false, false, 'contributor', NULL,      NULL,             (SELECT id FROM model.entity WHERE name = 'Actor function' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('appellation',          'E41', false, false, false, 'contributor', NULL,      NULL,             NULL),
-  ('artifact',             'E22', false, true,  true,  'contributor', '#EE82EE', 'mdi-shapes',     (SELECT id FROM model.entity WHERE name = 'Artifact' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('bibliography',         'E31', false, false, true,  'contributor', NULL,      'mdi-text-box',   (SELECT id FROM model.entity WHERE name = 'Bibliography' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('creation',             'E65',  false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('edition',              'E31', false, false, true,  'contributor', NULL,      'mdi-text-box',   (SELECT id FROM model.entity WHERE name = 'Edition' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('event',                'E5',  false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('external_reference',   'E31', false, false, true,  'contributor', NULL,      'mdi-text-box',   (SELECT id FROM model.entity WHERE name = 'External reference' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('feature',              'E18', false, true,  true,  'contributor', NULL,      'mdi-map-marker', (SELECT id FROM model.entity WHERE name = 'Feature' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('file',                 'E31', false, false, true,  'contributor', NULL,      'mdi-text-box',   (SELECT id FROM model.entity WHERE name = 'License' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('group',                'E74', true,  true,  true,  'contributor', '#34623C', 'mdi-account',    NULL),
-  ('human_remains',        'E20', false, true,  true,  'contributor', NULL,      'mdi-map-marker', (SELECT id FROM model.entity WHERE name = 'Human remains' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('involvement',          NULL,  false, false, false, 'contributor', NULL,      NULL,             (SELECT id FROM model.entity WHERE name = 'Involvement' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('modification',         'E11', false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('move',                  'E9', false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('object_location',      'E53', false, false, false, 'contributor', '#00FF00', NULL,             NULL),
-  ('person',               'E21', true,  true,  true,  'contributor', '#34B522', 'mdi-account',    NULL),
-  ('place',                'E18', true,  true,  true,  'contributor', '#FF0000', 'mdi-map-marker', (SELECT id FROM model.entity WHERE name = 'Place' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('production',           'E12', false, true,  true,  'contributor', '#0000FF', 'mdi-calendar',   (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('reference_system',     'E32', false, false, false, 'manager',     NULL,      NULL,             NULL),
-  ('source',               'E33', false, true,  true,  'contributor', '#FFA500', 'mdi-text-box',   (SELECT id FROM model.entity WHERE name = 'Source' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
-  ('source_translation',   'E33', false, false, false, 'contributor', NULL,      'mdi-text-box',   NULL),
-  ('stratigraphic_unit',   'E18', false, true,  true,  'contributor', NULL,      'mdi-map-marker', (SELECT id FROM model.entity WHERE name = 'Stratigraphic unit' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1));
+INSERT INTO model.openatlas_class (name, cidoc_class_code, new_types_allowed, write_access_group_name, standard_type_id) VALUES
+  ('acquisition',          'E8',  true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('activity',             'E7',  true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('alias',                'E41', false, 'contributor', NULL),
+  ('artifact',             'E22', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Artifact' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('bibliography',         'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Bibliography' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('edition',              'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Edition' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('external_reference',   'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'External reference' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('feature',              'E18', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Feature' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('file',                 'E31', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'License' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('group',                'E74', true,  'contributor', NULL),
+  ('human_remains',        'E20', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Human remains' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('modification',         'E11', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('move',                  'E9', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('object_location',      'E53', false, 'contributor', NULL),
+  ('person',               'E21', true,  'contributor', NULL),
+  ('place',                'E18', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Place' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('production',           'E12', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Event' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('reference_system',     'E32', false, 'manager',     NULL),
+  ('source',               'E33', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Source' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('stratigraphic_unit',   'E18', true,  'contributor', (SELECT id FROM model.entity WHERE name = 'Stratigraphic unit' AND cidoc_class_code = 'E55' ORDER BY id ASC LIMIT 1)),
+  ('text',                 'E33', false, 'contributor', NULL);
 
 INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) VALUES
-  ((SELECT id FROM web.hierarchy WHERE name='Actor function'), 'actor_function'),
-  ((SELECT id FROM web.hierarchy WHERE name='Actor relation'), 'actor_relation'),
-  ((SELECT id FROM web.hierarchy WHERE name='Administrative unit'), 'place'),
   ((SELECT id FROM web.hierarchy WHERE name='Artifact'), 'artifact'),
   ((SELECT id FROM web.hierarchy WHERE name='Bibliography'), 'bibliography'),
+  ((SELECT id FROM web.hierarchy WHERE name='Dimensions'), 'artifact'),
   ((SELECT id FROM web.hierarchy WHERE name='Edition'), 'edition'),
   ((SELECT id FROM web.hierarchy WHERE name='Event'), 'acquisition'),
   ((SELECT id FROM web.hierarchy WHERE name='Event'), 'activity'),
-  ((SELECT id FROM web.hierarchy WHERE name='Event'), 'creation'),
-  ((SELECT id FROM web.hierarchy WHERE name='Event'), 'event'),
   ((SELECT id FROM web.hierarchy WHERE name='Event'), 'modification'),
   ((SELECT id FROM web.hierarchy WHERE name='Event'), 'move'),
   ((SELECT id FROM web.hierarchy WHERE name='Event'), 'production'),
   ((SELECT id FROM web.hierarchy WHERE name='External reference'), 'external_reference'),
   ((SELECT id FROM web.hierarchy WHERE name='Feature'), 'feature'),
-  ((SELECT id FROM web.hierarchy WHERE name='Historical place'), 'place'),
   ((SELECT id FROM web.hierarchy WHERE name='Human remains'), 'human_remains'),
-  ((SELECT id FROM web.hierarchy WHERE name='Involvement'), 'involvement'),
   ((SELECT id FROM web.hierarchy WHERE name='License'), 'file'),
   ((SELECT id FROM web.hierarchy WHERE name='Place'), 'place'),
+  ((SELECT id FROM web.hierarchy WHERE name='External reference match'), 'reference_system'),
+  ((SELECT id FROM web.hierarchy WHERE name='Sex'), 'person'),
   ((SELECT id FROM web.hierarchy WHERE name='Source'), 'source'),
-  ((SELECT id FROM web.hierarchy WHERE name='Source translation'), 'source_translation'),
   ((SELECT id FROM web.hierarchy WHERE name='Stratigraphic unit'), 'stratigraphic_unit'),
-
-  ((SELECT id FROM web.hierarchy WHERE name='Dimensions'), 'artifact'),
-  ((SELECT id FROM web.hierarchy WHERE name='Sex'), 'person');
+  ((SELECT id FROM web.hierarchy WHERE name='Text'), 'text');
 
 -- External Reference Systems
 INSERT INTO model.entity (name, cidoc_class_code, description, openatlas_class_name) VALUES
   ('GeoNames', 'E32', 'Geographical database covering all countries and many places.', 'reference_system'),
   ('Wikidata', 'E32', 'A free and open knowledge base and common source of open data providing persistent identifier and links to other sources.', 'reference_system'),
-  ('GND',      'E32', 'GND stands for Gemeinsame Normdatei (Integrated Authority File) and offers a broad range of elements to describe authorities.', 'reference_system');
+  ('GND',      'E32', 'GND stands for Gemeinsame Normdatei (Integrated Authority File) and offers a broad range of elements to describe authorities.', 'reference_system'),
+  ('Cadaster', 'E32', 'Austrian cadastre from the Federal Office of Metrology and Surveying Austria', 'reference_system');
 
-INSERT INTO web.reference_system (system, name, entity_id, resolver_url, website_url, identifier_example)
+INSERT INTO web.reference_system (system, name, api, entity_id, resolver_url, website_url, identifier_example)
 VALUES
-  (true, 'GeoNames', (SELECT id FROM model.entity WHERE name = 'GeoNames' AND cidoc_class_code = 'E32'), 'https://www.geonames.org/', 'https://www.geonames.org/', '1234567'),
-  (true, 'Wikidata', (SELECT id FROM model.entity WHERE name = 'Wikidata' AND cidoc_class_code = 'E32'), 'https://www.wikidata.org/entity/', 'https://www.wikidata.org', 'Q123'),
-  (true, 'GND',      (SELECT id FROM model.entity WHERE name = 'GND'      AND cidoc_class_code = 'E32'), 'https://lobid.org/gnd/', 'https://d-nb.info/standards/elementset/gnd', '119338467');
+  (true, 'GeoNames', 'GeoNames', (SELECT id FROM model.entity WHERE name = 'GeoNames' AND cidoc_class_code = 'E32'), 'https://www.geonames.org/', 'https://www.geonames.org/', '1234567'),
+  (true, 'Wikidata', 'Wikidata', (SELECT id FROM model.entity WHERE name = 'Wikidata' AND cidoc_class_code = 'E32'), 'https://www.wikidata.org/entity/', 'https://www.wikidata.org', 'Q123'),
+  (true, 'GND',      'GND',      (SELECT id FROM model.entity WHERE name = 'GND'      AND cidoc_class_code = 'E32'), 'https://lobid.org/gnd/', 'https://d-nb.info/standards/elementset/gnd', '119338467'),
+  (true, 'Cadaster', 'Cadaster', (SELECT id FROM model.entity WHERE name = 'Cadaster' AND cidoc_class_code = 'E32'), 'https://kataster.bev.gv.at/api/gst/', 'https://kataster.bev.gv.at/', '01004/784/1');
+
+INSERT INTO model.link (property_code, range_id, domain_id) VALUES
+  ('P2', (SELECT id FROM model.entity WHERE name='exact match'), (SELECT id FROM model.entity WHERE name='Cadaster'));
 
 INSERT INTO web.reference_system_openatlas_class (reference_system_id, openatlas_class_name) VALUES
   ((SELECT entity_id FROM web.reference_system WHERE name='GeoNames'), 'place'),

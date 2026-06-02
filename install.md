@@ -2,9 +2,9 @@
 Some knowledge about package installation, web server and database
 configuration will be needed.
 
-This software was developed and tested on Linux/Debian 12.2
-(codename "bookwom") and the easiest way to install would be on a
-[Debian](https://www.debian.org/) 12.2 system following these instructions.
+This software was developed and tested on Linux/Debian 13.2
+(codename "trixie") and the easiest way to install would be on a
+[Debian](https://www.debian.org/) 13.2 system following these instructions.
 
 Another (experimental) way to install it would be via
 [Docker](https://www.docker.com/).
@@ -21,22 +21,22 @@ that we are using to set up Debian servers for OpenAtlas installations.
 * [Requirements](#Requirements)
 * [IIIF](#IIIF) (optional)
 * [Tests](#Tests) (optional)
-* [Docker](#Docker) (alternative installation method)
 
 ## Requirements
-### Python 3.11 and Flask 2.2.2
-    sudo apt install python3 python3-bcrypt python3-dateutil python3-psycopg2 python3-fuzzywuzzy python3-flask
-    sudo apt install python3-flask-babel python3-flask-login python3-flaskext.wtf python3-markdown python3-numpy
-    sudo apt install python3-pandas python3-jinja2 python3-flask-cors python3-flask-restful p7zip-full python3-wand
-    sudo apt install python3-rdflib python3-dicttoxml python3-rdflib-jsonld python3-flasgger python3-requests
-    sudo apt install exiftran python3-email-validator python3-svgwrite python3-shapely python3-xmltodict 
-    sudo apt install python3-validators python3-jwt python3-python-flask-jwt-extended
+### Python 3.13 and Flask 3.1.1
+    sudo apt install python3 python3-flask python3-psycopg2 python3-flask-babel python3-flask-login
+    sudo apt install python3-jwt python3-python-flask-jwt-extended python3-flaskext.wtf python3-flask-cors
+    sudo apt install python3-rdflib python3-shapely python3-flasgger python3-flask-restful python3-pandas
+    sudo apt install python3-validators python3-email-validator python3-wand python3-svgwrite
+    sudo apt install python3-xmltodict python3-markdown exiftran python3-bcrypt python3-dateutil p7zip-full
+    sudo apt install python3-requests python3-bs4 python3-unidecode python3-lxml python3-unidecode python3-numpy
+    sudo apt install python3-fiona python3-magic python3-flask-bcrypt python3-levenshtein
 
 ### Apache 2.4, gettext, npm
     sudo apt install apache2 libapache2-mod-wsgi-py3 gettext npm
 
-### PostgreSQL 15 and PostGIS 3
-    sudo apt install postgresql postgresql-15-postgis-3 postgresql-15-postgis-3-scripts
+### PostgreSQL 17 and PostGIS 3
+    sudo apt install postgresql postgresql-17-postgis-3
 
 ## Installation
 ### Files
@@ -71,12 +71,6 @@ Import the SQL files:
     cd install
     cat 1_structure.sql 2_data_model.sql 3_data_web.sql 4_data_type.sql | psql -d openatlas -f -
 
-A user with username **OpenAtlas** is created with the password
-**change_me_PLEASE!**
-
-**Important**: change this account immediately. A warning will be displayed for
-admins until this account is changed.
-
 ### Configuration
 Copy instance/example_production.py to instance/production.py
 
@@ -100,9 +94,10 @@ Make the **files** directory writable for the Apache user, e.g.:
     sudo chown -R www-data files
 
 ### Finishing
-Login with username "OpenAtlas" and password "change_me_PLEASE!" and change the
-password in profile. You may want to check the admin area to set up default
-site settings, email and similar.
+First step after a new installation will be visiting the site in your browser
+and create an admin account, which you should do immediately. You may want to
+check the admin area to set up default site settings, email
+(important for password resets) and similar.
 
 ### Upgrade
 If you later like to upgrade the application be sure to read and follow the
@@ -130,7 +125,7 @@ high-quality, attributed digital objects online at scale. Be aware that:
 
 ### Installation
 
-    sudo apt install iipimage-server libvips-tools
+    sudo apt install iipimage-server
     sudo a2enmod fcgid
     sudo service apache2 restart
 
@@ -158,7 +153,7 @@ application.
 ## Tests
 Install required packages:
 
-    sudo apt install python3-coverage python3-nose
+    sudo apt install python3-coverage python3-pytest python3-pytest-cov
 
 As postgres:
 
@@ -173,37 +168,11 @@ Create a own folder to test IIIF images, e.g.:
 
     mkdir /var/www/iipsrv/tests
 
-Run tests
-
-    nosetest3
-
 Run tests with coverage
 
-    nosetests3 -c tests/.noserc
+    pytest
 
-## Docker
-Be aware, the [Docker](https://www.docker.com/) installation is experimental
-and is **not** recommended for usage on a productive system.
+# Installing OpenAtlas with Docker (Experimental)
 
-To run OpenAtlas as a Docker container clone the repository
-
-    git clone https://github.com/craws/OpenAtlas.git
-
-Open an CLI in the directory where you cloned OpenAtlas and run
-
-    docker compose up --detach
-
-After the containers are build an OpenAtlas instance is available under
-**localhost:8080**.
-
-Login with username **OpenAtlas** and password **change_me_PLEASE!** and change
-the password in your profile. You may want to check the admin area to set up
-default site settings, email and similar.
-
-### Restore database dump
-To restore a database SQL dump uncomment following command in
-./docker-compose.yml and modify the first path. Make sure that no previous
-database is installed (e.g. delete ./data/db/), as the dump will not be
-executed.
-
-    - ./files/export/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+A Docker setup is available for local development. Please follow the
+[detailed Docker installation instructions here](install/docker/install.md).

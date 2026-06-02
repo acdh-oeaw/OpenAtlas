@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional
 
 from flask import g
 
 from openatlas.database import tools as db
-
-if TYPE_CHECKING:  # pragma: no cover
-    from openatlas.models.entity import Entity, Link
+from openatlas.models.entity import Entity, Link
 
 
 def get_sex_types(entity_id: int) -> list[dict[str, Any]]:
@@ -31,8 +29,7 @@ def update_carbon(
         data: dict[str, Any],
         link_: Optional[Link]) -> None:
     if link_:
-        link_.description = json.dumps(data)
-        link_.update()
+        link_.update({'description': json.dumps(data)})
     else:
         entity.link('P2', g.radiocarbon_type, json.dumps(data))
 

@@ -1,13 +1,12 @@
 tinymce.init({
+  license_key: 'gpl',
+  selector: 'textarea.tinymce',
   menubar: false,
   relative_urls: false,
-  mode: 'specific_textareas',
-  editor_selector: 'tinymce',
   resize: 'both',
-  toolbar_items_size: 'small',
-  plugins: 'link code textcolor colorpicker',
+  plugins: 'link code',
   toolbar: 'bold italic underline strikethrough alignleft aligncenter alignright alignjustify ' +
-      ' undo redo link unlink fontselect fontsizeselect forecolor code',
+      ' undo redo link unlink fontfamily fontsize forecolor code',
 });
 
 $(document).ready(function () {
@@ -110,66 +109,6 @@ $(document).ready(function () {
     history.replaceState(null, null, newUrl);
   });
 
-  /**
-   * Wikidata autocomplete
-   * Documentation: https://bootstrap-autocomplete.readthedocs.io/en/latest/
-   * Bootstrap version needs to be manually set d/t
-   */
-  $('input[data-reference-system=Wikidata]').autoComplete({
-    bootstrapVersion: '4',
-    resolver: 'custom',
-    formatResult: function (item) {
-      return {
-        value: item.id,
-        text: `${item.label} - ${item.description}<br/><small>${item.id}</small>`
-      };
-    },
-    events: {
-      search: function (qry, callback) {
-        $.ajax(
-            `https://www.wikidata.org/w/api.php?action=wbsearchentities&language=en&format=json&origin=*&search=${qry}`,
-        ).done(function (res) {
-            callback(res.search)
-        });
-      }
-    }
-  }).on('autocomplete.select', function(evt,item) {
-      $('input[data-reference-system=Wikidata]').val(item.id);
-  });
-
-  /**
-   * GND autocomplete
-   * Documentation: https://bootstrap-autocomplete.readthedocs.io/en/latest/
-   * Bootstrap version needs to be manually set d/t
-  */
-  $('input[data-reference-system=GND]').autoComplete({
-    bootstrapVersion: '4',
-    resolver: 'custom',
-    formatResult: function (item) {
-      return {
-         value: item.id,
-         text: `${item.label} - ${item.category}<br/><small>${item.id.substring(item.id.lastIndexOf('/') + 1)}</small>`
-      };
-    },
-    events: {
-      search: function (qry, callback) {
-        $.ajax({
-          url: "https://lobid.org/gnd/search",
-          dataType: "jsonp",
-          data: {
-            q: qry,
-            format: "json:preferredName"
-          },
-          success: function(data) {
-            callback(data);
-          }
-        })
-      }
-    }
-  }).on('autocomplete.select', function(evt,item) {
-    $('input[data-reference-system=GND]').val(item.id.substring(item.id.lastIndexOf('/') + 1));
-  });
-
 });
 
 $.jstree.defaults.core.themes.dots = false;
@@ -220,63 +159,50 @@ function ajaxBookmark(entityId) {
 async function ajaxAddEntity(data) {
   const newEntityId = await $.ajax({
     type: 'post',
-    url: '/ajax/add_entity',
+    url: '/ajax/entity/add',
     data: data,
   });
   return newEntityId;
 }
 
-async function ajaxWikidataInfo(data) {
-  $.ajax({
-    type: 'post',
-    url: '/ajax/wikidata_info',
-    data: 'id_=' + data,
-    success: function (info) {
-      $('#wikidata-info-div').html(info);
-      $('#wikidata-switch').hide();
+async function ajaxAPICall(props, id){
+   if ($(`#${id}-switch #hide`).hasClass("d-none")){
+    if ($(`#${id}-info-div`).html().length > 0){
+      $(`#${id}-info-div`).show();
+      $(`#${id}-switch #show`).addClass("d-none")
+      $(`#${id}-switch #hide`).removeClass("d-none")
     }
-  });
+    else{
+      $.ajax({
+        ...props,
+        success: function (info) {
+          $(`#${id}-info-div`).html(info);
+          $(`#${id}-info-div`).show();
+          $(`#${id}-switch #show`).addClass("d-none")
+          $(`#${id}-switch #hide`).removeClass("d-none")
+        }
+      });
+    }
+  }
+  else {
+    $(`#${id}-info-div`).hide();
+    $(`#${id}-switch #hide`).addClass("d-none")
+    $(`#${id}-switch #show`).removeClass("d-none")
+  }
 }
 
-async function ajaxGeonamesInfo(data) {
-  $.ajax({
-    type: 'post',
-    url: '/ajax/geonames_info',
-    data: 'id_=' + data,
-    success: function (info) {
-      $('#geonames-info-div').html(info);
-      $('#geonames-switch').hide();
-    }
-  });
-}
-
-async function ajaxGndInfo(data) {
-  $.ajax({
-    type: 'post',
-    url: '/ajax/gnd_info',
-    data: 'id_=' + data,
-    success: function (info) {
-      $('#gnd-info-div').html(info);
-      $('#gnd-switch').hide();
-    }
-  });
-}
-
-async function refillTable(id, filterIds = []) {
-  const tableContent = await $.ajax({
-    type: 'post',
-    url: `/ajax/get_entity_table/${id}`,
-    data: {filterIds: JSON.stringify(filterIds)},
-  });
-  $(`#${id}-modal .modal-body-table`)
-    .empty()
-    .append($(`${tableContent}`));
+async function ajaxApiInfo(api, system_id, data) {
+  ajaxAPICall({
+      type: 'post',
+      url: '/ajax/api/' + system_id,
+      data: 'id_=' + data},
+    system_id)
 }
 
 async function ajaxAddType(data, fieldId, typeId, multiple=false) {
   const newTypeId = await $.ajax({
     type: 'post',
-    url: '/ajax/addtype',
+    url: '/ajax/type/add',
     data: data,
   });
   const typeTree = await getTypeTree(typeId);
@@ -297,7 +223,7 @@ async function ajaxAddType(data, fieldId, typeId, multiple=false) {
 }
 
 function getTypeTree(rootId){
-  return $.ajax({type: 'get', url: `/ajax/get_type_tree/${rootId}`});
+  return $.ajax({type: 'get', url: `/ajax/type/tree/${rootId}`});
 }
 
 function updateTree(id, d, refreshCallback) {
@@ -320,7 +246,7 @@ function fillTreeSelect(id,d,minimum_jstree_search){
   $(`#${id}-tree`).on("select_node.jstree", function (e, data) {
       selectFromTree(`${id}`, data.node.id, data.node.text);
   });
-  $(`#${id}-tree-search`).keyup(function () {
+  $(`#${id.replaceAll(" ", "")}-tree-search`).keyup(function () {
     if (this.value.length >= minimum_jstree_search) {
       $(`#${id}-tree`).jstree("search", $(this).val());
     } else if (this.value.length == 0) {
@@ -368,8 +294,8 @@ function selectFromTreeMulti(name, value_type = false) {
 }
 
 function deselectNode(fieldId,nodeId){
- $(`#${fieldId}-tree`).jstree('deselect_node', nodeId);
- selectFromTreeMulti(fieldId)
+  $(`#${fieldId}-tree`).jstree('deselect_node', nodeId);
+  selectFromTreeMulti(fieldId)
 }
 
 function selectFromTable(element, table, id, label=undefined) {
@@ -391,7 +317,7 @@ function selectFromTableMulti(name) {
   $('#' + name + '_table').DataTable().rows().nodes().to$().find('input[type="checkbox"]').each(
     function () {
       if ($(this).is(':checked')) {
-        checkedNames.push({name:$(this).val(),id:$(this).attr('id')});
+        checkedNames.push({name:$(this).attr("data-entity-name"),id:$(this).attr('id')});
         ids.push($(this).attr('id'));
       }
     });
@@ -513,7 +439,7 @@ function addListElement(id, classes=""){
   const newField = document.createElement('li')
   newField.innerHTML = `
     <div class="d-flex">
-        <div class="w-100"><input id="${id}-${lastId + 1}"  name="${id}-${lastId + 1}" class="${classes} form-control form-control-sm" type="text"/></div>
+        <div class="w-100"><input id="${id}-${lastId + 1}"  name="${id}-${lastId + 1}" class="${classes} form-control form-control-sm" type="text"></div>
         <div><button onclick="removeListField('${id}-${lastId + 1}')" type="button" class="${style.button.secondary} ms-1"><icon class="fa fa-minus"></icon></button></div>
     </div>`
   list.appendChild(newField)
@@ -542,7 +468,7 @@ function processUcFirst(){
 function toggleMapWidth(element){
   const parent = element.parentElement
   parent.classList.toggle("col-lg-3")
-  parent.classList.toggle("col-lg-7")
+  parent.classList.toggle("col-lg-6")
   element.classList.toggle("rotate-180")
 }
 

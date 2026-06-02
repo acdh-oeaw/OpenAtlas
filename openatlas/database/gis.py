@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Any
 
 from flask import g
+from shapely import GeometryCollection, from_wkt
 
 
 def get_by_id(id_: int) -> list[dict[str, Any]]:
@@ -24,36 +25,12 @@ def get_by_id(id_: int) -> list[dict[str, Any]]:
     return [get_geometry_dict(row) for row in list(g.cursor)]
 
 
-def get_by_ids(ids: list[int]) -> defaultdict[int, list[dict[str, Any]]]:
+def get_by_entity_ids(ids: list[int]) -> dict[int, list[dict[str, Any]]]:
     g.cursor.execute(
         """
         SELECT
             g.id,
-            g.entity_id,
-            g.name,
-            g.description,
-            g.type,
-            public.ST_AsGeoJSON(geom_point) AS point,
-            public.ST_AsGeoJSON(geom_linestring) AS linestring,
-            public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
-        FROM model.entity place
-        JOIN model.gis g ON place.id = g.entity_id
-        WHERE place.id IN %(ids)s;
-        """,
-        {'ids': tuple(ids)})
-    locations = defaultdict(list)
-    for row in list(g.cursor):
-        locations[row['entity_id']].append(get_geometry_dict(row))
-    return locations
-
-
-def get_by_place_ids(
-        ids: list[int]) -> defaultdict[int, list[dict[str, Any]]]:
-    g.cursor.execute(
-        """
-        SELECT
-            g.id,
-			l.domain_id as entity_id,
+            l.domain_id as entity_id,
             g.entity_id as location_id,
             g.name,
             g.description,
@@ -61,9 +38,15 @@ def get_by_place_ids(
             public.ST_AsGeoJSON(geom_point) AS point,
             public.ST_AsGeoJSON(geom_linestring) AS linestring,
             public.ST_AsGeoJSON(ST_ForcePolygonCCW(geom_polygon)) AS polygon
-		FROM model.link l
+        FROM model.link l
         JOIN model.gis g ON l.range_id = g.entity_id
-		WHERE l.property_code = 'P53' AND l.domain_id IN %(ids)s;
+        WHERE l.property_code in
+            ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
+        AND l.domain_id IN %(ids)s
+        AND (
+            geom_point IS NOT NULL
+            OR geom_linestring IS NOT NULL
+            OR geom_polygon IS NOT NULL);
         """,
         {'ids': tuple(ids)})
     locations = defaultdict(list)
@@ -83,16 +66,20 @@ def get_geometry_dict(row: dict[str, Any]) -> dict[str, Any]:
         if row['name'] else ''
     geometry['description'] = row['description'].replace('"', '\"') \
         if row['description'] else ''
-    geometry['shapeType'] = row['type'].replace('"', '\"') \
-        if row['type'] else ''
+    geometry['shapeType'] = (
+        row['type'].replace('"', '\"')) if row['type'] else ''
+    geometry['locationId'] = row.get('location_id')
+    geometry['placeId'] = row.get('entity_id')
     return geometry
 
 
-def get_centroids_by_id(id_: int) -> list[dict[str, Any]]:
+def get_centroids_by_entities(ids: list[int]) -> dict[int, list[Any]]:
     g.cursor.execute(
         """
         SELECT
             g.id,
+            l.domain_id as entity_id,
+            g.entity_id as location_id,
             g.name,
             g.description,
             g.type,
@@ -102,36 +89,12 @@ def get_centroids_by_id(id_: int) -> list[dict[str, Any]]:
             CASE WHEN geom_polygon IS NULL THEN NULL ELSE
                 public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_polygon))
                 END AS polygon_point
-        FROM model.entity place
-        JOIN model.gis g ON place.id = g.entity_id
-        WHERE place.id = %(id_)s;
-        """,
-        {'id_': id_})
-    geometries = []
-    for row in list(g.cursor):
-        if data := get_centroid_dict(row):
-            geometries.append(data)
-    return geometries
-
-
-def get_centroids_by_ids(ids: list[int]) -> defaultdict[int, list[Any]]:
-    g.cursor.execute(
-        """
-        SELECT
-            g.id,
-            g.entity_id,
-            g.name,
-            g.description,
-            g.type,
-            CASE WHEN geom_linestring IS NULL THEN NULL ELSE
-                public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_linestring))
-                END AS linestring_point,
-            CASE WHEN geom_polygon IS NULL THEN NULL ELSE
-                public.ST_AsGeoJSON(public.ST_PointOnSurface(geom_polygon))
-                END AS polygon_point
-        FROM model.entity place
-        JOIN model.gis g ON place.id = g.entity_id
-        WHERE place.id IN %(ids)s;
+        FROM model.link l
+        JOIN model.gis g ON l.range_id = g.entity_id
+        WHERE l.property_code in
+            ('P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27')
+        AND l.domain_id IN %(ids)s
+        AND (geom_linestring IS NOT NULL OR geom_polygon IS NOT NULL);
         """,
         {'ids': tuple(ids)})
     locations = defaultdict(list)
@@ -153,10 +116,12 @@ def get_centroid_dict(row: dict[str, Any]) -> dict[str, Any]:
     geometry['description'] = row['description'].replace('"', '\"') \
         if row['description'] else ''
     geometry['shapeType'] = 'centerpoint'
+    geometry['locationId'] = row.get('location_id')
+    geometry['placeId'] = row.get('entity_id')
     return geometry
 
 
-def get_wkt_by_id(id_: int) -> list[dict[str, Any]]:
+def get_wkt_by_id(id_: int) -> str:
     g.cursor.execute(
         """
         SELECT
@@ -173,20 +138,18 @@ def get_wkt_by_id(id_: int) -> list[dict[str, Any]]:
         """,
         {'id_': id_})
     geometries = []
-    for row in list(g.cursor):
-        geometry = {}
+    for row in g.cursor:
         if row['point']:
-            geometry['defined_by'] = row['point']
-        elif row['linestring']:
-            geometry['defined_by'] = row['linestring']
-        else:
-            geometry['defined_by'] = row['polygon']
-        geometry['content'] = row['description'].replace('"', '\"') \
-            if row['description'] else ''
-        geometry['shape_type'] = row['type'].replace('"', '\"') \
-            if row['type'] else ''
-        geometries.append(geometry)
-    return geometries
+            geometries.append(from_wkt(row['point']))
+        if row['linestring']:
+            geometries.append(from_wkt(row['linestring']))
+        if row['polygon']:
+            geometries.append(from_wkt(row['polygon']))
+    if not geometries:
+        return ""
+    if len(geometries) == 1:
+        return geometries[0].wkt
+    return GeometryCollection(geometries).wkt
 
 
 def get_all(extra_ids: list[int]) -> list[dict[str, Any]]:
@@ -243,18 +206,6 @@ def insert(data: dict[str, Any], shape: str) -> None:
             %(entity_id)s, %(name)s, %(description)s, %(type)s,
             public.ST_SetSRID(public.ST_GeomFromGeoJSON(%(geojson)s),4326)
         );
-        """,
-        data)
-
-
-def insert_wkt(data: dict[str, Any], shape: str) -> None:
-    g.cursor.execute(
-        f"""
-        INSERT INTO model.gis (
-            entity_id, name, description, type, geom_{shape}
-        ) VALUES (
-            %(entity_id)s, '', %(description)s, %(type)s,
-            public.ST_SetSRID(public.ST_GeomFromText(%(wkt)s),4326));
         """,
         data)
 

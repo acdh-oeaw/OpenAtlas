@@ -1,7 +1,8 @@
 from flask import render_template
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
 
 from openatlas import app
+# pylint: disable=too-many-lines
 
 
 @app.route('/changelog')
@@ -13,13 +14,160 @@ def index_changelog() -> str:
         versions=versions)
 
 
-# pylint: disable=too-many-lines
 versions = {
+    '9.4.0': ['TBA', {
+        '2816': 'Refactor and minor improvements'}],
+    '9.3.0': ['2026-05-27', {
+        'feature': {
+            '2600': 'External references for references',
+            '2718': 'Renaming OpenAtlas classes',
+            '2796': 'Integration of UUID',
+            '2775': 'Advanced image validation',
+            '2781': 'Display OpenAtlas class at entity detail views',
+            '2705': 'Case study system type',
+            '2525': 'API: OpenAtlas to OpenAtlas interface',
+            '2319': 'API: OpenAtlas to APIS interface',
+            '2803': 'API: Refined linked.art format',
+            '2773': 'API: Generic functions for reference systems',
+            '2774': 'Vocabs: include external links',
+            '2782': 'Vocabs: Import top collection as type',
+            '2779': 'Replace fuzzywuzzy with RapidFuzz',
+            '2802': 'ACDH GitHub tests fail if hyphen in branch name',
+            '2790': 'Refactor and minor improvements'},
+        'fix': {
+            '2789': 'Missing start/end dates in some tabs',
+            '2801': 'Type issues'}}],
+    '9.2.0': ['2026-04-15', {
+        'feature': {
+            '2570': 'Improved tracking of file creator and license holder',
+            '2716': 'Improved count view at type trees',
+            '2730': 'Force browser to reload npm libs',
+            '2767': 'Improved data check performance',
+            '2602': 'Manual: types import via CSV and examples',
+            '2726': 'Manual: improved API and import sections',
+            '2742': 'API: 0.4.13',
+            '2722': 'API: Download geometries as .gpkg',
+            '2723': 'API: CSV export geometries',
+            '2744': 'API: Add typeIDS to network',
+            '2759': 'Refactor and minor improvements'},
+        'fix': {
+            '2770': 'Binaries called without absolute paths, silent failures',
+            '2740': 'Error at network view'}}],
+    '9.1.1': ['2026-02-11', {
+        'fix': {
+            '2729': 'Installation and other minor issues'}}],
+    '9.1.0': ['2026-02-06', {
+        'feature': {
+            '2505': 'Custom place hierarchies',
+            '2290': 'Cadaster API (kataster.bev.gv.at)',
+            '2713': 'Improved information carrier functionality',
+            '2700': 'Restructured data integrity check',
+            '2703': 'Removed overlay option',
+            '2720': 'Updated Catalan and Spanish translations',
+            '2698': 'Update NPM libraries',
+            '2706': 'API 0.4.12',
+            '2695': 'Refactor and minor improvements'},
+        'fix': {
+            '2714': 'View jumping at table select fields'}}],
+    '9.0.0': ['2026-01-01', {
+        'feature': {
+            '2464': 'OpenAtlas major version 9.0.0',
+            '2343': 'Update OpenAtlas software to Debian 13 (Trixie)',
+            '2634': 'Removal of creation and event class, changed acquisition',
+            '2675': 'New tab layout',
+            '2649': 'New buttons layout',
+            '2589': 'Color coding for map',
+            '2640': 'Improved layout to display reference systems',
+            '2442': 'Text annotation: show orphans',
+            '2693': 'Updated Catalan and Spanish translations',
+            '2510': 'Manual: document dates and type_id at links',
+            '2657': 'API: 0.14.11',
+            '2478': 'API: Format for tables',
+            '2681': 'API: Additional columns for sorting'}}],
+    '8.15.1': ['2025-11-17', {
+        'fix': {
+            '2679': 'API: Duplicated operationId in OpenAPI',
+            '2668': 'ARCHE: Solve proxy issues'}}],
+    '8.15.0': ['2025-11-15', {
+        'feature': {
+            '2593': 'File checker',
+            '2551': 'Admin interface for generating RDF dumps',
+            '2568': 'Admin interface for generating ARCHE dumps',
+            '2580': 'Report generation for ARCHE import issues',
+            '2590': 'Bigger info button',
+            '2626': 'API: 0.4.10',
+            '2466': 'API: Export files with ARCHE RDF metadata',
+            '2619': 'API: Presentation view get root references',
+            '2660': 'API: Presentation view adaption',
+            '2632': 'Refactor and minor improvements'},
+        'fix': {
+            '2625': 'API: Empty count in /type_tree/ endpoint',
+            '2668': 'API: Wrong group start/end for LOUD',
+            '2621': 'API: Irrelevant entries at entity_presentation_view '}}],
+    '8.14.0': ['2025-09-02', {
+        'feature': {
+            '2605': 'Display root type id',
+            '2606': 'Handling unnecessary white spaces in CSV imports',
+            '2596': 'Finished Polish translation',
+            '2598': 'Refactor and minor improvements'},
+        'fix': {
+            '2575': 'Text annotation: Layout issues',
+            '2579': 'Text annotation: Display issue at update',
+            '2599': 'Broken Wikidata info function'}}],
+    '8.13.0': ['2025-08-19', {
+        'feature': {
+            '2592': 'Polish UI translations',
+            '2571': 'Update Catalan and Spanish translations',
+            '2574': 'Update French translations',
+            '2562': 'API: 0.4.9',
+            '2434': 'API: Text annotation for presentation view',
+            '2563': 'API: Presentation view improvements',
+            '2595': 'Security improvements',
+            '2578': 'Refactor and minor improvements'},
+        'fix': {
+            '2586': 'API: Problems with linked_to_ids at Network visualisation'
+        }}],
+    '8.12.1': ['2025-06-29', {
+        'feature': {
+            '2569': 'New login error messages'}}],
+    '8.12.0': ['2025-06-09', {
+        'feature': {
+            '2507': 'Link button for reference at artifact tab',
+            '2553': 'Removal of the SQL interface',
+            '2554': 'Refining input validation',
+            '2527': 'API: 0.4.8',
+            '2526': 'API: Ego network visualization',
+            '2477': 'API: Presentation view improvements',
+            '2467': 'API: Enriched RDF dump',
+            '2532': 'Replace nose tests with pytest',
+            '2499':
+                'Bundled Docker Image for OpenAtlas and OpenAtlas Discovery',
+            '2555': 'Change installation, remove OpenAtlas user',
+            '2523': 'Refactor and minor improvements'},
+        'fix': {
+            '2437': 'Text annotation: widget line break bug',
+            '2489': "API: user with token can't be deleted",
+            '2509': 'Wrong focus in edit view',
+            '2524': 'Automatic scroll to insert/save button'}}],
+    '8.11.0': ['2025-04-18', {
+        'feature': {
+            '2492': 'Performance improvement',
+            '2416': 'Import of types',
+            '2502': 'Link artifacts via the artifact tab in the file view',
+            '2494': 'API: 0.4.7',
+            '2491': 'API: New endpoint "chained_events"',
+            '2495': 'API: Simple search endpoint',
+            '2485': 'Refactor and minor improvements'},
+        'fix': {
+            '2501': 'Error when using ampersand (sometimes)',
+            '2504': 'Artifact not selected when adding an event',
+            '2506': 'Missing translations'}}],
     '8.10.1': ['2025-02-21', {
         'fix': {
-           '2481': 'Line breaks missing when copying to annotation widget',
-           '2482': 'Tabs: missing translations',
-           '2488': 'Improved user input validation'}}],
+            '2481': 'Line breaks missing when copying to annotation widget',
+            '2482': 'Tabs: missing translations',
+            '2484': 'API: OpenAPI set geometry not required and nullable',
+            '2488': 'Improved user input validation'}}],
     '8.10.0': ['2025-02-14', {
         'feature': {
             '2417': 'Make count from tabs more visible',

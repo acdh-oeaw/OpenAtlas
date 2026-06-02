@@ -1,0 +1,12 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/text-annotation/style.css', v=config.VERSION) }}">
+<script src="{{ url_for('static', filename='vendor/text-annotation/text-annotation.iife.js', v=config.VERSION) }}"></script>
+<div id="app"></div>
+<script>
+  const linkedEntities = {{ field.linked_entities | tojson | safe }};
+  const sourceText = {{ field.source_text | tojson | safe }};
+
+  const app = TextAnnotationEditor.createTextAnnotationApp({
+    linkedEntities: linkedEntities || [],
+    sourceText: sourceText || '',
+  });
+</script>

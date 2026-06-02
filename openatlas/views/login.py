@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import bcrypt
-from bcrypt import hashpw
 from flask import abort, flash, g, render_template, request, session, url_for
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
+from flask_bcrypt import Bcrypt
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user)
 from flask_wtf import FlaskForm
@@ -50,9 +50,9 @@ def login() -> str | Response:
     if current_user.is_authenticated:
         return redirect('/')
     form = LoginForm()
-    if form.validate_on_submit():
-        user = User.get_by_username(request.form['username'])
-        if user and user.username:
+    if form.validate_on_submit() and form.username.data:
+        user = User.get_by_username(form.username.data)
+        if user and user.username and form.password.data:
             if user.login_attempts_exceeded():
                 g.logger.log(
                     'notice',
@@ -60,10 +60,10 @@ def login() -> str | Response:
                     f'Login attempts exceeded: {user.username}')
                 flash(_('error login attempts exceeded'), 'error')
                 return render_template('login.html', form=form)
-            hash_ = hashpw(
-                request.form['password'].encode('utf-8'),
-                user.password.encode('utf-8'))
-            if hash_ == user.password.encode('utf-8'):
+            flask_bcrypt = Bcrypt(app)
+            if flask_bcrypt.check_password_hash(
+                    user.password,
+                    form.password.data.encode('utf-8')):
                 if user.active:
                     login_user(user)
                     session['login_previous_success'] = user.login_last_success
@@ -90,13 +90,13 @@ def login() -> str | Response:
                 user.login_failed_count += 1
                 user.login_last_failure = datetime.now()
                 user.update()
-                flash(_('error wrong password'), 'error')
+                flash(_('Invalid user or password'), 'error')
         else:
             g.logger.log(
                 'notice',
                 'auth',
-                f"Wrong username: {request.form['username']}")
-            flash(_('error username'), 'error')
+                f'Wrong username: {form.username.data}')
+            flash(_('Invalid user or password'), 'error')
     return render_template(
         'login.html',
         title=_('login'),
@@ -108,15 +108,13 @@ def login() -> str | Response:
 def reset_password() -> str | Response:
     if current_user.is_authenticated:  # Prevent password reset if logged in
         return redirect(url_for('overview'))
-    form = PasswordResetForm()
+    form: Any = PasswordResetForm()
     if form.validate_on_submit() and g.settings['mail']:
         if user := User.get_by_email(form.email.data):
             code = User.generate_password()
             user.password_reset_code = code
             user.password_reset_date = datetime.now()
             user.update()
-            url = url_for('reset_confirm', code=code)
-            link = f"{request.scheme}://{request.headers['Host']}{url}"
             subject = _(
                 'Password reset request for %(site_name)s',
                 site_name=g.settings['site_name'])
@@ -124,22 +122,21 @@ def reset_password() -> str | Response:
                 'We received a password reset request for %(username)s',
                 username=user.username)
             body += \
-                f" {_('at')} {request.headers['Host']}\n\n" \
-                f"{_('reset password link')}:\n\n" \
-                f"{link}\n\n" \
-                f"{_('The link is valid for')} " \
-                f"{g.settings['reset_confirm_hours']} {_('hours')}."
+                f' {_('at')} {url_for('login', _external=True)}\n\n' \
+                f'{_('reset password link')}:\n\n' \
+                f'{url_for('reset_confirm', code=code, _external=True)}\n\n' \
+                f'{_('The link is valid for')} ' \
+                f'{g.settings['reset_confirm_hours']} {_('hours')}.'
             email = form.email.data
             if send_mail(subject, body, form.email.data):
                 flash(
                     _('A password reset confirmation mail was send '
-                      'to %(email)s.', email=email),
-                    'info')
-            else:  # pragma: no cover
+                        'to %(email)s.', email=email))
+            else:
                 flash(
                     _('Failed to send password reset confirmation mail '
-                      'to %(email)s.', email=email),
-                    'error')
+                        'to %(email)s.', email=email),
+                    'error')  # pragma: no cover
             return redirect(url_for('login'))
         g.logger.log(
             'info',
@@ -148,7 +145,7 @@ def reset_password() -> str | Response:
         flash(_('error non existing email'), 'error')
     return render_template(
         'content.html',
-        content='<p>' + _('info password reset') + f'</p>{display_form(form)}',
+        content=f'<p>{_('info password reset')}</p>{display_form(form)}',
         crumbs=[[_('login'), url_for('login')], _('Forgot your password?')])
 
 
@@ -175,17 +172,15 @@ def reset_confirm(code: str) -> Response:
     subject = \
         _('New password for %(sitename)s', sitename=g.settings['site_name'])
     body = _('New password for %(username)s', username=user.username) + ' '
-    body += f"{_('at')} {request.scheme}://{request.headers['Host']}:\n\n"
-    body += f"{uc_first(_('username'))}: {user.username}\n"
-    body += f"{uc_first(_('password'))}: {password}\n"
+    body += f'{_('at')} {url_for('login', _external=True)}:\n\n'
+    body += f'{uc_first(_('username'))}: {user.username}\n'
+    body += f'{uc_first(_('password'))}: {password}\n'
     if send_mail(subject, body, user.email, False):
-        flash(
-            _('A new password was sent to %(email)s.', email=user.email),
-            'info')
-    else:  # pragma: no cover
+        flash(_('A new password was sent to %(email)s.', email=user.email))
+    else:
         flash(
             _('Failed to send password mail to %(email)s.', email=user.email),
-            'error')
+            'error')  # pragma: no cover
     return redirect(url_for('login'))
 
 

@@ -6,27 +6,27 @@ from typing import Any
 
 import pandas as pd
 from flask import Response, g
+from shapely import GeometryCollection
+from shapely.geometry import shape
 
 from openatlas.models.entity import Entity, Link
-from openatlas.models.gis import Gis
+from openatlas.models.gis import get_gis_by_id
 
 
 def build_dataframe(entity: Entity) -> dict[str, Any]:
-    geom = get_csv_geom_entry(entity)
     return {
         'id': str(entity.id),
         'name': entity.name,
         'description': entity.description,
-        'begin_from': entity.begin_from,
-        'begin_to': entity.begin_to,
-        'begin_comment': entity.begin_comment,
-        'end_from': entity.end_from,
-        'end_to': entity.end_to,
-        'end_comment': entity.end_comment,
+        'begin_from': entity.dates.begin_from,
+        'begin_to': entity.dates.begin_to,
+        'begin_comment': entity.dates.begin_comment,
+        'end_from': entity.dates.end_from,
+        'end_to': entity.dates.end_to,
+        'end_comment': entity.dates.end_comment,
         'cidoc_class': entity.cidoc_class.name,
         'system_class': entity.class_.name,
-        'geom_type': geom['type'],
-        'coordinates': geom['coordinates']}
+        'coordinates': get_csv_geom_entry(entity)}
 
 
 def build_link_dataframe(link: Link) -> dict[str, Any]:
@@ -37,12 +37,12 @@ def build_link_dataframe(link: Link) -> dict[str, Any]:
         'domain_id': link.domain.id,
         'domain_name': link.domain.name,
         'description': link.description,
-        'begin_from': link.begin_from,
-        'begin_to': link.begin_to,
-        'begin_comment': link.begin_comment,
-        'end_from': link.end_from,
-        'end_to': link.end_to,
-        'end_comment': link.end_comment}
+        'begin_from': link.dates.begin_from,
+        'begin_to': link.dates.begin_to,
+        'begin_comment': link.dates.begin_comment,
+        'end_from': link.dates.end_from,
+        'end_to': link.dates.end_to,
+        'end_comment': link.dates.end_comment}
 
 
 def get_csv_types(entity_dict: dict[str, Any]) -> dict[Any, list[Any]]:
@@ -63,35 +63,32 @@ def get_csv_types(entity_dict: dict[str, Any]) -> dict[Any, list[Any]]:
 def get_csv_links(entity_dict: dict[str, Any]) -> dict[str, Any]:
     links: dict[str, Any] = defaultdict(list)
     for link in entity_dict['links']:
-        key = f"{link.property.i18n['en'].replace(' ', '_')}_" \
-              f"{link.range.class_.name}"
+        key = link.property.i18n['en'].replace(' ', '_') + '_' + \
+            link.range.class_.name
         links[key].append(link.range.name)
     for link in entity_dict['links_inverse']:
-        key = f"{link.property.i18n['en'].replace(' ', '_')}_" \
-              f"{link.range.class_.name}"
+        key = link.property.i18n['en'].replace(' ', '_') + '_' + \
+            link.range.class_.name
         if link.property.i18n_inverse['en']:
-            key = link.property.i18n_inverse['en'].replace(' ', '_')
-            key += '_' + link.domain.class_.name
+            key = link.property.i18n_inverse['en'].replace(' ', '_') + '_' + \
+                link.domain.class_.name
         links[key].append(link.domain.name)
     links.pop('has_type_type', None)
     return links
 
 
-def get_csv_geom_entry(entity: Entity) -> dict[str, None]:
-    geom = {'type': None, 'coordinates': None}
-    if entity.class_.view == 'place' or entity.class_.name == 'artifact':
-        geom = get_csv_geometry(entity.get_linked_entity_safe('P53'))
+def get_csv_geom_entry(entity: Entity) -> str:
+    geom_data = []
+    if entity.class_.group.get('name') in ['place', 'item']:
+        geom_data = get_gis_by_id(entity.get_linked_entity_safe('P53').id)
     elif entity.class_.name == 'object_location':
-        geom = get_csv_geometry(entity)
-    return geom
-
-
-def get_csv_geometry(entity: Entity) -> dict[str, Any]:
-    dict_: dict[str, Any] = {'type': None, 'coordinates': None}
-    if (geoms := Gis.get_by_id(entity.id)) \
-            and entity.cidoc_class.code == 'E53':
-        dict_ = {key: [geom[key] for geom in geoms] for key in geoms[0]}
-    return dict_
+        geom_data = get_gis_by_id(entity.id)
+    if not geom_data:
+        return ''
+    shapes = [shape(geom) for geom in geom_data]
+    if len(shapes) == 1:
+        return shapes[0].wkt
+    return GeometryCollection(shapes).wkt
 
 
 def get_grouped_entities(entities: list[dict[str, Any]]) -> dict[str, Any]:

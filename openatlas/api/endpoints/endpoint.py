@@ -1,25 +1,39 @@
 import itertools
+import json
+import os
+import tempfile
 import zipfile
 from io import BytesIO
 from itertools import groupby
-from typing import Any
+from typing import Any, Iterator
 
+import fiona
+import numpy as np
 import pandas as pd
-from flask import Response, jsonify, request
+from flask import (
+    Response, after_this_request, jsonify, request, send_file, url_for)
 from flask_restful import marshal
 
 from openatlas import app
 from openatlas.api.endpoints.parser import Parser
 from openatlas.api.formats.csv import (
     build_dataframe, build_link_dataframe, get_csv_links, get_csv_types)
+from openatlas.api.formats.linked_places import (
+    get_lp_file, get_lp_links, get_lp_time)
 from openatlas.api.formats.loud import get_loud_entities
+from openatlas.api.formats.rdf import rdf_output
 from openatlas.api.resources.resolve_endpoints import (
     download, parse_loud_context)
 from openatlas.api.resources.templates import (
     geojson_collection_template, geojson_pagination, linked_place_pagination,
     linked_places_template, loud_pagination, loud_template)
-from openatlas.api.resources.util import get_location_link
+from openatlas.api.resources.util import (
+    date_to_str, geometry_to_geojson,
+    get_location_link, get_reference_systems,
+    get_type_references, replace_empty_list_values_in_dict_with_none)
+from openatlas.display.table import entity_table
 from openatlas.models.entity import Entity, Link
+from openatlas.models.gis import get_centroids_by_entities, get_gis_by_entities
 
 
 class Endpoint:
@@ -34,6 +48,7 @@ class Endpoint:
         self.single = single
         self.entities_with_links: dict[int, dict[str, Any]] = {}
         self.formated_entities: list[dict[str, Any]] = []
+        self.generator_entities: Iterator[dict[str, Any]] = iter(())
 
     def get_links_for_entities(self) -> None:
         if not self.entities:
@@ -42,12 +57,18 @@ class Endpoint:
             self.entities_with_links[entity.id] = {
                 'entity': entity,
                 'links': [],
-                'links_inverse': []}
+                'links_inverse': [],
+                'geometry': []}
         for link_ in self.link_parser_check():
             self.entities_with_links[link_.domain.id]['links'].append(link_)
         for link_ in self.link_parser_check(inverse=True):
             self.entities_with_links[
                 link_.range.id]['links_inverse'].append(link_)
+        for id_, geom in get_gis_by_entities(self.entities).items():
+            self.entities_with_links[id_]['geometry'].extend(geom)
+        if self.parser.centroid:
+            for id_, geom in get_centroids_by_entities(self.entities).items():
+                self.entities_with_links[id_]['geometry'].extend(geom)
 
     def get_pagination(self) -> None:
         total = [e.id for e in self.entities]
@@ -76,7 +97,7 @@ class Endpoint:
         start = self.pagination['entity_index']
         self.entities = self.entities[start:start + int(self.parser.limit)]
 
-    def resolve_entities(self) -> Response | dict[str, Any]:
+    def resolve(self) -> Response | dict[str, Any]:
         if self.parser.type_id:
             self.entities = self.filter_by_type()
         if self.parser.search:
@@ -88,20 +109,61 @@ class Endpoint:
         self.sort_entities()
         self.get_pagination()
         self.reduce_entities_to_limit()
+        if self.parser.format == 'table_row':
+            forms = {'checkbox': True, 'selection_ids': []}
+            if self.parser.checked:
+                forms['selection_ids'] = self.parser.checked
+            return {
+                "results": entity_table(
+                    items=self.entities,
+                    columns=self.parser.table_columns,
+                    forms=forms).rows,
+                "pagination": {
+                    'entitiesPerPage': int(self.parser.limit),
+                    'entities': self.pagination['count'],
+                    'index': self.pagination['index'],
+                    'totalPages': len(self.pagination['index'])}}
         self.get_links_for_entities()
         if self.parser.export == 'csv':
             return self.export_csv_entities()
         if self.parser.export == 'csvNetwork':
             return self.export_csv_network()
         self.get_entities_formatted()
-        if self.parser.format in app.config['RDF_FORMATS']:  # pragma: no cover
-            return Response(
-                self.parser.rdf_output(self.formated_entities),
+        if self.parser.format in app.config['RDF_FORMATS']:
+            response = Response(
+                rdf_output(self.generator_entities, self.parser.format),
                 mimetype=app.config['RDF_FORMATS'][self.parser.format])
+            if self.parser.download == 'true':
+                filename = f'export.{self.parser.format}'
+                response.headers['Content-Disposition'] = (
+                    f'attachment; filename={filename}')
+            return response
+        if self.parser.format == 'gpkg':
+            return send_file(
+                self.write_gpkg(),
+                as_attachment=True,
+                download_name='openatlas_export.gpkg',
+                mimetype='application/geopackage+sqlite3')
         result = self.get_json_output()
         if self.parser.download == 'true':
             return download(result, self.get_entities_template(result))
         return marshal(result, self.get_entities_template(result))
+
+    def resolve_simple_search(self) -> Response | dict[str, Any]:
+        self.get_pagination()
+        self.reduce_entities_to_limit()
+        self.formated_entities = [{
+            'name': entity.name,
+            'id': url_for('api.entity', id_=entity.id, _external=True),
+            'description': entity.description,
+            'system_class': entity.class_.name,
+            'begin': date_to_str(
+                entity.dates.begin_from or entity.dates.begin_to),
+            'end': date_to_str(
+                entity.dates.end_to or entity.dates.end_from)}
+            for entity in self.entities]
+        result = self.get_json_output()
+        return marshal(result, loud_pagination())
 
     def get_json_output(self) -> dict[str, Any]:
         return dict(self.formated_entities[0]) if self.single else {
@@ -174,7 +236,7 @@ class Endpoint:
 
     def link_parser_check(self, inverse: bool = False) -> list[Link]:
         links = []
-        show_ = {'relations', 'types', 'depictions', 'links', 'geometry'}
+        show_ = {'relations', 'types', 'depictions', 'links'}
         if set(self.parser.show) & show_:
             links = Entity.get_links_of_entities(
                 [entity.id for entity in self.entities],
@@ -185,10 +247,14 @@ class Endpoint:
     def sort_entities(self) -> None:
         if 'latest' in request.path:
             return
+
+        def safe_key(entity: Entity) -> tuple[str, str | int, str]:
+            return self.parser.get_key(entity)
+
         self.entities = sorted(
             self.entities,
-            key=self.parser.get_key,
-            reverse=bool(self.parser.sort == 'desc'))
+            key=safe_key,
+            reverse=bool(self.parser.sort == "desc"))
 
     def remove_duplicates(self) -> None:
         exists: set[int] = set()
@@ -199,59 +265,51 @@ class Endpoint:
     def get_entities_formatted(self) -> None:
         if not self.entities:
             return
-        entities = []
         match self.parser.format:
             case 'geojson':
-                entities = [self.get_geojson()]
-            case 'geojson-v2':
-                entities = [self.get_geojson_v2()]
+                self.formated_entities = [self.get_geojson()]
+            case 'geojson-v2' | 'gpkg':
+                self.formated_entities = [self.get_geojson_v2()]
             case 'loud':
                 parsed_context = parse_loud_context()
-                entities = [
-                    get_loud_entities(item, parsed_context)
+                type_references = get_type_references()
+                self.formated_entities = [
+                    get_loud_entities(item, parsed_context, type_references)
                     for item in self.entities_with_links.values()]
             case 'lp' | 'lpx':
-                entities = [
-                    self.parser.get_linked_places_entity(item)
-                    for item in self.entities_with_links.values()]
-            case _ if self.parser.format \
-                    in app.config['RDF_FORMATS']:  # pragma: no cover
-                entities = [
-                    get_loud_entities(item, parse_loud_context())
-                    for item in self.entities_with_links.values()]
-        self.formated_entities = entities
+                self.formated_entities = [
+                    self.get_linked_places_entity(id_)
+                    for id_ in self.entities_with_links]
+            case _ if self.parser.format in app.config['RDF_FORMATS']:
+                type_references = get_type_references()
+                parsed_context = parse_loud_context()
+                self.generator_entities = (
+                    get_loud_entities(
+                        item,
+                        parsed_context,
+                        type_references)
+                    for item in self.entities_with_links.values())
 
     def get_geojson(self) -> dict[str, Any]:
         out = []
-        links = Entity.get_links_of_entities(
-            [e.id for e in self.entities],
-            'P53')
-        for e in self.entities:
-            if e.class_.view == 'place':
-                entity_links = [x for x in links if x.domain.id == e.id]
-                e.types.update(get_location_link(entity_links).range.types)
-            if geoms := [
-                    self.parser.get_geojson_dict(e, geom)
-                    for geom in self.parser.get_geom(e)]:
-                out.extend(geoms)
+        for e in self.entities_with_links.values():
+            if e['entity'].class_.group.get('name') == 'place':
+                e['entity'].types.update(
+                    get_location_link(e['links']).range.types)
+            if e['geometry']:
+                for geom in e['geometry']:
+                    out.append(self.parser.get_geojson_dict(e, geom))
             else:
                 out.append(self.parser.get_geojson_dict(e))
         return {'type': 'FeatureCollection', 'features': out}
 
     def get_geojson_v2(self) -> dict[str, Any]:
         out = []
-        property_codes = ['P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27']
-        link_parser = self.link_parser_check()
-        links = [x for x in link_parser if x.property.code in property_codes]
-        for e in self.entities:
-            entity_links = [
-                link_ for link_ in links if link_.domain.id == e.id]
-            if e.class_.view == 'place':
-                e.types.update(get_location_link(entity_links).range.types)
-            if geom := self.parser.get_geoms_as_collection(
-                    e,
-                    [x.range.id for x in entity_links]):
-                out.append(self.parser.get_geojson_dict(e, geom))
+        for e in self.entities_with_links.values():
+            if e['entity'].class_.group.get('name') == 'place':
+                e['entity'].types.update(
+                    get_location_link(e['links']).range.types)
+            out.append(self.parser.get_geojson_dict(e))
         return {'type': 'FeatureCollection', 'features': out}
 
     def get_entities_template(self, result: dict[str, Any]) -> dict[str, Any]:
@@ -269,3 +327,159 @@ class Endpoint:
                 if not self.single:
                     template = linked_place_pagination(self.parser)
         return template
+
+    def get_chained_events(self, root_id: int) -> dict[str, Any]:
+        self.get_links_for_entities()
+        event_root = self.entities_with_links[root_id]
+        event_chain = {
+            "name": event_root['entity'].name,
+            "id": event_root['entity'].id,
+            "system_class": event_root['entity'].class_.name,
+            "geometries": event_root['geometry'],
+            "children": self.walk_event_tree(event_root['links_inverse'])}
+        return event_chain
+
+    def walk_event_tree(self, inverse_l: list[Link]) -> list[dict[str, Any]]:
+        items = []
+        for links_ in inverse_l:
+            if links_.property.code == 'P134':
+                items.append(
+                    {
+                        "name": links_.domain.name,
+                        "id": links_.domain.id,
+                        "system_class": links_.domain.class_.name,
+                        "geometries":
+                            self.entities_with_links[links_.domain.id][
+                                'geometry'],
+                        "children":
+                            self.walk_event_tree(
+                                self.entities_with_links[links_.domain.id][
+                                    'links_inverse'])})
+        return items
+
+    def prepare_rdf_export_data(self) -> Iterator[dict[str, Any]]:
+        self.get_links_for_entities()
+        self.get_entities_formatted()
+        return self.generator_entities
+
+    def get_linked_places_entity(self, id_: int) -> dict[str, Any]:
+        entity = self.entities_with_links[id_]['entity']
+        links = self.entities_with_links[id_]['links']
+        links_inverse = self.entities_with_links[id_]['links_inverse']
+        geometry = self.entities_with_links[id_]['geometry']
+        crm = f'crm:{entity.cidoc_class.code} {entity.cidoc_class.i18n['en']}'
+        feature = {
+            '@id': url_for('api.entity', id_=entity.id, _external=True),
+            'type': 'Feature',
+            'crmClass': crm,
+            'viewClass': entity.class_.group.get('name'),
+            'systemClass': entity.class_.name,
+            'properties': {'title': entity.name},
+            'types': self.parser.get_lp_types(entity, links)
+            if 'types' in self.parser.show else None,
+            'depictions': None,
+            'when': {'timespans': [get_lp_time(entity)]}
+            if 'when' in self.parser.show else None,
+            'links': get_reference_systems(links_inverse)
+            if 'links' in self.parser.show else None,
+            'descriptions': [{'value': entity.description}]
+            if 'description' in self.parser.show else None,
+            'names':
+                [{"alias": value} for value in entity.aliases.values()]
+                if entity.aliases and 'names' in self.parser.show else
+                None,
+            'geometry': geometry_to_geojson(geometry)
+            if 'geometry' in self.parser.show else None,
+            'relations': get_lp_links(links, links_inverse, self.parser)
+            if 'relations' in self.parser.show else None}
+        if 'depictions' in self.parser.show:
+            if entity.class_.name == 'file':
+                feature['depictions'] = get_lp_file(entity)
+            else:
+                feature['depictions'] = [
+                    get_lp_file(link.domain, entity) for link in links_inverse
+                    if link.domain.class_.name == 'file']
+        return {
+            'type': 'FeatureCollection',
+            '@context': app.config['API_CONTEXT']['LPF'],
+            'features': [replace_empty_list_values_in_dict_with_none(feature)]}
+
+    def write_gpkg(self) -> str:
+        fd, path = tempfile.mkstemp(suffix='.gpkg')
+        os.close(fd)
+
+        if os.path.exists(path):
+            os.remove(path)
+
+        @after_this_request
+        def remove_file(response: Any) -> Any:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:  # pragma: no cover
+                pass
+            return response
+
+        features = self.formated_entities[0].get('features', [])
+        schema_properties = {}
+
+        for feat in features:
+            propeties = feat.get('properties', {})
+
+            types = propeties.get('types')
+            if types and \
+                    isinstance(types, list) and \
+                    isinstance(types[0], dict):
+                schema_properties['main_type'] = 'str'
+
+            for key, property_ in propeties.items():
+                if property_ is None:
+                    continue
+                if isinstance(property_, int):
+                    property_type = 'int'
+                else:
+                    property_type = 'str'
+
+                if key not in schema_properties:
+                    schema_properties[key] = property_type
+                elif schema_properties[key] != \
+                        property_type:  # pragma: no cover
+                    schema_properties[key] = 'str'
+        schema_properties = dict(sorted(schema_properties.items()))
+        schema = {'geometry': 'Unknown', 'properties': schema_properties}
+
+        with fiona.open(
+                path,
+                mode='w',
+                driver='GPKG',
+                schema=schema,
+                crs='EPSG:4326',
+                layer='openatlas_export') as layer:
+
+            for feat in features:
+                propeties = feat.get('properties', {})
+                sanitized_props = {}
+                main_type_value = None
+                types = propeties.get('types')
+                if types and \
+                        isinstance(types, list) and \
+                        isinstance(types[0], dict):
+                    main_type_value = types[0].get('typeName')
+                for key in schema_properties:
+                    if key == 'main_type':
+                        sanitized_props[key] = main_type_value
+                        continue
+                    property_ = propeties.get(key)
+                    if property_ is None:
+                        sanitized_props[key] = None
+                        continue
+                    if isinstance(property_, (list, dict)):
+                        sanitized_props[key] = json.dumps(property_)
+                    elif isinstance(property_, np.datetime64):
+                        sanitized_props[key] = str(property_)
+                    else:
+                        sanitized_props[key] = property_
+                layer.write({
+                    'geometry': feat['geometry'],
+                    'properties': sanitized_props})
+        return path

@@ -1,21 +1,25 @@
 
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenAtlas manual &mdash; OpenAtlas 8.10.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>OpenAtlas manual &mdash; OpenAtlas 9.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
       <link rel="stylesheet" href="_static/style.css" type="text/css" />
+
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b756c04f"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Features" href="features.html" /> 
@@ -33,9 +37,6 @@
             OpenAtlas
               <img src="_static/logo.png" class="logo" alt="Logo"/>
           </a>
-              <div class="version">
-                8.10.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -90,7 +91,7 @@
            <div itemprop="articleBody">
              
   <section id="openatlas-manual">
-<h1>OpenAtlas manual<a class="headerlink" href="#openatlas-manual" title="Permalink to this heading"></a></h1>
+<h1>OpenAtlas manual<a class="headerlink" href="#openatlas-manual" title="Link to this heading"></a></h1>
 <p>OpenAtlas is an open source application for archeological, historical and
 geospatial data.</p>
 <p>This is the manual for the user interface. You’ll find more information
@@ -122,8 +123,9 @@ development specific documentation in our Redmine
 <li class="toctree-l2"><a class="reference internal" href="entity/place.html">Place</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entity/feature.html">Feature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entity/stratigraphic_unit.html">Stratigraphic unit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="entity/human_remains.html">Human remains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="entity/artifact.html">Artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/item.html">Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/item.html#artifact">Artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/item.html#human-remains">Human remains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entity/reference.html">Reference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entity/type.html">Type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entity/file.html">File</a></li>
@@ -144,6 +146,7 @@ development specific documentation in our Redmine
 </li>
 <li class="toctree-l1"><a class="reference internal" href="admin/index.html">Admin</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="admin/user.html">User</a></li>
+<li class="toctree-l2"><a class="reference internal" href="admin/rights_holder.html">Rights holder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/general.html">General</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/mail.html">Mail</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/modules.html">Modules</a></li>
@@ -154,9 +157,7 @@ development specific documentation in our Redmine
 <li class="toctree-l2"><a class="reference internal" href="admin/data_integrity_checks.html">Data integrity checks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/import.html">Import</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/export.html">Export</a></li>
-<li class="toctree-l2"><a class="reference internal" href="admin/execute_sql.html">Execute SQL</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/api.html">API</a></li>
-<li class="toctree-l2"><a class="reference internal" href="admin/arche.html">ARCHE</a></li>
 <li class="toctree-l2"><a class="reference internal" href="admin/vocabs.html">Vocabs</a></li>
 </ul>
 </li>
@@ -182,6 +183,7 @@ development specific documentation in our Redmine
 <li class="toctree-l2"><a class="reference internal" href="technical/api.html#error-handling">Error handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="technical/api.html#proxy">Proxy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="technical/api.html#authentication-guide">Authentication guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical/api.html#api-reference">API Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="technical/database_structure.html">Database Structure</a><ul class="simple">

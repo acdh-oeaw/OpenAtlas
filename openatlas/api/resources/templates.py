@@ -98,7 +98,8 @@ def linked_places_template(parser: Parser) -> dict[str, Type[String]]:
         'url': fields.String,
         'mimetype': fields.String,
         'IIIFBasePath': fields.String,
-        'IIIFManifest': fields.String}
+        'IIIFManifest': fields.String,
+        'mainImage': fields.Boolean,}
     links = {
         'referenceURL': fields.String,
         'id': fields.String,
@@ -115,7 +116,7 @@ def linked_places_template(parser: Parser) -> dict[str, Type[String]]:
             'identifier': fields.String,
             'label': fields.String,
             'description': fields.String})),
-        'value': fields.Float,
+        'value': fields.String,
         'unit': fields.String}
 
     names = {'alias': fields.String}
@@ -131,7 +132,7 @@ def linked_places_template(parser: Parser) -> dict[str, Type[String]]:
         'when': fields.Nested(when)}
     if parser.format == 'lpx':
         relations['relationTypeLabel'] = fields.String
-    feature = {
+    feature: dict[str, Any] = {
         '@id': fields.String,
         'type': fields.String,
         'crmClass': fields.String,
@@ -205,16 +206,31 @@ def presentation_template() -> dict[str, Any]:
         'title': fields.String,
         'descriptions': fields.String,
         'isStandard': fields.Boolean,
-        'typeHierarchy': fields.List(fields.Nested(hierarchy))}
+        'typeHierarchy': fields.List(fields.Nested(hierarchy)),
+        'value': fields.Float,
+        'unit': fields.String}
+    references = {
+        'id': fields.Integer,
+        'systemClass': fields.String,
+        'title': fields.String,
+        'type': fields.String,
+        'typeId': fields.Integer,
+        'citation': fields.String,
+        'pages': fields.String}
     files = {
         'id': fields.Integer,
         'title': fields.String,
         'license': fields.String,
         'creator': fields.String,
         'licenseHolder': fields.String,
-        'publicShareable': fields.String,
+        'publicShareable': fields.Boolean,
         'mimetype': fields.String,
-        'url': fields.String}
+        'url': fields.String,
+        'fromSuperEntity': fields.Boolean,
+        'IIIFManifest': fields.String,
+        'IIIFBasePath': fields.String,
+        'mainImage': fields.Boolean,
+        'overlay': fields.String}
     relation_types = {
         'property': fields.String,
         'relationTo': fields.Integer,
@@ -233,16 +249,19 @@ def presentation_template() -> dict[str, Any]:
             'id': fields.Integer,
             'title': fields.String}),
         'relationTypes': fields.List(fields.Nested(relation_types))}
-    def get_relations() -> fields:
+
+    def get_relations() -> Any:
         dict_ = {}
         for name in g.classes:
             if name in app.config['API_PRESENTATION_EXCLUDE_RELATION']:
                 continue
-            dict_[name] =  fields.List(fields.Nested(relations))
+            dict_[name] = fields.List(fields.Nested(relations))
         return fields.Nested(dict_)
+
     return {
         'id': fields.Integer,
         'systemClass': fields.String,
+        'viewClass': fields.String,
         'title': fields.String,
         'description': fields.String,
         'aliases': fields.List(fields.String),
@@ -251,6 +270,7 @@ def presentation_template() -> dict[str, Any]:
         'types': fields.List(fields.Nested(types)),
         'externalReferenceSystems': fields.List(
             fields.Nested(external_references)),
+        'references': fields.List(fields.Nested(references)),
         'files': fields.List(fields.Nested(files)),
         'relations': get_relations()}
 
@@ -292,8 +312,7 @@ def subunit_template(id_: str) -> dict[str, List]:
         'description': fields.String,
         'standardType': fields.Nested(standard_type),
         'timespan': fields.Nested(timespan),
-        'externalReferences': fields.List(
-            fields.Nested(external_references)),
+        'externalReferences': fields.List(fields.Nested(external_references)),
         'references': fields.List(fields.Nested(references)),
         'files': fields.List(fields.Nested(files)),
         'types': fields.List(fields.Nested(types))}
@@ -315,24 +334,29 @@ def subunit_template(id_: str) -> dict[str, List]:
 
 def overview_template() -> dict[str, Type[String | Integer]]:
     return {
-        'move': fields.Integer,
-        'external_reference': fields.Integer,
-        'bibliography': fields.Integer,
-        'person': fields.Integer,
         'acquisition': fields.Integer,
-        'reference_system': fields.Integer,
-        'feature': fields.Integer,
-        'file': fields.Integer,
         'activity': fields.Integer,
-        'type': fields.Integer,
         'administrative_unit': fields.Integer,
         'artifact': fields.Integer,
-        'source_translation': fields.Integer,
-        'place': fields.Integer,
-        'stratigraphic_unit': fields.Integer,
+        'bibliography': fields.Integer,
+        'creation': fields.Integer,
         'edition': fields.Integer,
+        'external_reference': fields.Integer,
+        'event': fields.Integer,
+        'feature': fields.Integer,
+        'file': fields.Integer,
         'group': fields.Integer,
-        'source': fields.Integer}
+        'human_remains': fields.Integer,
+        'modification': fields.Integer,
+        'move': fields.Integer,
+        'person': fields.Integer,
+        'place': fields.Integer,
+        'production': fields.Integer,
+        'reference_system': fields.Integer,
+        'stratigraphic_unit': fields.Integer,
+        'source': fields.Integer,
+        'text': fields.Integer,
+        'type': fields.Integer}
 
 
 def type_tree_template() -> dict[str, Any]:
@@ -343,7 +367,7 @@ def type_overview_template() -> dict[str, Any]:
     children = {
         'id': fields.Integer,
         'url': fields.String,
-        'label': fields.String,
+        'name': fields.String,
         'children': fields.List(fields.Raw)}
     type_details = {
         'id': fields.Integer,
@@ -363,7 +387,7 @@ def type_by_view_class_template(types: dict[str, Any]) -> dict[str, Any]:
     children = {
         'id': fields.Integer,
         'url': fields.String,
-        'label': fields.String,
+        'name': fields.String,
         'children': fields.List(fields.Raw)}
     type_details = {
         'id': fields.Integer,
@@ -454,4 +478,5 @@ def network_visualisation_template() -> dict[str, Any]:
         'id': fields.Integer,
         'label': fields.String,
         'systemClass': fields.String,
+        'typeIds': fields.List(fields.Integer),
         'relations': fields.List(fields.Integer)}))}

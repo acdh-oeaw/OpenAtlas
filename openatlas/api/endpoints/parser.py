@@ -2,31 +2,30 @@ from __future__ import annotations
 
 import ast
 import itertools
-import json
-import os
 from typing import Any, Optional
 
 import numpy
 import validators
 from flask import g, url_for
-from numpy import datetime64
-from rdflib import Graph
 
 from openatlas import app
-from openatlas.api.formats.linked_places import (
-    get_lp_file, get_lp_links, get_lp_time)
 from openatlas.api.resources.error import (
     EntityDoesNotExistError, InvalidSearchSyntax, InvalidSearchValueError,
     LastEntityError, UrlNotValid)
+from openatlas.api.resources.resolve_endpoints import get_loud_context
 from openatlas.api.resources.search import get_search_values, search_entity
 from openatlas.api.resources.search_validation import (
     check_if_date_search, validate_search_parameters)
 from openatlas.api.resources.util import (
-    flatten_list_and_remove_duplicates, get_geometric_collection,
-    get_geoms_dict, get_location_link, get_reference_systems,
-    get_value_for_types, replace_empty_list_values_in_dict_with_none)
+    flatten_list_and_remove_duplicates, geometry_to_geojson,
+    get_location_link, get_value_for_types,
+    replace_empty_list_values_in_dict_with_none)
+from openatlas.display.table import file_preview
+from openatlas.display.util2 import display_bool
+from openatlas.models.dates import format_date
 from openatlas.models.entity import Entity, Link
-from openatlas.models.gis import Gis
+
+linked_art_context = get_loud_context()
 
 
 class Parser:
@@ -34,7 +33,7 @@ class Parser:
     count = None
     locale = None
     sort = None
-    column: str = ''
+    column: str = 'name'
     search: str = ''
     search_param: list[list[dict[str, Any]]]
     limit: int = 0
@@ -43,7 +42,7 @@ class Parser:
     page = None
     show: list[str]
     export = None
-    format = None
+    format: str = ''
     type_id: list[int]
     relation_type = None
     centroid = None
@@ -55,9 +54,15 @@ class Parser:
     system_classes = None
     image_size = None
     file_id = None
+    table_columns = None
     exclude_system_classes: list[str]
     linked_to_ids: list[int]
     url: str = ''
+    remove_empty_values = None
+    depth: int = 1
+    place_hierarchy = None
+    map_overlay = None
+    checked: list[int] = []
 
     def __init__(self, parser: dict[str, Any]):
         self.show = []
@@ -73,6 +78,12 @@ class Parser:
             self.url += '/'
         if self.centroid:
             self.centroid = parser['centroid'] == 'true'
+        if self.map_overlay:
+            self.map_overlay = parser['map_overlay'] == 'true'
+        if self.place_hierarchy:
+            self.place_hierarchy = parser['place_hierarchy'] == 'true'
+        if self.remove_empty_values:
+            self.remove_empty_values = parser['remove_empty_values'] == 'true'
 
     def set_search_param(self) -> None:
         try:
@@ -110,7 +121,8 @@ class Parser:
                                     value[0],
                                     inverse=True))
                     search_parameter.append({
-                        "search_values": get_search_values(category, values),
+                        "search_values": get_search_values(
+                            category, values),
                         "logical_operator": values['logicalOperator'],
                         "operator": values['operator'],
                         "category": category,
@@ -134,32 +146,111 @@ class Parser:
     def get_properties_for_links(self) -> list[str]:
         codes: list[str] = []
         if self.relation_type:
-            codes = self.relation_type
+            codes = self.relation_type + ['P53']
             if 'geometry' in self.show:
-                codes.append('P53')
+                codes.extend(['P53', 'P74', 'OA8', 'OA9', 'P7', 'P26', 'P27'])
             if 'types' in self.show:
                 codes.append('P2')
             if any(i in ['depictions', 'links'] for i in self.show):
                 codes.append('P67')
         return codes
 
-    def get_key(self, entity: Entity) -> datetime64 | str:
-        if self.column == 'cidoc_class':
-            return entity.cidoc_class.name
-        if self.column == 'system_class':
-            return entity.class_.name
-        if self.column in ['begin_from', 'begin_to', 'end_from', 'end_to']:
-            if not getattr(entity, self.column):
-                date = ("-" if self.sort == 'desc' else "") \
-                       + '9999999-01-01T00:00:00'
-                return numpy.datetime64(date)
-        return getattr(entity, self.column)
+    def get_key(self, e: Entity) -> tuple[str, str | int, str]:
+        value: str | int | None = None
+        col = self.column
+        match col:
+            case "begin":
+                tag = "begin"
+                value = -9999999
+                if e.dates.first:
+                    value = int(e.dates.first)
+            case "begin_from" | "begin_to" | "end_from" | "end_to":
+                tag = "date"
+                val = e.dates.to_timestamp()[col]
+                if not val:
+                    bc = "-" if self.sort == "desc" else ""
+                    fallback = bc + "9999999-01-01T00:00:00"
+                    value = fallback
+                else:
+                    value = str(val)
+            case "checkbox":
+                tag = "checkbox"
+                if self.checked and e.id in self.checked:
+                    value = "1"
+            case "cidoc_class":
+                tag = "cidoc_class"
+                value = e.cidoc_class.name.lower()
+            case "class" | "system_class":
+                tag = "class"
+                value = e.class_.label.lower()
+            case "created":
+                tag = "created"
+                value = format_date(e.created)
+            case "creator":
+                tag = "creator"
+                if e.class_.name == "file" and g.file_info.get(e.id):
+                    creators = g.file_info[e.id]["creator"]
+                    value = ', '.join([c.name for c in creators])
+            case "content" | "description":
+                tag = "description"
+                value = (e.description or "").lower()
+            case "end":
+                tag = "end"
+                value = -9999999
+                if e.dates.last:
+                    value = int(e.dates.last)
+            case "extension":
+                tag = "extension"
+                value = e.get_file_ext()
+            case "group":
+                tag = "group"
+                value = e.class_.group.get("name", "")
+            case "icon":
+                tag = "icon"
+                value = file_preview(e.id)
+            case "license_holder":
+                tag = "license_holder"
+                if e.class_.name == "file" and g.file_info.get(e.id):
+                    lhs = g.file_info[e.id]["license_holder"]
+                    value = ', '.join([lh.name for lh in lhs])
+            case "name":
+                tag = "name"
+                value = e.name.lower()
+            case "public":
+                tag = "public"
+                if e.class_.name == "file" and g.file_info.get(e.id):
+                    value = display_bool(g.file_info[e.id]["public"])
+            case "size":
+                tag = "size"
+                if e.class_.name == "file" and e.id in g.files:
+                    value = g.files[e.id].stat().st_size
+                else:
+                    value = -1
+            case "type" | "license":
+                tag = "type"
+                if e.standard_type:
+                    value = e.standard_type.name.lower()
+            case _:
+                tag = "other"
+                raw = getattr(e, col, "\uffff")
+                try:
+                    value = str(raw).lower()
+                except Exception:  # pragma: no cover
+                    value = ""
+        # \uffff is last char in unicode
+        value = '\uffff' if value is None else value
+        return tag, value, e.name.lower()  # name is always second order
 
-    def get_by_page(self, index: list[dict[str, Any]]) -> dict[str, Any]:
-        page = (
-            self.page) if self.page < index[-1]['page'] else index[-1]['page']
-        return \
-            [entry['startId'] for entry in index if entry['page'] == page][0]
+    def get_by_page(
+            self,
+            index: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not index or not self.page:
+            return None
+        target_page = min(int(self.page), int(index[-1]['page']))
+        for entry in index:
+            if entry.get('page') == target_page:
+                return entry.get('startId')
+        return None  # pragma: no cover
 
     def set_start_entity(self, total: list[int]) -> list[Any]:
         if self.first and int(self.first) in total:
@@ -170,129 +261,52 @@ class Parser:
                     None))
         if self.last and int(self.last) in total:
             if not (
-                out := list(itertools.islice(
-                    total,
-                    total.index(int(self.last)) + 1,
-                    None))):
+                    out := list(
+                        itertools.islice(
+                            total,
+                            total.index(int(self.last)) + 1,
+                            None))):
                 raise LastEntityError
             return out
         raise EntityDoesNotExistError
 
-    def get_geom(self, entity: Entity, ) -> list[Any]:
-        if entity.class_.view == 'place' or entity.class_.name == 'artifact':
-            id_ = entity.get_linked_entity_safe('P53').id
-            geoms = Gis.get_by_id(id_)
-            if self.centroid:
-                if centroid_result := Gis.get_centroids_by_id(id_):
-                    geoms.extend(centroid_result)
-            return geoms
-        if entity.class_.name == 'object_location':
-            geoms = Gis.get_by_id(entity.id)
-            if self.centroid:
-                if centroid_result := Gis.get_centroids_by_id(entity.id):
-                    geoms.extend(centroid_result)
-            return geoms
-        return []
-
-
-    def get_linked_places_entity(
-            self,
-            entity_dict: dict[str, Any]) -> dict[str, Any]:
-        entity = entity_dict['entity']
-        links = entity_dict['links']
-        links_inverse = entity_dict['links_inverse']
-        return {
-            'type': 'FeatureCollection',
-            '@context': app.config['API_CONTEXT']['LPF'],
-            'features': [replace_empty_list_values_in_dict_with_none({
-                '@id': url_for('api.entity', id_=entity.id, _external=True),
-                'type': 'Feature',
-                'crmClass': f'crm:{entity.cidoc_class.code} '
-                            f"{entity.cidoc_class.i18n['en']}",
-                'viewClass': entity.class_.view,
-                'systemClass': entity.class_.name,
-                'properties': {'title': entity.name},
-                'types': self.get_lp_types(entity, links)
-                if 'types' in self.show else None,
-                'depictions': get_lp_file(links_inverse)
-                if 'depictions' in self.show else None,
-                'when': {'timespans': [get_lp_time(entity)]}
-                if 'when' in self.show else None,
-                'links': get_reference_systems(links_inverse)
-                if 'links' in self.show else None,
-                'descriptions': [{'value': entity.description}]
-                if 'description' in self.show else None,
-                'names':
-                    [{"alias": value} for value in entity.aliases.values()]
-                    if entity.aliases and 'names' in self.show else None,
-                'geometry': get_geometric_collection(
-                    entity,
-                    links,
-                    self) if 'geometry' in self.show else None,
-                'relations': get_lp_links(links, links_inverse, self)
-                if 'relations' in self.show else None})]}
-
     def get_geojson_dict(
             self,
-            entity: Entity,
-            geom: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+            entity_dict: dict[str, Any],
+            geometry: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        entity = entity_dict['entity']
+        geoms = geometry or geometry_to_geojson(entity_dict['geometry'])
         return replace_empty_list_values_in_dict_with_none({
             'type': 'Feature',
-            'geometry': geom,
+            'geometry': geoms,
             'properties': {
                 '@id': entity.id,
                 'systemClass': entity.class_.name,
-                'viewClass': entity.class_.view,
+                'viewClass': entity.class_.group.get('name'),
                 'name': entity.name,
                 'description': entity.description
                 if 'description' in self.show else None,
-                'begin_earliest': entity.begin_from
+                'begin_earliest': entity.dates.begin_from
                 if 'when' in self.show else None,
-                'begin_latest': entity.begin_to
+                'begin_latest': entity.dates.begin_to
                 if 'when' in self.show else None,
-                'begin_comment': entity.begin_comment
+                'begin_comment': entity.dates.begin_comment
                 if 'when' in self.show else None,
-                'end_earliest': entity.end_from
+                'end_earliest': entity.dates.end_from
                 if 'when' in self.show else None,
-                'end_latest': entity.end_to
+                'end_latest': entity.dates.end_to
                 if 'when' in self.show else None,
-                'end_comment': entity.end_comment
+                'end_comment': entity.dates.end_comment
                 if 'when' in self.show else None,
                 'types': [{
                     'typeName': type_.name,
                     'typeId': type_.id,
                     'typeHierarchy': ' > '.join(
-                        map(str, [g.types[root].name for root in type_.root]))}
-                    for type_ in entity.types]
+                        map(
+                            str,
+                            [g.types[root].name for root in type_.root]))}
+                for type_ in entity.types]
                 if 'types' in self.show else None}})
-
-    def get_geoms_as_collection(
-            self,
-            entity: Entity,
-            links: list[int]) -> Optional[dict[str, Any]]:
-        if entity.class_.name == 'object_location':
-            geoms: list[Any] = Gis.get_by_id(entity.id)
-            if self.centroid:
-                if centroid_result := Gis.get_centroids_by_id(entity.id):
-                    geoms.extend(centroid_result)
-            return get_geoms_dict(geoms)
-        if links:
-            geoms = [Gis.get_by_id(id_) for id_ in links]
-            if self.centroid:
-                geoms.extend([Gis.get_centroids_by_id(id_) for id_ in links])
-            return get_geoms_dict(flatten_list_and_remove_duplicates(geoms))
-        return None
-
-    def rdf_output(
-            self,
-            data: list[dict[str, Any]] | dict[str, Any]) \
-            -> Any:  # pragma: nocover
-        if 'http' in app.config['PROXIES']:
-            os.environ['http_proxy'] = app.config['PROXIES']['http']
-        if 'https' in app.config['PROXIES']:
-            os.environ['https_proxy'] = app.config['PROXIES']['https']
-        graph = Graph().parse(data=json.dumps(data), format='json-ld')
-        return graph.serialize(format=self.format, encoding='utf-8')
 
     def is_valid_url(self) -> None:
         if self.url and isinstance(
@@ -305,7 +319,7 @@ class Parser:
             entity: Entity,
             links: list[Link]) -> list[dict[str, Any]]:
         types = []
-        if entity.class_.view == 'place':
+        if entity.class_.group.get('name') == 'place':
             entity.types.update(get_location_link(links).range.types)
         for type_ in entity.types:
             type_dict = {
@@ -313,9 +327,10 @@ class Parser:
                     'api.entity', id_=type_.id, _external=True),
                 'descriptions': type_.description,
                 'label': type_.name,
-                'hierarchy': ' > '.join(map(
-                    str,
-                    [g.types[root].name for root in type_.root])),
+                'hierarchy': ' > '.join(
+                    map(
+                        str,
+                        [g.types[root].name for root in type_.root])),
                 'typeHierarchy': [{
                     'label': g.types[root].name,
                     'descriptions': g.types[root].description,

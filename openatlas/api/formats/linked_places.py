@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 import mimetypes
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional
 
 from flask import g, url_for
 
+from openatlas.api.endpoints.parser import Parser
 from openatlas.api.resources.util import (
     date_to_str, get_crm_relation, get_crm_relation_label_x,
     get_crm_relation_x, get_iiif_manifest_and_path, get_license_name,
     to_camel_case)
-from openatlas.display.util import get_file_path
+from openatlas.display.util2 import get_file_path
 from openatlas.models.entity import Entity, Link
-
-if TYPE_CHECKING:  # pragma: no cover
-    from openatlas.api.endpoints.parser import Parser
 
 
 def link_dict(link_: Link, inverse: bool = False) -> dict[str, Any]:
@@ -68,44 +66,36 @@ def get_lp_links(
     return out
 
 
-def get_lp_file(links_inverse: list[Link]) -> list[dict[str, str]]:
-    files = []
-    for link in links_inverse:
-        if link.domain.class_.name != 'file':
-            continue
-        img_id = link.domain.id
-        path = get_file_path(img_id)
-        mime_type = None
-        if path:
-            mime_type, _ = mimetypes.guess_type(path)
-        data = {
-            '@id': url_for(
-                'api.entity',
-                id_=img_id,
-                _external=True),
-            'title': link.domain.name,
-            'license': get_license_name(link.domain),
-            'creator': link.domain.creator,
-            'licenseHolder': link.domain.license_holder,
-            'publicShareable': link.domain.public,
-            'mimetype': mime_type,
-            'url': url_for(
-                'api.display',
-                filename=path.stem,
-                _external=True) if path else "N/A"}
-        data.update(get_iiif_manifest_and_path(img_id))
-        files.append(data)
-
-    return files
-
-
 def get_lp_time(entity: Entity | Link) -> Optional[dict[str, Any]]:
     return {
         'start': {
-            'earliest': date_to_str(entity.begin_from),
-            'latest': date_to_str(entity.begin_to),
-            'comment': entity.begin_comment},
+            'earliest': date_to_str(entity.dates.begin_from),
+            'latest': date_to_str(entity.dates.begin_to),
+            'comment': entity.dates.begin_comment},
         'end': {
-            'earliest': date_to_str(entity.end_from),
-            'latest': date_to_str(entity.end_to),
-            'comment': entity.end_comment}}
+            'earliest': date_to_str(entity.dates.end_from),
+            'latest': date_to_str(entity.dates.end_to),
+            'comment': entity.dates.end_comment}}
+
+
+def get_lp_file(
+        file: Entity,
+        entity: Optional[Entity] = None) -> dict[str, Any]:
+    url = 'N/A'
+    mime_type = None
+    if path := get_file_path(file.id):
+        url = url_for('api.display', filename=path.stem, _external=True)
+        mime_type, _ = mimetypes.guess_type(path)
+    main_image = entity.get_profile_image_id() == file.id if entity else False
+    data = {
+        '@id': url_for('api.entity', id_=file.id, _external=True),
+        'title': file.name,
+        'license': get_license_name(file),
+        'creator': ', '.join([rh.name for rh in file.creator]),
+        'licenseHolder': ', '.join([rh.name for rh in file.creator]),
+        'publicShareable': file.public,
+        'mimetype': mime_type,
+        'mainImage': main_image,
+        'url': url}
+    data.update(get_iiif_manifest_and_path(file.id))
+    return data

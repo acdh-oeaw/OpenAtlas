@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-import mimetypes
 from typing import Any, Tuple
 
 import requests
 import svgwrite
 from flask import Response, g, jsonify, url_for
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
 from flask_restful import Resource
 
 from openatlas.api.endpoints.parser import Parser
 from openatlas.api.resources.api_entity import ApiEntity
-from openatlas.api.resources.error import DisplayFileNotFoundError
+from openatlas.api.resources.error import (
+    DisplayFileNotFoundError, IIIFMetadataNotFound)
 from openatlas.api.resources.parser import iiif
 from openatlas.api.resources.util import get_license_name, get_license_url
-from openatlas.display.util import check_iiif_file_exist
+from openatlas.display.image_processing import (
+    check_iiif_file_exist, get_actual_mime)
+from openatlas.display.util2 import get_file_path
 from openatlas.models.annotation import AnnotationImage
 from openatlas.models.entity import Entity
 
@@ -23,7 +25,7 @@ class IIIFSequence(Resource):
     @staticmethod
     def get(id_: int) -> Response:
         return jsonify(
-            {"@context": "https://iiif.io/api/presentation/2/context.json"} |
+            {"@context": "http://iiif.io/api/presentation/2/context.json"} |
             IIIFSequence.build_sequence(get_metadata(
                 ApiEntity.get_by_id(id_)),
                 Parser(iiif.parse_args())))
@@ -38,9 +40,6 @@ class IIIFSequence(Resource):
                 id_=metadata['entity'].id,
                 _external=True),
             "@type": "sc:Sequence",
-            "label": [{
-                "@value": "Normal Sequence",
-                "@language": "en"}],
             "canvases": [IIIFCanvas.build_canvas(metadata, parser)]}
 
 
@@ -48,7 +47,7 @@ class IIIFCanvas(Resource):
     @staticmethod
     def get(id_: int) -> Response:
         return jsonify(
-            {"@context": "https://iiif.io/api/presentation/2/context.json"} |
+            {"@context": "http://iiif.io/api/presentation/2/context.json"} |
             IIIFCanvas.build_canvas(get_metadata(
                 ApiEntity.get_by_id(id_)),
                 Parser(iiif.parse_args())))
@@ -58,18 +57,15 @@ class IIIFCanvas(Resource):
             metadata: dict[str, Any],
             parser: Parser) -> dict[str, Any]:
         entity = metadata['entity']
-        mime_type, _ = mimetypes.guess_type(g.files[entity.id])
+        mime_type = get_actual_mime(get_file_path(entity.id))
         return {
             "@id": url_for('api.iiif_canvas', id_=entity.id, _external=True),
             "@type": "sc:Canvas",
             "label": entity.name,
             "height": metadata['img_api']['height'],
             "width": metadata['img_api']['width'],
-            "description": {
-                "@value": entity.description or '',
-                "@language": "en"},
+            "description": "",
             "images": [IIIFImage.build_image(metadata)],
-            "related": "",
             "otherContent": [{
                 "@id": url_for(
                     'api.iiif_annotation_list',
@@ -84,7 +80,7 @@ class IIIFCanvas(Resource):
                 "height": 200,
                 "width": 200,
                 "service": {
-                    "@context": "https://iiif.io/api/image/2/context.json",
+                    "@context": "http://iiif.io/api/image/2/context.json",
                     "@id": metadata['img_url'],
                     "profile": metadata['img_api']['profile']}}}
 
@@ -93,14 +89,14 @@ class IIIFImage(Resource):
     @staticmethod
     def get(id_: int) -> Response:
         return jsonify(
+            {"@context": "http://iiif.io/api/presentation/2/context.json"} |
             IIIFImage.build_image(get_metadata(ApiEntity.get_by_id(id_))))
 
     @staticmethod
     def build_image(metadata: dict[str, Any]) -> dict[str, Any]:
         id_ = metadata['entity'].id
-        mime_type, _ = mimetypes.guess_type(g.files[id_])
+        mime_type = get_actual_mime(get_file_path(id_))
         return {
-            "@context": "https://iiif.io/api/presentation/2/context.json",
             "@id": url_for('api.iiif_image', id_=id_, _external=True),
             "@type": "oa:Annotation",
             "motivation": "sc:painting",
@@ -109,7 +105,7 @@ class IIIFImage(Resource):
                 "@type": "dctypes:Image",
                 "format": mime_type,
                 "service": {
-                    "@context": "https://iiif.io/api/image/2/context.json",
+                    "@context": "http://iiif.io/api/image/2/context.json",
                     "@id": metadata['img_url'],
                     "profile": metadata['img_api']['profile']},
                 "height": metadata['img_api']['height'],
@@ -121,6 +117,7 @@ class IIIFAnnotationList(Resource):
     @staticmethod
     def get(image_id: int) -> Response:
         return jsonify(
+            {"@context": "http://iiif.io/api/presentation/2/context.json"} |
             IIIFAnnotationList.build_annotation_list(
                 image_id,
                 Parser(iiif.parse_args())))
@@ -129,7 +126,6 @@ class IIIFAnnotationList(Resource):
     def build_annotation_list(image_id: int, parser: Parser) -> dict[str, Any]:
         annotations_ = AnnotationImage.get_by_file_id(image_id)
         return {
-            "@context": "https://iiif.io/api/presentation/2/context.json",
             "@id": url_for(
                 'api.iiif_annotation_list',
                 image_id=image_id,
@@ -144,6 +140,7 @@ class IIIFAnnotation(Resource):
     @staticmethod
     def get(annotation_id: int) -> Response:
         return jsonify(
+            {"@context": "http://iiif.io/api/presentation/2/context.json"} |
             IIIFAnnotation.build_annotation(
                 AnnotationImage.get_by_id(annotation_id),
                 Parser(iiif.parse_args())))
@@ -156,9 +153,8 @@ class IIIFAnnotation(Resource):
         if annotation.entity_id:
             entity = ApiEntity.get_by_id(annotation.entity_id)
             url = get_url(entity.id, parser.url)
-            entity_link = f"<a href={url} target=_blank>{entity.name}</a>"
+            entity_link = f'<a href={url} target=_blank>{entity.name}</a>'
         return {
-            "@context": "https://iiif.io/api/presentation/2/context.json",
             "@id": url_for(
                 'api.iiif_annotation',
                 annotation_id=annotation.id,
@@ -172,7 +168,7 @@ class IIIFAnnotation(Resource):
                 "@type": "dctypes:Text",
                 "chars": annotation.text,
                 "format": "text/plain"}
-            ],
+                ],
             "on": {
                 "@type": "oa:SpecificResource",
                 "full": url_for(
@@ -246,11 +242,13 @@ class IIIFManifest(Resource):
     @staticmethod
     def get_manifest_version_2(id_: int, parser: Parser) -> dict[str, Any]:
         entity = ApiEntity.get_by_id(id_, types=True)
-        if entity.class_.view != 'file' and not check_iiif_file_exist(id_):
+        if entity.class_.group.get('name') != 'file' \
+                and not check_iiif_file_exist(id_):
             raise DisplayFileNotFoundError
         license_ = get_license_name(entity)
         if entity.license_holder:
-            license_ = f'{license_}, {entity.license_holder}'
+            license_ = f'{license_}, {', '.join([
+                lh.name for lh in entity.license_holder])}'
         metadata = []
         if references := entity.get_links('P67', inverse=True):
             for reference in references:
@@ -263,8 +261,10 @@ class IIIFManifest(Resource):
                     "label": _('source').capitalize(),
                     "value": f"<a href={url} target=_blank>{text}</a>"})
         if entity.creator:
-            metadata.append({
-                "label": _('creator').capitalize(), "value": entity.creator})
+            for c in entity.creator:
+                metadata.append({
+                    "label": _('creator').capitalize(),
+                    "value": c.name})
         see_also = []
         if related_entities := entity.get_links('P67'):
             for related_entity in related_entities:
@@ -273,7 +273,7 @@ class IIIFManifest(Resource):
                     "label": related_entity.range.name.capitalize(),
                     "format": related_entity.range.class_.name.capitalize()})
         return {
-            "@context": "https://iiif.io/api/presentation/2/context.json",
+            "@context": "http://iiif.io/api/presentation/2/context.json",
             "@id":
                 url_for(
                     'api.iiif_manifest',
@@ -282,27 +282,32 @@ class IIIFManifest(Resource):
                     _external=True),
             "@type": "sc:Manifest",
             "label": entity.name,
+            "description": [{
+                "@value": entity.description,
+                "@language": "en"}] if entity.description else "",
             "metadata": metadata,
             "seeAlso": see_also,
-            "description": [{
-                "@value": entity.description or '',
-                "@language": "en"}],
             "attribution": license_,
             "license": get_license_url(entity),
             "logo": get_logo(),
             "sequences": [
-                IIIFSequence.build_sequence(get_metadata(entity), parser)],
-            "structures": []}
+                IIIFSequence.build_sequence(get_metadata(entity), parser)]}
 
 
 def get_metadata(entity: Entity) -> dict[str, Any]:
-    if entity.class_.view != 'file' and not check_iiif_file_exist(entity.id):
+    if entity.class_.group.get('name') != 'file' \
+            and not check_iiif_file_exist(entity.id):
         raise DisplayFileNotFoundError
     ext = '.tiff' if g.settings['iiif_conversion'] else entity.get_file_ext()
-    image_url = f"{g.settings['iiif_url']}{entity.id}{ext}"
-    req = requests.get(f"{image_url}/info.json", timeout=30)
-    image_api = req.json()
-    return {'entity': entity, 'img_url': image_url, 'img_api': image_api}
+    image_url = f'{g.settings['iiif_url']}{entity.id}{ext}'
+
+    try:
+        resp = requests.get(f"{image_url}/info.json", timeout=30)
+        resp.raise_for_status()
+    except Exception as e:  # pragma: no cover
+        raise IIIFMetadataNotFound(image_url) from e
+
+    return {'entity': entity, 'img_url': image_url, 'img_api': resp.json()}
 
 
 def get_logo() -> dict[str, Any]:
@@ -312,6 +317,6 @@ def get_logo() -> dict[str, Any]:
             filename=g.settings['logo_file_id'],
             _external=True),
         "service": {
-            "@context": "https://iiif.io/api/image/2/context.json",
+            "@context": "http://iiif.io/api/image/2/context.json",
             "@id": url_for('overview', _external=True),
-            "profile": "https://iiif.io/api/image/2/level2.json"}}
+            "profile": "http://iiif.io/api/image/2/level2.json"}}

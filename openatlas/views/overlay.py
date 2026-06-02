@@ -9,7 +9,8 @@ from wtforms import FloatField
 from wtforms.validators import InputRequired
 
 from openatlas import app
-from openatlas.display.util import button, required_group
+from openatlas.display.util import button, link, required_group
+from openatlas.display.util2 import manual
 from openatlas.forms.field import SubmitField
 from openatlas.models.entity import Entity
 from openatlas.models.overlay import Overlay
@@ -32,9 +33,7 @@ class OverlayForm(FlaskForm):
     '/overlay/insert/<int:image_id>/<int:place_id>',
     methods=['GET', 'POST'])
 @required_group('editor')
-def overlay_insert(
-        image_id: int,
-        place_id: int) -> str | Response:
+def overlay_insert(image_id: int, place_id: int) -> str | Response:
     form = OverlayForm()
     if form.validate_on_submit():
         Overlay.insert({
@@ -46,12 +45,14 @@ def overlay_insert(
             'bottom_left_northing': form.bottom_left_northing.data,
             'bottom_left_easting': form.bottom_left_easting.data})
         return redirect(f"{url_for('view', id_=place_id)}#tab-file")
+    place = Entity.get_by_id(place_id)
     return render_template(
-        'overlay.html',
+        'util/overlay.html',
+        buttons=[manual('tools/map')],
         form=form,
         crumbs=[
-            [_('place'), url_for('index', view='place')],
-            Entity.get_by_id(place_id),
+            link(place, index=True),
+            place,
             Entity.get_by_id(image_id),
             _('overlay')])
 
@@ -73,9 +74,8 @@ def overlay_update(place_id: int, overlay_id: int) -> str | Response:
             'top_right_easting': form.top_right_easting.data,
             'bottom_left_northing': form.bottom_left_northing.data,
             'bottom_left_easting': form.bottom_left_easting.data})
-        flash(_('info update'), 'info')
-        return redirect(
-            f"{url_for('view', id_=place.id)}#tab-file")
+        flash(_('info update'))
+        return redirect(f'{url_for('view', id_=place.id)}#tab-file')
     bounding = [[0, 0], [0, 0], [0, 0]]  # For data entered before 6.4.0
     bounding_values = ast.literal_eval(overlay.bounding_box)
     if len(bounding_values) == 3:
@@ -87,17 +87,18 @@ def overlay_update(place_id: int, overlay_id: int) -> str | Response:
     form.bottom_left_easting.data = bounding[2][1]
     form.bottom_left_northing.data = bounding[2][0]
     return render_template(
-        'overlay.html',
+        'util/overlay.html',
         form=form,
         overlay=overlay,
         entity=place,
         buttons=[
+            manual('tools/map'),
             button(
                 _('remove'),
                 url_for('overlay_remove', id_=overlay.id, place_id=place.id),
                 onclick=f"return confirm('{_('remove')}?');")],
         crumbs=[
-            [_('place'), url_for('index', view='place')],
+            link(place, index=True),
             place,
             Entity.get_by_id(overlay.image_id),
             _('update overlay')])

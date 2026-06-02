@@ -1,17 +1,22 @@
-import locale
 import datetime
+import locale
 import os
-from typing import Any, Optional
+from typing import Optional
 
-from flask import Flask, Response, g, request, session
+from flask import Flask, g, redirect, request, session, url_for
 from flask_babel import Babel
+from flask_jwt_extended import JWTManager, verify_jwt_in_request
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect
 from psycopg2 import extras
+from werkzeug.wrappers import Response
 
 from openatlas.api.resources.error import AccessDeniedError
+from openatlas.database.checks import check_type_count_needed
 from openatlas.database.connect import close_connection, open_connection
 from openatlas.database.token import check_token_revoked
+from openatlas.database.user import admins_available
+from openatlas.models.openatlas_class import get_classes
 
 instance_config_path = ''
 if 'INSTANCE_PATH' in os.environ:
@@ -23,7 +28,6 @@ app.config.from_object('config.default')
 app.config.from_object('config.api')
 app.config.from_pyfile(f'{instance_config_path}production.py')
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Set CSRF token valid for session
-
 locale.setlocale(locale.LC_ALL, 'en_US.utf-8')
 babel = Babel(app)
 jwt = JWTManager(app)
@@ -32,68 +36,76 @@ jwt = JWTManager(app)
 from openatlas.models.logger import Logger
 from openatlas.api import api
 from openatlas.views import (
-    admin, ajax, annotation, arche, changelog, entity, entity_index, error,
-    export, file, hierarchy, index, imports, link, login, model, note, overlay,
-    profile, search, sql, token, tools, type as type_, user, vocabs)
+    admin, ajax, annotation, changelog, checks, entity, error, export, file,
+    hierarchy, index, imports, link, login, model, note, overlay, profile,
+    rights_holder, search, token, tools, type as type_, user, vocabs)
 
 
-@babel.localeselector
 def get_locale() -> str:
     if request.path.startswith('/api/') \
             and request.args.get('locale') in app.config['LANGUAGES']:
         return str(request.args.get('locale'))
     if 'language' in session:
-        return session['language']
+        return str(session['language'])
     best_match = request.accept_languages.best_match(app.config['LANGUAGES'])
     return best_match or g.settings['default_language']
 
 
+babel = Babel(app, locale_selector=get_locale)
+
+
 @app.before_request
-def before_request() -> None:
-    from openatlas.models.openatlas_class import (
-        OpenatlasClass, view_class_mapping)
-    from openatlas.models.cidoc_property import CidocProperty
-    from openatlas.models.cidoc_class import CidocClass
-    from openatlas.models.type import Type
-    from openatlas.models.settings import Settings
-    from openatlas.models.reference_system import ReferenceSystem
+def before_request() -> Response | None:
+    from openatlas.models.cidoc import cidoc_classes, cidoc_properties
+    from openatlas.models.entity import Entity
+    from openatlas.models.settings import get_settings
 
     if request.path.startswith('/static'):
-        return  # Avoid files overhead if not using Apache with static alias
+        return None  # Avoid overheads if not using Apache with static alias
 
     g.logger = Logger()
     g.db = open_connection(app.config)
     g.db.autocommit = True
     g.cursor = g.db.cursor(cursor_factory=extras.DictCursor)
-    g.settings = Settings.get_settings()
+    g.settings = get_settings()
+
+    if request.path.startswith('/display'):
+        return None  # Avoid overheads for file display
+
     session['language'] = get_locale()
-    g.cidoc_classes = CidocClass.get_all(session['language'])
-    g.properties = CidocProperty.get_all(session['language'])
-    g.classes = OpenatlasClass.get_all()
-    with_count = False
-    if (request.path.startswith(('/type', '/api/type_tree/', '/admin/orphans'))
-            or (request.path.startswith('/entity/') and
-                request.path.split('/entity/')[1].isdigit())):
-        with_count = True
-    g.types = Type.get_all(with_count)
-    g.radiocarbon_type = Type.get_hierarchy('Radiocarbon')
-    g.sex_type = Type.get_hierarchy('Features for sexing')
-    g.reference_match_type = Type.get_hierarchy('External reference match')
-    g.reference_systems = ReferenceSystem.get_all()
-    g.view_class_mapping = view_class_mapping
-    g.class_view_mapping = OpenatlasClass.get_class_view_mapping()
-    g.table_headers = OpenatlasClass.get_table_headers()
+    g.admins_available = admins_available()
+    if not g.admins_available \
+            and request.endpoint not in ['first_admin', 'set_locale']:
+        return redirect(url_for('first_admin'))
+    g.cidoc_classes = cidoc_classes(
+        session['language'],
+        (request.path.startswith('/overview/model/cidoc_class_index')))
+    g.properties = cidoc_properties(
+        session['language'],
+        (request.path.startswith('/overview/model/property')))
+    get_classes()  # Sets g.classes
+    g.types = Entity.get_all_types(count_type())
+    g.radiocarbon_type = Entity.get_hierarchy('Radiocarbon')
+    g.sex_type = Entity.get_hierarchy('Features for sexing')
+    g.reference_match_type = Entity.get_hierarchy('External reference match')
+    g.reference_systems = Entity.get_reference_systems()
     g.writable_paths = [
         app.config['EXPORT_PATH'],
         app.config['RESIZED_IMAGES'],
+        app.config['ARCHE_PATH'],
+        app.config['RDF_PATH'],
+        app.config['SQL_PATH'],
         app.config['UPLOAD_PATH'],
         app.config['TMP_PATH']]
+    g.arche_uri_rules = None
     setup_files()
     setup_api()
+    return None
 
 
 def setup_files() -> None:
     from openatlas.models.entity import Entity
+    from openatlas.models.rights_holder import RightsHolder
     g.files = {}
     for file_ in app.config['UPLOAD_PATH'].iterdir():
         if file_.stem.isdigit():
@@ -105,7 +117,14 @@ def setup_files() -> None:
         g.display_file_ext += app.config['PROCESSABLE_EXT']
     if g.settings['iiif'] and g.settings['iiif_path']:
         g.writable_paths.append(g.settings['iiif_path'])
-    g.file_info = Entity.get_file_info()
+    file_info = Entity.get_file_info()
+    g.rights_holder = RightsHolder.get_rights_holder()
+    rights_holder_info = RightsHolder.get_rights_holder_information()
+    for file_id, info in file_info.items():
+        rights = rights_holder_info.get(file_id, {})
+        info['creator'] = rights.get('creator', [])
+        info['license_holder'] = rights.get('license_holder', [])
+    g.file_info = file_info
 
 
 def setup_api() -> None:
@@ -116,8 +135,25 @@ def setup_api() -> None:
         ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
         if not current_user.is_authenticated \
                 and not g.settings['api_public'] \
-                and ip not in app.config['ALLOWED_IPS']:
+                and ip not in app.config['ALLOWED_IPS'] \
+                and not verify_jwt_in_request(
+                    optional=True,
+                    locations='headers'):
             raise AccessDeniedError
+
+
+def count_type() -> bool:
+    prefixes = [
+        '/index/type',
+        '/orphans',
+        '/api/type_tree',
+        *[f'/api/{v}/type_tree' for v in app.config['API_VERSIONS']]]
+    if request.path.startswith(tuple(prefixes)):
+        return True
+    if request.path.startswith('/entity/') and \
+            request.path.split('/entity/')[1].isdigit():
+        return check_type_count_needed(int(request.path.split('/entity/')[1]))
+    return False
 
 
 @app.after_request
@@ -127,19 +163,20 @@ def apply_caching(response: Response) -> Response:
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Content-Security-Policy'] = app.config['CSP_HEADER']
     return response
 
 
 @app.teardown_request
-def teardown_request(_exception: Optional[Any]) -> None:
+def teardown_request(_exception: Optional[object]) -> None:
     close_connection()
 
 
 @jwt.token_in_blocklist_loader
 def check_incoming_tokens(
-        jwt_header: dict[str, Any],
-        jwt_payload: dict[str, Any]) -> bool:
-    if not jwt_header['typ'] == 'JWT':
+        jwt_header: dict[str, str],
+        jwt_payload: dict[str, str]) -> bool:
+    if jwt_header['typ'] != 'JWT':
         return True
     token_ = check_token_revoked(jwt_payload["jti"])
     if token_['revoked'] \

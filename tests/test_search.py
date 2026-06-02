@@ -5,20 +5,18 @@ from tests.base import TestBaseCase, insert
 
 
 class SearchTest(TestBaseCase):
-
     def test_search(self) -> None:
         c = self.client
         with app.test_request_context():
             app.preprocess_request()
-            person = insert('person', 'Waldo')
-            person.update({'attributes': {'begin_to': '2018-01-01'}})
-            person.link('P1', insert('appellation', 'Waldo alias'))
+            person = insert('person', 'Waldo', begin_to='2018-01-01')
+            person.link('P1', insert('alias', 'Waldo alias'))
             object_ = insert('place', 'Waldorf')
-            object_.link('P1', insert('appellation', 'Waldorf alias'))
+            object_.link('P1', insert('alias', 'Waldorf alias'))
             insert('person', 'Waldo without date')
 
         rv = c.post(url_for('search_index'), data={'global-term': ''})
-        assert b'no entries' in rv.data
+        assert b'No entries' in rv.data
 
         rv = c.post(
             url_for('search_index'),

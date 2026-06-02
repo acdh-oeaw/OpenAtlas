@@ -1,9 +1,9 @@
 <div class="row">
   <div class="{{ 'col-lg-6' if gis_data else 'col' }}">
-    {% if problematic_type_id %}
+    {% if problematic_type %}
       <div class="error">
         {{ _('Editing is disabled because of multiple links to the single type') }}
-        {{ g.types[problematic_type_id]|link|safe }}.
+        {{ problematic_type|link|safe }}.
         {{ _('Please consult the manual about link duplicates') }}: {{ 'admin/data_integrity_checks'|manual|safe }}
       </div>
     {% endif %}
@@ -20,13 +20,13 @@
       </div>
     </div>
     <div style="clear:both;"></div>
-    {{ entity.reference_systems|ext_references|safe }}
+    {{ reference_systems|safe }}
     {{ description_html|safe }}
   </div>
   {% if gis_data %}
     <div class="col-lg-6">
       <div id="map" class="map"></div>
-      <script src="/static/js/map/map.js"></script>
+      <script src="{{ url_for('static', filename='js/map/map.js', v=config.VERSION) }}"></script>
     </div>
   {% endif %}
   {% if chart_data %}
@@ -35,8 +35,8 @@
         <canvas id="type-chart"></canvas>
       </div>
     </div>
-    <script src="/static/node_modules/chart.js/dist/chart.umd.js"></script>
-    <script src="/static/node_modules/chartjs-plugin-autocolors/dist/chartjs-plugin-autocolors.min.js"></script>
+    <script src="{{ url_for('static', filename='node_modules/chart.js/dist/chart.umd.js', v=config.VERSION) }}"></script>
+    <script src="{{ url_for('static', filename='node_modules/chartjs-plugin-autocolors/dist/chartjs-plugin-autocolors.min.js', v=config.VERSION) }}"></script>
     <script>
       const ctx = document.getElementById('type-chart');
       const autocolors = window['chartjs-plugin-autocolors'];

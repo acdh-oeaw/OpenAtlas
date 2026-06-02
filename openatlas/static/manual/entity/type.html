@@ -1,21 +1,25 @@
 
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Type &mdash; OpenAtlas 8.10.0 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Type &mdash; OpenAtlas 9.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
       <link rel="stylesheet" href="../_static/style.css" type="text/css" />
+
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
+      <script src="../_static/jquery.js?v=8dae8fb0"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=b756c04f"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="File" href="file.html" />
@@ -34,9 +38,6 @@
             OpenAtlas
               <img src="../_static/logo.png" class="logo" alt="Logo"/>
           </a>
-              <div class="version">
-                8.10.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -56,8 +57,9 @@
 <li class="toctree-l2"><a class="reference internal" href="place.html">Place</a></li>
 <li class="toctree-l2"><a class="reference internal" href="feature.html">Feature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="stratigraphic_unit.html">Stratigraphic unit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="human_remains.html">Human remains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="artifact.html">Artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="item.html">Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="item.html#artifact">Artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="item.html#human-remains">Human remains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="file.html">File</a></li>
@@ -106,10 +108,10 @@
            <div itemprop="articleBody">
              
   <section id="type">
-<h1>Type<a class="headerlink" href="#type" title="Permalink to this heading"></a></h1>
+<h1>Type<a class="headerlink" href="#type" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p>CIDOC documentation: <a class="reference external" href="https://www.cidoc-crm.org/Entity/e55-type/version-7.1">E55 Type</a></p>
+<p>CIDOC documentation: <a class="extlink-cidoc_entity reference external" href="https://www.cidoc-crm.org/Entity/e55-type/version-7.1">E55 Type</a></p>
 <p>Types are used to add information or group entities. They are hierarchical and
 can be accessed and edited via the <strong>Types</strong> <a class="reference internal" href="../ui/menu.html"><span class="doc">Menu</span></a> item. With this
 feature the user interface can be adapted for specific research interests.</p>
@@ -130,7 +132,7 @@ permission or higher to make this change</p></li>
 <a class="reference internal" href="../examples/types.html"><span class="doc">here</span></a></p></li>
 </ul>
 <section id="standard-types">
-<h2>Standard types<a class="headerlink" href="#standard-types" title="Permalink to this heading"></a></h2>
+<h2>Standard types<a class="headerlink" href="#standard-types" title="Link to this heading"></a></h2>
 <p>Some standard types are pre-installed in every OpenAtlas instance. These types</p>
 <ul class="simple">
 <li><p>Cannot be deleted or renamed (but subtypes of them can)</p></li>
@@ -140,7 +142,7 @@ permission or higher to make this change</p></li>
 </ul>
 </section>
 <section id="custom-types">
-<h2>Custom types<a class="headerlink" href="#custom-types" title="Permalink to this heading"></a></h2>
+<h2>Custom types<a class="headerlink" href="#custom-types" title="Link to this heading"></a></h2>
 <p>Custom types can be created, deleted and renamed. The default installation
 comes with one example custom type <strong>Sex</strong> which is used for actors. Custom
 types</p>
@@ -153,9 +155,14 @@ sub-types can be used in forms for places, actors, and events</p></li>
 multiple checkbox is greyed out and not selectable, the multiple option is
 used for at least one entity already. Check entries in type overview at
 <strong>multiple linked entities</strong> and make changes if necessary.</p>
+<p><strong>Case study</strong> is a special case. It is provided by default and can’t be
+deleted or renamed. It won’t show up in forms initialy because it has no
+entries and is not connected to classes. But once set up it can be used to
+mark entries for different case studies on the same OpenAtlas instance which
+can in turn be used to e.g. filter data for presentation sites.</p>
 </section>
 <section id="value-types">
-<h2>Value types<a class="headerlink" href="#value-types" title="Permalink to this heading"></a></h2>
+<h2>Value types<a class="headerlink" href="#value-types" title="Link to this heading"></a></h2>
 <p>Value types can be created, deleted, and renamed. They are used to add
 values in form of decimals to an entity. The default installation
 comes with an example value type <strong>Dimensions</strong> with the sub-types
@@ -167,32 +174,46 @@ types</p>
 <li><p>A unit such as centimetre, gram, or percentage can be specified</p></li>
 </ul>
 </section>
+<section id="place-hierarchies">
+<span id="id1"></span><h2>Place hierarchies<a class="headerlink" href="#place-hierarchies" title="Link to this heading"></a></h2>
+<p>Place hierarchies can be used to add information about e.g.
+administrative units or historical places. Unlike custom types they will only
+be available for place entities. Entries here are classified as places in
+the model but be aware that it isn’t possible to add geolocations to these
+entries.</p>
+</section>
+<section id="system-types">
+<h2>System types<a class="headerlink" href="#system-types" title="Link to this heading"></a></h2>
+<p>Types listed here can’t be modified but we still thought it useful to provide
+information about them.</p>
+</section>
 <section id="form-fields">
-<h2>Form fields<a class="headerlink" href="#form-fields" title="Permalink to this heading"></a></h2>
+<h2>Form fields<a class="headerlink" href="#form-fields" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="../ui/name.html"><span class="doc">Name</span></a></p></li>
 <li><p><a class="reference internal" href="../ui/description.html"><span class="doc">Description</span></a></p></li>
 <li><p><a class="reference internal" href="reference_system.html"><span class="doc">Reference System</span></a></p></li>
 <li><p><a class="reference internal" href="../ui/date.html"><span class="doc">Date</span></a></p></li>
 <li><p>A super (type) if it is a sub-type of another type</p></li>
+<li><p><a class="reference internal" href="reference_system.html"><span class="doc">Reference System</span></a></p></li>
 </ul>
 </section>
 <section id="can-be-linked-via-tabs-to">
-<h2>Can be linked via tabs to<a class="headerlink" href="#can-be-linked-via-tabs-to" title="Permalink to this heading"></a></h2>
+<h2>Can be linked via tabs to<a class="headerlink" href="#can-be-linked-via-tabs-to" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="reference.html"><span class="doc">Reference</span></a></p></li>
 <li><p><a class="reference internal" href="file.html"><span class="doc">File</span></a></p></li>
 </ul>
 </section>
 <section id="making-types-required">
-<h2>Making types required<a class="headerlink" href="#making-types-required" title="Permalink to this heading"></a></h2>
+<h2>Making types required<a class="headerlink" href="#making-types-required" title="Link to this heading"></a></h2>
 <p>It is possible to make certain types required. To make a type required, go
 to type overview. Mark it as required in the display on the right. You have
 to have manager or higher status to do this.</p>
 <p>Please keep in mind that not all users can add new types when making a type
 required. This might lead to situations where a user is unable to choose a
 fitting type for an entity and might therefore reduce data quality.</p>
-<p>Existing entries that were entered before a typ was set to required and have
+<p>Existing entries that were entered before a type was set to required and have
 no set values for this specific type can not be updated anymore afterwards.</p>
 </section>
 </section>

@@ -50,10 +50,27 @@ entity_.add_argument(
         'name',
         'cidoc_class',
         'system_class',
+        'type',
+        'checkbox',
+        'class',
+        'created',
+        'creator',
+        'content',
+        'count',
+        'description',
+        'extension',
+        'icon',
+        'group',
+        'license_holder',
+        'license',
+        'public',
+        'size',
         'begin_from',
         'begin_to',
         'end_from',
-        'end_to'),
+        'end_to',
+        'end',
+        'begin'),
     location='args')
 entity_.add_argument(
     'search',
@@ -146,6 +163,18 @@ entity_.add_argument(
     default='false',
     choices=('true', 'false'),
     location='args')
+entity_.add_argument(
+    'table_columns',
+    type=str,
+    action='append',
+    help="{error_msg}",
+    location='args')
+entity_.add_argument(
+    'checked',
+    type=int,
+    action='append',
+    help="{error_msg}",
+    location='args')
 
 properties = entity_.copy()
 properties.add_argument(
@@ -172,6 +201,29 @@ properties.add_argument(
         'P186', 'P107', 'P134', 'P146', 'P13', 'P121', 'P46', 'P185', 'P39',
         'P45', 'P32', 'P187', 'P147', 'P157', 'P122', 'P30', 'P52', 'P151',
         'OA7', 'P167', 'P102', 'P41', 'P138'),
+    location='args')
+
+presentation = entity_.copy()
+presentation.add_argument(
+    'remove_empty_values',
+    type=str,
+    case_sensitive=False,
+    default='false',
+    choices=('true', 'false'),
+    location='args')
+presentation.add_argument(
+    'place_hierarchy',
+    case_sensitive=False,
+    type=str,
+    default='false',
+    choices=('true', 'false'),
+    location='args')
+presentation.add_argument(
+    'map_overlay',
+    case_sensitive=False,
+    type=str,
+    default='false',
+    choices=('true', 'false'),
     location='args')
 
 query = entity_.copy()
@@ -205,6 +257,7 @@ query.add_argument(
     action='append',
     help="{error_msg}",
     location='args')
+
 
 gis = default.copy()
 gis.add_argument(
@@ -251,7 +304,7 @@ network.add_argument(
         "acquisition",
         "activity",
         "administrative_unit",
-        "appellation",
+        "alias",
         "artifact",
         "bibliography",
         "creation",
@@ -262,14 +315,15 @@ network.add_argument(
         "file",
         "group",
         "human_remains",
+        "modification",
         "move",
         "person",
         "place",
         "production",
         "reference_system",
         "source",
-        "source_translation",
         "stratigraphic_unit",
+        "text",
         "type",
         "type_tools"))
 network.add_argument(
@@ -278,10 +332,33 @@ network.add_argument(
     help='{error_msg}',
     action='append',
     location='args')
+network.add_argument(
+    'depth',
+    type=int,
+    default=1,
+    help='{error_msg}',
+    location='args')
 
 iiif = reqparse.RequestParser()
 iiif.add_argument(
     'url',
     type=str,
+    help='{error_msg}',
+    location='args')
+
+openapi = reqparse.RequestParser()
+openapi.add_argument(
+    'format',
+    type=str,
+    help='{error_msg}',
+    location='args',
+    default='json',
+    choices=('json', 'yaml'))
+
+search_parser = entity_.copy()
+search_parser.add_argument(
+    'term',
+    type=str,
+    default='',
     help='{error_msg}',
     location='args')

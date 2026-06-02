@@ -9,18 +9,19 @@ from werkzeug.utils import redirect
 from werkzeug.wrappers import Response
 from wtforms import (
     BooleanField, HiddenField, PasswordField, SelectField, StringField,
-    TextAreaField, validators)
+    TextAreaField)
 from wtforms.validators import Email, InputRequired
 
 from openatlas import app
 from openatlas.display.tab import Tab
-from openatlas.display.table import Table
+from openatlas.display.table import Table, entity_table
 from openatlas.display.util import (
     button, description, display_info, link, required_group, send_mail)
 from openatlas.display.util2 import (
-    format_date, is_authorized, manual, sanitize, uc_first)
+    is_authorized, manual, sanitize, uc_first)
 from openatlas.forms.display import display_form
 from openatlas.forms.field import SubmitField, generate_password_field
+from openatlas.models.dates import format_date
 from openatlas.models.entity import Entity
 from openatlas.models.user import User
 
@@ -45,7 +46,7 @@ class UserForm(FlaskForm):
     insert_and_continue = SubmitField(_('insert and continue'))
     continue_ = HiddenField()
 
-    def validate(self, extra_validators: validators = None) -> bool:
+    def validate(self, extra_validators: Any = None) -> bool:
         valid = FlaskForm.validate(self)
         username = ''
         user_email = ''
@@ -72,14 +73,9 @@ class UserForm(FlaskForm):
 
 
 class ActivityForm(FlaskForm):
-    action_choices = (
-        ('all', _('all')),
-        ('insert', _('insert')),
-        ('update', _('update')),
-        ('delete', _('delete')))
     limit = SelectField(
         _('limit'),
-        choices=((0, _('all')), (100, 100), (500, 500)),
+        choices=((0, _('all')), (100, 100), (500, 500)),  # type: ignore
         default=100,
         coerce=int)
     user = SelectField(
@@ -87,7 +83,14 @@ class ActivityForm(FlaskForm):
         choices=([(0, _('all'))]),
         default=0,
         coerce=int)
-    action = SelectField(_('action'), choices=action_choices, default='all')
+    action = SelectField(
+        _('action'),
+        choices=(
+            ('all', _('all')),
+            ('insert', _('insert')),
+            ('update', _('update')),
+            ('delete', _('delete'))),
+        default='all')
     save = SubmitField(_('apply'))
 
 
@@ -98,8 +101,9 @@ class ActivityForm(FlaskForm):
     methods=['GET', 'POST'])
 @required_group('readonly')
 def user_activity(user_id: int = 0, entity_id: Optional[int] = None) -> str:
-    form = ActivityForm()
-    form.user.choices = [(0, _('all'))] + User.get_users_for_form()
+    form: Any = ActivityForm()
+    form.user.choices = \
+        [(0, _('all'))] + [(u.id, u.username) for u in User.get_all()]
     limit = 100
     user_id = user_id or 0
     action = 'all'
@@ -117,11 +121,11 @@ def user_activity(user_id: int = 0, entity_id: Optional[int] = None) -> str:
             entity_name = link(entity)
         except AttributeError:  # Entity already deleted
             entity = None
-            entity_name = f"id {row['entity_id']}"
+            entity_name = f'id {row['entity_id']}'
         user = User.get_by_id(row['user_id'])
         table.rows.append([
             format_date(row['created']),
-            link(user) if user else f"id {row['user_id']}",
+            link(user) if user else f'id {row['user_id']}',
             _(row['action']),
             entity.class_.label if entity else '',
             entity_name])
@@ -166,9 +170,9 @@ def user_view(id_: int) -> str:
             buttons.append(
                 button(
                     _('delete'),
-                    f"{url_for('user_delete', id_=user.id)}#tab-user",
+                    f'{url_for('user_delete', id_=user.id)}#tab-user',
                     onclick=""
-                    f"return confirm('{_('Delete %(name)s?', name=name)}')"))
+                    f"return confirm('{_('delete %(name)s?', name=name)}')"))
     return render_template(
         'tabs.html',
         tabs={
@@ -178,7 +182,7 @@ def user_view(id_: int) -> str:
                 buttons=buttons)},
         title=user.username,
         crumbs=[
-            [_('admin'), f"{url_for('admin_index')}#tab-user"],
+            [_('admin'), f'{url_for('admin_index')}#tab-user'],
             user.username])
 
 
@@ -191,34 +195,23 @@ def user_delete(id_: int) -> Response:
             or (user.group == 'admin' and not is_authorized('admin')):
         abort(403)
     user.delete()
-    flash(_('user deleted'), 'info')
+    flash(_('user deleted'))
     return redirect(f"{url_for('admin_index')}#tab-user")
 
 
 @app.route('/user/entities/<int:id_>')
 @required_group('readonly')
 def user_entities(id_: int) -> str:
-    table = Table([
-        'name',
-        'class',
-        'type',
-        'begin',
-        'end',
-        'created'])
+    table = Table()
     if user := User.get_by_id(id_):
-        for entity in user.get_entities():
-            table.rows.append([
-                link(entity),
-                entity.class_.label,
-                link(entity.standard_type),
-                entity.first,
-                entity.last,
-                format_date(entity.created)])
+        table = entity_table(
+            user.get_entities(),
+            columns=['name', 'class', 'type', 'begin', 'end', 'created'])
     return render_template(
         'content.html',
         content=table.display(),
         crumbs=[
-            [_('admin'), f"{url_for('admin_index')}#tab-user"],
+            [_('admin'), f'{url_for('admin_index')}#tab-user'],
             user,
             _('created entities')])
 
@@ -231,21 +224,26 @@ def user_update(id_: int) -> str | Response:
         abort(404)
     if user.group == 'admin' and current_user.group != 'admin':
         abort(403)
-    form = UserForm(obj=user)
+    form: Any = UserForm(obj=user)
     form.user_id = id_
-    del form.password, form.password2, form.send_info, \
-        form.insert_and_continue, form.show_passwords
+    del (
+        form.password,
+        form.password2,
+        form.send_info,
+        form.insert_and_continue,
+        form.show_passwords,
+        form.generate_password)
     form.group.choices = get_groups()
     if user and form.validate_on_submit():
         # Active is always True for current user to prevent self deactivation
         user.active = True if user.id == current_user.id else form.active.data
-        user.real_name = sanitize(form.real_name.data)
-        user.username = sanitize(form.username.data)
+        user.real_name = form.real_name.data
+        user.username = form.username.data
         user.email = form.email.data
-        user.description = sanitize(form.description.data)
+        user.description = form.description.data
         user.group = form.group.data
         user.update()
-        flash(_('info update'), 'info')
+        flash(_('info update'))
         return redirect(url_for('user_view', id_=id_))
     if user.id == current_user.id:
         del form.active
@@ -254,7 +252,7 @@ def user_update(id_: int) -> str | Response:
         content=display_form(form, manual_page='admin/user'),
         title=user.username,
         crumbs=[
-            [_('admin'), f"{url_for('admin_index')}#tab-user"],
+            [_('admin'), f'{url_for('admin_index')}#tab-user'],
             user,
             _('edit')])
 
@@ -262,7 +260,7 @@ def user_update(id_: int) -> str | Response:
 @app.route('/user/insert', methods=['GET', 'POST'])
 @required_group('manager')
 def user_insert() -> str | Response:
-    form = UserForm()
+    form: Any = UserForm()
     form.group.choices = get_groups()
     if not g.settings['mail']:
         del form.send_info
@@ -277,7 +275,7 @@ def user_insert() -> str | Response:
             'password': bcrypt.hashpw(
                 form.password.data.encode('utf-8'),
                 bcrypt.gensalt()).decode('utf-8')})
-        flash(_('user created'), 'info')
+        flash(_('user created'))
         if g.settings['mail'] and form.send_info.data:
             subject = _(
                 'Your account information for %(sitename)s',
@@ -285,19 +283,18 @@ def user_insert() -> str | Response:
             body = \
                 _('Account information for %(username)s',
                   username=form.username.data) + \
-                f" {_('at')} {request.scheme}" \
-                f"://{request.headers['Host']}\n\n" \
-                f"{uc_first(_('username'))}: {form.username.data}\n" \
-                f"{uc_first(_('password'))}: {form.password.data}\n"
+                f' {_('at')} {request.scheme}' \
+                f'://{request.headers['Host']}\n\n' \
+                f'{uc_first(_('username'))}: {form.username.data}\n' \
+                f'{uc_first(_('password'))}: {form.password.data}\n'
             if send_mail(subject, body, form.email.data, False):
                 flash(
                     _('Sent account information mail to %(email)s.',
-                      email=form.email.data),
-                    'info')
+                        email=form.email.data))
             else:  # pragma: no cover
                 flash(
                     _('Failed to send account details to %(email)s.',
-                      email=form.email.data),
+                        email=form.email.data),
                     'error')
         if hasattr(form, 'continue_') and form.continue_.data == 'yes':
             return redirect(url_for('user_insert'))
@@ -313,9 +310,34 @@ def user_insert() -> str | Response:
                     manual_page='admin/user'))},
         title=_('user'),
         crumbs=[
-            [_('admin'), f"{url_for('admin_index')}#tab-user"],
-            '+&nbsp;<span class="uc-first d-inline-block">' + _('user')
-            + '</span>'])
+            [_('admin'), f'{url_for('admin_index')}#tab-user'],
+            f'+ {uc_first(_('user'))}'])
+
+
+@app.route('/install', methods=['GET', 'POST'])
+def first_admin() -> str | Response:
+    if g.admins_available:
+        abort(403)
+    form = UserForm()
+    del form.send_info, form.active, form.group, form.insert_and_continue
+    if form.validate_on_submit():
+        User.insert({
+            'username': sanitize(form.username.data),
+            'real_name': sanitize(form.real_name.data) or '',
+            'info': sanitize(form.description.data) or '',
+            'email': sanitize(form.email.data) or '',
+            'active': True,
+            'group_name': 'admin',
+            'password': bcrypt.hashpw(
+                form.password.data.encode('utf-8'),
+                bcrypt.gensalt()).decode('utf-8')})
+        flash(_('user created'))
+        return redirect(url_for('login'))
+    return render_template(
+        'content.html',
+        content=display_form(form),
+        crumbs=[
+            _('Welcome to OpenAtlas. Please add an admin user to continue.')])
 
 
 def get_groups() -> list[tuple[str, str]]:

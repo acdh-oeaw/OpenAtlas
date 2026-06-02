@@ -1,5 +1,3 @@
-from typing import Any
-
 from flask import g, request
 from flask_login import current_user
 
@@ -28,7 +26,7 @@ class Logger:
             info: str | Exception | None = None) -> None:
         log_levels = app.config['LOG_LEVELS']
         priority = list(log_levels)[list(log_levels.values()).index(priority_)]
-        if priority >= int(g.settings['log_level']):
+        if priority <= int(g.settings['log_level']):
             db.log({
                 'priority': priority,
                 'type': type_,
@@ -41,7 +39,7 @@ class Logger:
     def get_system_logs(
             limit: str,
             priority: str,
-            user_id: str) -> list[dict[str, Any]]:
+            user_id: str) -> list[dict[str, object]]:
         return db.get_system_logs(limit, priority, user_id)
 
     @staticmethod
@@ -53,7 +51,7 @@ class Logger:
         db.log_user(entity_id, current_user.id, action)
 
     @staticmethod
-    def get_log_info(entity_id: int) -> dict[str, Any]:
+    def get_log_info(entity_id: int) -> dict[str, object]:
         data = db.get_log_for_advanced_view(entity_id)
         return {
             'creator': User.get_by_id(data['creator_id'])

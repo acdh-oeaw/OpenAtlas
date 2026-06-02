@@ -13,7 +13,6 @@
   </div>
   <div id="{{ field.id }}-clear-field" class="col-auto" {% if not field.selection %}style="display: none;"{% endif %}>
     <a
-        href="#"
         id="{{ field.id }}-clear"
         class="{{ config.CSS.button.secondary }} col-auto"
         onclick="clearSelect('{{ field.id }}');">
@@ -29,7 +28,7 @@
     aria-hidden="true">
   <div class="modal-dialog" role="document" style="max-width: 100%!important;">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header justify-content-between">
         <h5 class="modal-title">{{ _(field.id.replace('_', ' '))|uc_first }}</h5>
         <button
           type="button"
@@ -67,7 +66,7 @@
   <div class="modal fade" id="add-{{ add_dynamical }}-modal-{{ field.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header justify-content-between">
           <h5 class="modal-title">+ {{ _(add_dynamical)|uc_first }}</h5>
           <button
               type="button"
@@ -90,7 +89,7 @@
           <button
             id="{{ field.id }}-add-{{ add_dynamical }}"
             disabled
-            type="button"
+            type="submit"
             class="btn btn-outline-primary btn-sm">{{ _('insert')|uc_first }}
           </button>
         </div>
@@ -99,12 +98,18 @@
   </div>
 
   <script>
+    $("#{{ field.id }}-modal").on("hidden.bs.modal", function (e) {
+      document.getElementById("save")?.focus({preventScroll:true})
+    })
     $("#add-{{ add_dynamical }}-modal-{{field.id}} #name_dynamic")
-      .on('keyup change', function () {
+      .on('keyup change', function (e) {
         if ($(this).val() === '')
           $('#{{field.id}}-add-{{ add_dynamical }}').attr('disabled', '')
         else
           $('#{{field.id}}-add-{{ add_dynamical }}').removeAttr('disabled')
+        if (e.key == "Enter"){
+          $('#{{field.id}}-add-{{ add_dynamical }}').click()
+        }
       });
 
     $('#{{field.id}}-add-{{ add_dynamical }}')
@@ -117,8 +122,8 @@
         const data = {name, description, entityName, standardType};
         e.preventDefault();
         const entityId = await ajaxAddEntity(data);
-        /* await refillTable('{{ field.id }}', {{ field.filter_ids }}); */
         $(this).prop("disabled", false).text('{{ _('insert')|uc_first }}');
+        $(this).prop("type", "button")
         $('.modal').modal('hide');
         selectFromTable(undefined, '{{ field.id }}', entityId, name)
       });

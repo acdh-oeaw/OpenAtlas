@@ -1,18 +1,20 @@
 from openatlas.api.endpoints.content import (
-    ClassMapping, Classes, GetBackendDetails, GetProperties, SystemClassCount)
-from openatlas.api.endpoints.display_image import (
-    DisplayImage, LicensedFileOverview)
+    ClassMapping, Classes, GetBackendDetails, GetOpenAPISchema, GetProperties,
+    SystemClassCount)
 from openatlas.api.endpoints.entities import (
     GetByCidocClass, GetBySystemClass, GetByViewClass,
-    GetEntitiesLinkedToEntity, GetEntity, GetEntityPresentationView, GetLatest,
-    GetLinkedEntitiesByPropertyRecursive, GetQuery, GetTypeEntities,
-    GetTypeEntitiesAll)
+    GetEntitiesLinkedToEntity, GetEntity, GetEntityByUUID,
+    GetEntityPresentationView, GetLatest,
+    GetLinkedEntitiesByPropertyRecursive, GetQuery, GetSearchEntities,
+    GetTableRows, GetTypeEntities, GetTypeEntitiesAll)
+from openatlas.api.endpoints.file import DisplayImage, EntityFiles, \
+    LicensedFileOverview
 from openatlas.api.endpoints.iiif import (
     IIIFAnnotation, IIIFAnnotationList, IIIFCanvas, IIIFImage, IIIFManifest,
     IIIFSequence)
 from openatlas.api.endpoints.special import (
-    ExportDatabase, GetGeometricEntities, GetNetworkVisualisation,
-    GetSubunits)
+    ExportDatabase, GetChainedEvents, GetEgoNetworkVisualisation,
+    GetGeometricEntities, GetNetworkVisualisation, GetSkolemProxy, GetSubunits)
 from openatlas.api.endpoints.type import (
     GetTypeByViewClass, GetTypeOverview, GetTypeTree)
 
@@ -20,6 +22,7 @@ entity = [
     [GetByViewClass, '/view_class/<string:class_>', 'view_class'],
     [GetByCidocClass, '/cidoc_class/<string:class_>', 'cidoc_class'],
     [GetEntity, '/entity/<int:id_>', 'entity'],
+    [GetEntityByUUID, '/uuid/<string:uuid>', 'entity_uuid'],
     [GetLatest, '/latest/<int:limit>', 'latest'],
     [GetQuery, '/query/', 'query'],
     [GetBySystemClass, '/system_class/<string:class_>', 'system_class'],
@@ -33,7 +36,8 @@ entity = [
      'entities_linked_to_entity'],
     [GetEntityPresentationView,
      '/entity_presentation_view/<int:id_>',
-     'entity_presentation_view']]
+     'entity_presentation_view'],
+    [GetTableRows, '/table_rows/', 'table_rows']]
 
 admin = [
     [SystemClassCount, '/system_class_count/', 'system_class_count'],
@@ -42,7 +46,8 @@ admin = [
     [GetProperties, '/properties/', 'properties'],
     [LicensedFileOverview, '/licensed_file_overview/',
      'licensed_file_overview'],
-    [Classes, '/classes/', 'classes']]
+    [Classes, '/classes/', 'classes'],
+    [GetOpenAPISchema, '/openapi_schema/', 'openapi_schema']]
 
 types = [
     [GetTypeByViewClass, '/type_by_view_class/', 'type_by_view_class'],
@@ -50,15 +55,24 @@ types = [
     [GetTypeTree, '/type_tree/', 'type_tree']]
 
 special = [
+    [GetSkolemProxy, '/generated/<path:subpath>', 'skolem_proxy'],
     [ExportDatabase, '/export_database/<string:format_>', 'export_database'],
     [GetGeometricEntities, '/geometric_entities/', 'geometric_entities'],
     [GetSubunits, '/subunits/<int:id_>', 'subunits'],
+    [GetSearchEntities, '/search/<string:class_>', 'search'],
     [GetNetworkVisualisation,
      '/network_visualisation/',
-     'network_visualisation']]
+     'network_visualisation'],
+    [GetEgoNetworkVisualisation,
+     '/ego_network_visualisation/<int:id_>',
+     'ego_network_visualisation'],
+    [GetChainedEvents,
+     '/chained_events/<int:id_>',
+     'chained_events']]
 
 display = [
     [DisplayImage, '/display/<path:filename>', 'display'],
+    [EntityFiles, '/files_of_entities/', 'files_of_entities'],
     [IIIFManifest, '/iiif_manifest/<int:version>/<int:id_>', 'iiif_manifest'],
     [IIIFImage, '/iiif_image/<int:id_>.json', 'iiif_image'],
     [IIIFCanvas, '/iiif_canvas/<int:id_>.json', 'iiif_canvas'],

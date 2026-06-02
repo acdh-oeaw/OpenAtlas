@@ -58,17 +58,20 @@ class Network:
             show_orphans: bool,
             dimensions: Optional[int]) -> Optional[str]:
         mapping = db.get_object_mapping()
-        classes = [c.name for c in g.classes.values() if c.network_color]
+        classes = [
+            c.name for c in g.classes.values()
+            if c.display.get('network_color')]
+        classes.append('object_location')
         entities: set[int] = set()
         nodes = []
+        node_name = 'label' if dimensions else 'name'
         for row in db.get_entities(classes):
             if row['id'] not in mapping \
                     and row['id'] not in entities \
                     and row['openatlas_class_name'] != 'source':
                 nodes.append({
                     'id': row['id'],
-                    'label' if dimensions else
-                    'name': Network.truncate(row['name'].replace("'", "")),
+                    node_name: Network.truncate(row['name'].replace("'", "")),
                     'color': colors[row['openatlas_class_name']]})
                 entities.add(row['id'])
         edges = []
@@ -89,7 +92,7 @@ class Network:
         else:
             nodes[:] = [
                 d for d in nodes if int(d['id']) in edge_entity_ids
-                or (not d['name'].startswith('Location of'))]
+                or (not d[node_name].startswith('Location of'))]
         return str({
             'nodes': nodes,
             'edges' if dimensions else 'links': edges}) if nodes else None

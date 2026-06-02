@@ -1,7 +1,5 @@
-from typing import Any
-
 from flask import flash, g, json, render_template, request, url_for
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
 from flask_wtf import FlaskForm
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Response
@@ -9,11 +7,10 @@ from wtforms import IntegerField, SelectField, StringField
 from wtforms.validators import InputRequired
 
 from openatlas import app
-from openatlas.database.connect import Transaction
 from openatlas.display.tab import Tab
 from openatlas.display.util import (
     button, display_info, link, remove_link, required_group)
-from openatlas.display.util2 import is_authorized, manual
+from openatlas.display.util2 import is_authorized, manual, uc_first
 from openatlas.forms.display import display_form
 from openatlas.forms.field import SubmitField
 from openatlas.models.entity import Entity, Link
@@ -35,8 +32,8 @@ def name_result(result: float) -> str:
     return ''  # pragma: no cover
 
 
-def start_crumbs(entity: Entity) -> list[Any]:
-    crumbs: list[Any] = [[_('place'), url_for('index', view='place')]]
+def start_crumbs(entity: Entity) -> list[object]:
+    crumbs: list[object] = [link(entity, index=True)]
     for super_ in entity.get_structure()['supers']:
         crumbs.append(link(super_))
     crumbs.append(entity)
@@ -47,16 +44,16 @@ def sex_result(entity: Entity) -> str:
     calculation = SexEstimation.calculate(entity)
     if calculation is None:
         return ''
-    return \
-        '<h1 class="uc-first">' + _('sex estimation') + '</h1>' \
-        'Ferembach et al. 1979: ' \
-        f'<span class="anthro-result">{calculation}</span> - ' + \
-        _('corresponds to') + f' "{name_result(calculation)}"'
+    return f"""
+        <h1>{uc_first(_('sex estimation'))}</h1>
+        Ferembach et al. 1979:
+        <span class="anthro-result">{calculation}</span> -
+        {_('corresponds to')} "{name_result(calculation)}" """
 
 
 def carbon_result(entity: Entity) -> str:
     if link_ := get_carbon_link(entity):
-        return '<h1 class="uc-first">' + _('radiocarbon dating') + '</h1>' + \
+        return f'<h1>{uc_first(_('radiocarbon dating'))}</h1>' + \
             display_info(json.loads(link_.description))
     return ''
 
@@ -94,7 +91,7 @@ def sex(id_: int) -> str | Response:
             buttons.append(button(
                 _('delete'),
                 url_for('sex_delete', id_=id_),
-                onclick="return confirm('" + _('delete') + "?')"))
+                onclick=f"return confirm('{_('delete')}?')"))
     data = []
     for item in types:
         type_ = g.types[item['id']]
@@ -123,16 +120,9 @@ def sex(id_: int) -> str | Response:
 
 @app.route('/tools/sex/delete/<int:id_>')
 @required_group('contributor')
-def sex_delete(id_: int) -> str | Response:
-    try:
-        Transaction.begin()
-        for dict_ in get_sex_types(id_):
-            Link.delete_(dict_['link_id'])
-        Transaction.commit()
-    except Exception as e:  # pragma: no cover
-        Transaction.rollback()
-        g.logger.log('error', 'database', 'transaction failed', e)
-        flash(_('error transaction'), 'error')
+def sex_delete(id_: int) -> Response:
+    for dict_ in get_sex_types(id_):
+        Link.delete_(dict_['link_id'])
     return redirect(url_for('tools_index', id_=id_))
 
 
@@ -148,12 +138,12 @@ def sex_update(id_: int) -> str | Response:
     for feature, values in SexEstimation.features.items():
         description = ''
         if values['female'] or values['male']:
-            description = f"Female: {values['female']}, male: {values['male']}"
+            description = f'Female: {values['female']}, male: {values['male']}'
         setattr(
            Form,
            feature,
            SelectField(
-               f"{feature} ({values['category']})",
+               f'{feature} ({values['category']})',
                choices=choices,
                default='Not preserved',
                description=description))
@@ -163,14 +153,7 @@ def sex_update(id_: int) -> str | Response:
         data = form.data
         data.pop('save', None)
         data.pop('csrf_token', None)
-        try:
-            Transaction.begin()
-            SexEstimation.save(entity, data)
-            Transaction.commit()
-        except Exception as e:  # pragma: no cover
-            Transaction.rollback()
-            g.logger.log('error', 'database', 'transaction failed', e)
-            flash(_('error transaction'), 'error')
+        SexEstimation.save(entity, data)
         return redirect(url_for('sex', id_=entity.id))
 
     for item in get_sex_types(entity.id):
@@ -200,7 +183,7 @@ def carbon(id_: int) -> str | Response:
             button(_('edit'), url_for('carbon_update', id_=entity.id)))
         if link_ := get_carbon_link(entity):
             buttons.append(
-                str(remove_link(_('radiocarbon dating'), link_, entity)))
+                button(remove_link(_('radiocarbon dating'), link_, entity)))
     return render_template(
         'tabs.html',
         entity=entity,
@@ -220,11 +203,11 @@ def carbon_update(id_: int) -> str | Response:
 
     class Form(FlaskForm):
         lab_id = StringField(
-            f"{_('laboratory')} {_('ID')}",
+            f'{_('laboratory')} {_('ID')}',
             [InputRequired()],
             render_kw={'placeholder': 'VERA'})
         spec_id = StringField(
-            f"{_('specimen')} {_('ID')}",
+            f'{_('specimen')} {_('ID')}',
             [InputRequired()],
             render_kw={'placeholder': '23432A'})
         radiocarbon_year = IntegerField(
@@ -250,7 +233,7 @@ def carbon_update(id_: int) -> str | Response:
                 'range': form.range.data,
                 'timeScale': 'BP'},
             link_=carbon_link)
-        flash(_('info update'), 'info')
+        flash(_('info update'))
         return redirect(url_for('tools_index', id_=entity.id))
     if request.method == 'GET' and carbon_link:
         data = json.loads(carbon_link.description)

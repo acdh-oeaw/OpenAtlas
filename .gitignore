@@ -13,8 +13,9 @@ __pycache__/
 *.pyc
 
 # tests
+htmlcov
 .coverage
-cover
+tests/.coverage
 
 # created files
 files/
@@ -23,12 +24,12 @@ files/
 .idea
 .ftpconfig
 venv
+.venv
 
 # npm libs
 openatlas/static/.eggs/
 openatlas/static/node_modules
 openatlas/static/openatlas.egg-info/
-openatlas/static/package-lock.json
 
 # Docker files
 .npm/
@@ -40,3 +41,5 @@ env.sh
 .scannerwork/*
 
 .vscode
+/.env
+/.venv/

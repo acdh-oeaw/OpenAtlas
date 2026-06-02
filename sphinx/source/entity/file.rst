@@ -28,6 +28,7 @@ Form fields
   site and archived if a license is defined; furthermore it is just good
   practice to define licence
 * :doc:`/ui/description`
+* :doc:`reference_system`
 
 Form fields important for public sharing
 ----------------------------------------
@@ -36,8 +37,8 @@ share files with the public, e.g. at a presentation site or a public archive.
 More information is available at :ref:`public_sharing_label`
 
 * **Public sharing allowed** - indicates if public sharing is allowed
-* **Creator** - the creator of the file, e.g. the designer of a logo
-* **License holder** - mention if different from creator
+* **Creator** - the creator of the file, e.g. the designer of a logo, see :doc:`/admin/rights_holder`
+* **License holder** - mention if different from creator, see :doc:`/admin/rights_holder`
 
 Can be linked via tabs to
 -------------------------
@@ -73,11 +74,8 @@ If you have selected a larger image your browser will try to scale it.
 
 Image preview
 -------------
-If image processing is enabled (default=on, configurable by admins) and user
-have **Show icons in tables** in their :doc:`/tools/profile` activated, small
+If image processing is enabled (default=on, configurable by admins) small
 images of files are shown in tables.
-
-**Please be aware many files and large tables can impact performance.**
 
 How to make files available for the public
 ------------------------------------------

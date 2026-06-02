@@ -17,7 +17,124 @@ then run the database upgrade script, then restart Apache:
     sudo python3 install/upgrade/database_upgrade.py
     sudo service apache2 restart
 
-### 8.10.0 to 8.10.1
+### 9.2.0 to 9.3.0
+9.3.0.sql is needed but will be taken care of by the database upgrade script.
+
+Additional Python packages are needed:
+
+    sudo apt install python3-flask-bcrypt python3-magic python3-levenshtein
+
+One Python library is not needed by OpenAtlas anymore and may be removed:
+
+    apt purge python3-fuzzywuzzy
+
+Node packages are updated. Please run following command in
+**openatlas/static/**
+
+    cd openatlas/static
+    npm install
+
+SESSION_COOKIE_SECURE in config/default.py now defaults to **True**.
+In case OpenAtlas is installed locally without https it may has to be
+set to **False** in instance/production.py
+
+**Case study** is now a system type. For existing instances the database
+upgrade script will add one, if not already present. In case it was used with a
+different name, it should be renamed to Case study before running the upgrade
+script.
+
+### 9.1.x to 9.2.0
+9.2.0.sql is needed but will be taken care of by the database upgrade script.
+
+An additional Python package is needed:
+
+    sudo apt install python3-fiona
+
+Changed default `CORS_ALLOWANCE = '\*'` to
+`CORS_ALLOWANCE = ''`. So if e.g. presentation sites have problems,
+please add `CORS_ALLOWANCE = '\*'` or a specific IP to
+the `production.py`.
+
+### 9.1.0 to 9.1.1
+A code base update (e.g. with git pull) and a webserver restart is sufficient.
+
+### 9.0.0 to 9.1.0
+9.1.0.sql is needed but will be taken care of by the database upgrade script.
+
+Node packages are updated. Please run following command in
+**openatlas/static/**
+
+    cd openatlas/static
+    npm install
+
+### 8.15.x to 9.0.0
+WARNING - this is a major release and requires software upgrades. If you are
+using a Debian system upgrade it to 13 (Trixie).
+
+Use packages from install.md after the upgrade to be sure to have the relevant
+packages, for more information and instructions see
+https://redmine.openatlas.eu/issues/2343.
+
+If you upgrade a Debian system be sure to have the new postgis
+packages installed (see install.md) before you upgrade database clusters.
+
+9.0.0.sql is needed but will be taken care of by the database upgrade script.
+
+### 8.15.0 to 8.15.1
+A code base update (e.g. with git pull) and a webserver restart is sufficient.
+
+### 8.14.0 to 8.15.0
+No database update is required but additional Python packages are needed:
+
+#### Additional package
+The unidecode package is used to transliterate URLs to ASCII.
+The lxml package is used for faster and better xml creation.
+
+    sudo apt install python3-unidecode python3-lxml
+
+python3-dicttoxml can be removed:
+
+    sudo apt remove python3-dicttoxml
+
+#### New export directory structure
+To adapt already exported SQL file paths to the new directory structure:
+
+    mv /var/www/openatlas/files/export/*7z /var/www/openatlas/files/export/sql/
+
+Be aware, that the owner of the folders might not be www-data:
+
+    cd /var/www/openatlas
+    sudo chown www-data files/export/arche/ files/export/rdf/ files/export/sql/
+
+#### Tests (Optional)
+For full test coverage, copy *ARCHE_METADATA* from
+'instance/example_testing.py' to 'testing.py'.
+
+### 8.13.0 to 8.14.0
+A code base update (e.g. with git pull) and a webserver restart is sufficient.
+
+### 8.12.x to 8.13.0
+A code base update (e.g. with git pull) and a webserver restart is sufficient.
+
+### 8.12.0 to 8.12.1
+A code base update (e.g. with git pull) and a webserver restart is sufficient.
+
+### 8.11.0 to 8.12.0
+
+#### Database upgrade
+8.12.0.sql is needed but will be taken care of by the database upgrade script.
+
+#### Additional package
+The BeautifulSoup package is now used for improved input sanitization.
+
+    sudo apt install python3-bs4
+
+#### Tests
+If using tests, additional packages are needed because we now use pytest.
+
+    sudo apt install python3-pytest python3-pytes-cov
+
+### 8.10.* to 8.11.0
 A code base update (e.g. with git pull) and a webserver restart is sufficient.
 
 ### 8.9.0 to 8.10.0
@@ -90,9 +207,9 @@ To run tests, please add a new **tests** folder to your IIIF directory, e.g.:
     mkdir /var/www/iipsrv/tests
 
 ### 8.2.0 to 8.2.1
-This is a fix for installation, no need to update an existing instance. 
-In case you want to update it anyway, a git pull and apache restart would be 
-sufficient. 
+This is a fix for installation, no need to update an existing instance.
+In case you want to update it anyway, a git pull and apache restart would be
+sufficient.
 
 ### 8.1.x to 8.2.0
 No database updates are required but new node packages are needed:

@@ -1,10 +1,7 @@
-from typing import Any
+from typing import Any, Optional
 
 from openatlas.database import (
-    cidoc_class as db_class,
-    cidoc_property as db_property,
-    entity as db_entity,
-    link as db_link)
+    cidoc as db, entity as db_entity, link as db_link)
 
 
 def get_all_entities_as_dict() -> list[dict[str, Any]]:
@@ -16,19 +13,19 @@ def get_all_links_as_dict() -> list[dict[str, Any]]:
 
 
 def get_properties() -> list[dict[str, Any]]:
-    return db_property.get_properties()
+    return db.cidoc_properties()
 
 
 def get_property_hierarchy() -> list[dict[str, Any]]:
-    return db_property.get_hierarchy()
+    return db.property_hierarchy()
 
 
 def get_classes() -> list[dict[str, Any]]:
-    return db_class.get_classes()
+    return db.cidoc_classes()
 
 
 def get_cidoc_hierarchy() -> list[dict[str, Any]]:
-    return db_class.get_hierarchy()
+    return db.class_hierarchy()
 
 
 def get_all_links_for_network(
@@ -36,5 +33,27 @@ def get_all_links_for_network(
     return db_link.get_all_links_for_network(system_classes)
 
 
-def get_links_by_id_network(ids: list[int])-> list[dict[str, Any]]:
+def get_links_by_id_network(ids: set[int]) -> list[dict[str, Any]]:
     return db_link.get_links_by_id_network(ids)
+
+
+def get_place_linked_to_location_id(ids: list[int]) -> list[dict[str, Any]]:
+    return db_link.get_place_linked_to_location_id(ids)
+
+
+def get_types_linked_to_network_ids(
+        ids: set[int],
+        type_ids: set[int]) -> set[int]:
+    return db_link.get_types_linked_to_network_ids(ids, type_ids)
+
+
+def get_api_simple_search(
+        class_: list[str],
+        term: Optional[str]) -> list[dict[str, Any]]:
+    return db_entity.api_search(class_, term)
+
+
+def get_api_search(
+        term: str,
+        class_: list[str]) -> list[dict[str, Any]]:
+    return db_entity.search(term, class_)

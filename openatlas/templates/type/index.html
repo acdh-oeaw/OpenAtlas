@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
 {% block content %}
   {{ buttons|button_bar|safe }}
-  <script src="/static/node_modules/chart.js/dist/chart.umd.js"></script>
-  <script src="/static/node_modules/chartjs-plugin-autocolors/dist/chartjs-plugin-autocolors.min.js"></script>
+  <script src="{{ url_for('static', filename='node_modules/chart.js/dist/chart.umd.js', v=config.VERSION) }}"></script>
+  <script src="{{ url_for('static', filename='node_modules/chartjs-plugin-autocolors/dist/chartjs-plugin-autocolors.min.js', v=config.VERSION) }}"></script>
   <script>
     const autocolors = window['chartjs-plugin-autocolors'];
   </script>
@@ -15,7 +15,7 @@
             role="tab"
             aria-selected="{% if loop.index == 1 %}true{% else %}false{% endif %}"
             href="#menu-tab-{{ category }}">
-          {{ category|uc_first + ' ' + _('types') }}
+          {{ category|uc_first }}
         </a>
       </li>
     {% endfor %}
@@ -24,9 +24,9 @@
     {% for category in types %}
       <div class="tab-pane fade" role="tabpanel" id="menu-tab-{{ category }}" style="padding: 0;">
         <div class="accordion accordion-flush" id="TypeAccordion-{{ category }}">
-          {% if category in ['custom', 'value'] and 'manager'|is_authorized %}
+          {% if category in ['custom', 'place', 'value'] and 'manager'|is_authorized %}
             <div style="padding:0.5rem 1.25rem;">
-              {{ (_('type') + ' ' + _('hierarchy'))|button(url_for('hierarchy_insert', category=category))|safe }}
+              {{ (category + ' ' + _('hierarchy'))|button(url_for('hierarchy_insert', category=category))|safe }}
             </div>
           {% endif %}
           {% for type_, tree in types[category].items() %}
@@ -53,29 +53,26 @@
                       <div class="row g-1">
                         <div class="col"><input
                             class="tree-filter {{ config.CSS.string_field }}"
-                            id="{{ type_.name|sanitize }}-tree-search"
+                            id="{{ type_.name|replace(' ', '')|sanitize('ascii') }}-tree-search"
                             placeholder="{{ _('type to search')|uc_first }}"
                             name="name_search"
                             type="text"></div>
                         {% if 'editor'|is_authorized and type_.category != 'system' %}
                           <div class="col-auto">
-                            {% if category == 'place' %}
-                              {{ _('place')|button(url_for('insert', class_='administrative_unit', origin_id=type_.id))|safe }}
-                            {% else %}
-                              {{ _('type')|button(url_for('insert', class_='type', origin_id=type_.id))|safe }}
-                            {% endif %}
+                            {{ (_('place') if category == 'place' else _('type'))|button(
+                              url_for('insert', class_=type_.class_.name, origin_id=type_.id, relation='subs'))|safe }}
                           </div>
                         {% endif %}
-                        {% if category in ['custom', 'value'] and 'manager'|is_authorized %}
+                        {% if category in ['custom', 'place', 'value'] and 'manager'|is_authorized %}
                           <div class="col-auto">{{ _('edit')|button(url_for('hierarchy_update', id_=type_.id))|safe }}</div>
-                          {% if not type_.system %}
+                          {% if not type_.system and type_.name != 'Case study' %}
                             <div class="col-auto">
                               {% if type_.count > 0 or type_.subs %}
                                 {{ _('delete')|button(url_for('hierarchy_delete', id_=type_.id))|safe }}
                               {% else %}
                                 {{ _('delete')|button(
-                              url_for('hierarchy_delete', id_=type_.id),
-                              onclick="return confirm('" + _('delete')|uc_first + " " + type_.name.replace("'", '').replace('"', '') + "?');")|safe }}
+                                  url_for('hierarchy_delete', id_=type_.id),
+                                  onclick="return confirm('" + _('delete')|uc_first + " " + type_.name.replace("'", '').replace('"', '') + "?');")|safe }}
                               {% endif %}
                             </div>
                           {% endif %}
@@ -88,11 +85,10 @@
                         <p>
                           <strong>{{ _('selection')|uc_first }}</strong>:
                           {{ _('multiple') if type_.multiple else _('single') }}
-                        </p>
-                        {% if category in ['custom', 'place', 'standard'] %}
-                          <p>
+                          <br>
+                          {% if category in ['custom', 'place', 'standard'] %}
                             <strong>{{ _('required')|uc_first }}</strong>:
-                            {{ _('true') if type_.required else _('false') }}
+                            {{ _('yes') if type_.required else _('no') }}
                             {% if 'manager'|is_authorized %}
                               {% if type_.required %}
                                 (<a href="{{ url_for('required_remove', id_=type_.id) }}">{{ _('remove required') }}</a>)
@@ -100,8 +96,8 @@
                                 (<a href="{{ url_for('required_risk', id_=type_.id) }}">{{ _('make required') }}</a>)
                               {% endif %}
                             {% endif %}
-                          </p>
-                        {% endif %}
+                          {% endif %}
+                        </p>
                       {% endif %}
                       {% if type_.classes %}
                         <p>
@@ -109,28 +105,26 @@
                           {% for class_ in type_.classes %}
                             {{ g.classes[class_].label|uc_first }}{{ "," if not loop.last }}
                           {% endfor %}
-                        </p>
-                        {% if type_.multiple and type_.subs %}
-                          <p>
-                            {{ _('multiple linked entities')|uc_first }}:
+                          <br>
+                          {% if type_.multiple and type_.subs %}
+                            <strong>{{ _('multiple linked entities')|uc_first }}</strong>:
                             <a href="{{ url_for('show_multiple_linked_entities', id_=type_.id) }}">{{ _('show') }}</a>
-                          </p>
-                        {% endif %}
-                        {% if type_.subs and type_.name not in config.PROPERTY_TYPES %}
-                          <p>
-                            {{ _('untyped entities')|uc_first }}:
+                            <br>
+                          {% endif %}
+                          {% if type_.subs and type_.name not in config.PROPERTY_TYPES %}
+                            <strong>{{ _('untyped entities')|uc_first }}</strong>:
                             <a href="{{ url_for('show_untyped_entities', id_=type_.id) }}">{{ _('show') }}</a>
-                          </p>
-                        {% endif %}
+                            <br>
+                          {% endif %}
+                        </p>
                       {% elif category != 'system' and type_.name not in config.PROPERTY_TYPES %}
                         <p class="error">{{ _("this type has no classes and won't show in forms")|uc_first }}.</p>
                       {% endif %}
+                      <p><strong>{{ _('ID for imports') }}</strong>: {{ type_.id }}</p>
                       {% if not type_.subs %}
                         <p class="error">{{ _("this type has no subs and won't show in forms")|uc_first }}.</p>
                       {% endif %}
-                      {% if type_.reference_systems %}
-                        <p>{{ type_.reference_systems|ext_references|safe }}</p>
-                      {% endif %}
+                      {{ type_.reference_systems_display|safe }}
                       {% if type_.description %}
                         <div class="description">
                           <strong>{{ _('description')|uc_first }}</strong>

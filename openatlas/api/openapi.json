@@ -3,11 +3,11 @@
   "info": {
     "title": "OpenAtlas API",
     "description": "An API that allows user to access data from an OpenAtlas instance.",
-    "version": "0.4.6a",
+    "version": "0.4.14",
     "contact": {
       "name": "OpenAtlas",
       "url": "https://openatlas.eu",
-      "email": "bernhard.koschicek-krombholz@oeaw.ac.at"
+      "email": "bernhard.koschicek-krombhosedlz@oeaw.ac.at"
     },
     "license": {
       "name": "GPL-2.0",
@@ -109,6 +109,12 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -120,15 +126,209 @@
                       "$ref": "#/components/schemas/LinkedPlacesModel"
                     },
                     {
-                      "$ref": "#/components/schemas/GeoJSONModel"
+                      "$ref": "#/components/schemas/LinkedArtModel"
                     }
                   ]
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/GeoJSONModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TableRowModel"
+                    }
+                  ]
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uuid/{uuid}": {
+      "get": {
+        "tags": [
+          "Entity Endpoint"
+        ],
+        "description": "Retrieves information about a single entity thorugh the UUID in the linked.art format.",
+        "operationId": "GetEntityByUUID",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/uuid"
+          },
+          {
+            "$ref": "#/components/parameters/download"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedArtModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -142,6 +342,24 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/entityId"
+          },
+          {
+            "$ref": "#/components/parameters/place_hierarchy"
+          },
+          {
+            "$ref": "#/components/parameters/map_overlay"
+          },
+          {
+            "$ref": "#/components/parameters/remove_empty_values"
+          },
+          {
+            "$ref": "#/components/parameters/centroid"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
           }
         ],
         "responses": {
@@ -155,8 +373,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -234,19 +509,256 @@
             "$ref": "#/components/parameters/locale"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/table_rows/": {
+      "get": {
+        "tags": [
+          "Proposal",
+          "Entity Query Endpoint"
+        ],
+        "description": "",
+        "operationId": "GetTableRows",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/entities"
+          },
+          {
+            "$ref": "#/components/parameters/view_classes"
+          },
+          {
+            "$ref": "#/components/parameters/system_classes"
+          },
+          {
+            "$ref": "#/components/parameters/cidoc_classes"
+          },
+          {
+            "$ref": "#/components/parameters/linked_entities"
+          },
+          {
+            "$ref": "#/components/parameters/download"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/show"
+          },
+          {
+            "$ref": "#/components/parameters/column"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/first"
+          },
+          {
+            "$ref": "#/components/parameters/last"
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          },
+          {
+            "$ref": "#/components/parameters/type_id"
+          },
+          {
+            "$ref": "#/components/parameters/checked"
+          },
+          {
+            "$ref": "#/components/parameters/table_columns"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableRowModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -311,19 +823,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -388,19 +993,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -465,19 +1163,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -534,19 +1325,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -611,19 +1495,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -688,19 +1665,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -765,19 +1835,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -845,19 +2008,112 @@
             "$ref": "#/components/parameters/centroid"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "application/ld+json": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntitiesOutputModel"
+                }
+              },
+              "application/rdf+xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "RDF/XML representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/rdf+n3": {
+                "schema": {
+                  "type": "string",
+                  "description": "N3/Turtle representation (not modeled in OpenAPI)"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Plain text representation"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "description": "Generic XML representation (no schema validation)"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV representation of the data"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -874,6 +2130,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -885,8 +2147,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -901,6 +2220,15 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/download"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
           }
         ],
         "responses": {
@@ -914,8 +2242,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -932,6 +2317,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -943,8 +2334,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -956,6 +2404,12 @@
         ],
         "description": "Retrieves all OpenAtlas classes with their English label, CIDOC CRM mapping, view, icon and standard type ID.",
         "operationId": "Classes",
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -967,8 +2421,155 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi_schema/": {
+      "get": {
+        "tags": [
+          "Administrative Endpoints"
+        ],
+        "description": "Retrieves OpenApi3 schema for this instance. Formats are `json` or `yaml`.",
+        "operationId": "openapi_schema",
+        "security": [],
+        "parameters": [
+          {
+            "name": "format",
+            "description": "Choose the format for the results.",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "yaml"
+              ]
+            },
+            "example": "json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -988,6 +2589,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -999,8 +2606,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1020,6 +2684,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1031,8 +2701,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1055,6 +2782,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1066,8 +2799,169 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ego_network_visualisation/{entityId}": {
+      "get": {
+        "tags": [
+          "Proposal"
+        ],
+        "description": "Retrieves a list of object with id, system_class, label and related ids connected to one entity.",
+        "operationId": "GetEgoNetworkVisualisation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/entityId"
+          },
+          {
+            "$ref": "#/components/parameters/depth"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_system_classes"
+          },
+          {
+            "$ref": "#/components/parameters/linked_to_ids"
+          },
+          {
+            "$ref": "#/components/parameters/download"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkVisualisationModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1084,6 +2978,12 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1095,8 +2995,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1113,6 +3070,12 @@
             "$ref": "#/components/parameters/type_id"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1124,8 +3087,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1145,9 +3165,15 @@
             "$ref": "#/components/parameters/download"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Successful response returning subunits for one or more entities.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1156,8 +3182,269 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chained_events/{entityId}": {
+      "get": {
+        "tags": [
+          "Proposal"
+        ],
+        "description": "Get the chain of successive events also with forks but no super or sub events if they are not in the chain.",
+        "operationId": "GetChainedEvents",
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 196290
+            }
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainEventModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search/{system_class}": {
+      "get": {
+        "tags": [
+          "Proposal"
+        ],
+        "description": "Searches the database for entries matching a provided search term. \n  Results are ordered with exact prefix matches appearing first, followed by entries containing the search term within their name or appellation.",
+        "operationId": "GetSearchEntities",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/system_class"
+          },
+          {
+            "name": "term",
+            "description": "Search term",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          }
+        ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1180,6 +3467,12 @@
             "$ref": "#/components/parameters/count"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1191,8 +3484,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1220,6 +3570,12 @@
             "example": "json"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1232,8 +3588,65 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1262,6 +3675,12 @@
             }
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1280,8 +3699,207 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files_of_entities/": {
+      "get": {
+        "tags": [
+          "Proposal"
+        ],
+        "description": "Retrieves a json with the entity IDs as keys and a list of file information for all images.",
+        "operationId": "FilesOfEntities",
+        "parameters": [],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "license": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "creator": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "licenseHolder": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "publicShareable": {
+                          "nullable": true,
+                          "type": "boolean"
+                        },
+                        "mimetype": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "url": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "IIIFManifest": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "IIIFBasePath": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "license",
+                        "mimetype",
+                        "publicShareable",
+                        "title",
+                        "url"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1299,6 +3917,7 @@
             "name": "version",
             "required": true,
             "schema": {
+              "type": "integer",
               "enum": [
                 2
               ]
@@ -1311,26 +3930,87 @@
             "$ref": "#/components/parameters/url"
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
-              "image/jpeg": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "object",
+                  "description": "IIIF Presentation API v2 manifest",
+                  "externalDocs": {
+                    "url": "http://iiif.io/api/presentation/2.1/"
+                  },
+                  "additionalProperties": true
                 }
-              },
-              "image/png": {
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
                 }
               }
             }
           },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
@@ -1352,6 +4032,12 @@
             }
           }
         ],
+        "security": [
+          {},
+          {
+            "bearerHttpAuthentication": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -1363,14 +4049,78 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Something went wrong. Please consult the error message."
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerHttpAuthentication": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "parameters": {
       "entityId": {
         "name": "entityId",
@@ -1378,9 +4128,26 @@
         "description": "Specific entity ID",
         "required": true,
         "schema": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Internal database ID",
+          "example": 50505
         },
-        "example": 40
+        "x-examples": [
+          50505,
+          179184,
+          196290
+        ]
+      },
+      "uuid": {
+        "name": "uuid",
+        "in": "path",
+        "description": "Specific entity UUID",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "description": "Universally Unique IDentifier",
+          "example": "281aebb0-edff-440d-9775-2732744d916e"
+        }
       },
       "fileId": {
         "name": "fileId",
@@ -1388,9 +4155,9 @@
         "description": "Specific ID of a file entity.",
         "required": true,
         "schema": {
-          "type": "integer"
-        },
-        "example": 40
+          "type": "integer",
+          "example": 179184
+        }
       },
       "cidoc_class": {
         "name": "cidoc_class",
@@ -1398,6 +4165,7 @@
         "required": true,
         "in": "path",
         "schema": {
+          "type": "string",
           "enum": [
             "all",
             "E5",
@@ -1418,9 +4186,9 @@
             "E55",
             "E65",
             "E74"
-          ]
-        },
-        "example": "E18"
+          ],
+          "example": "E18"
+        }
       },
       "view_class": {
         "name": "view_class",
@@ -1428,10 +4196,11 @@
         "required": true,
         "in": "path",
         "schema": {
+          "type": "string",
           "enum": [
             "all",
             "actor",
-            "artifact",
+            "item",
             "event",
             "file",
             "place",
@@ -1440,9 +4209,9 @@
             "source",
             "source_translation",
             "type"
-          ]
-        },
-        "example": "actor"
+          ],
+          "example": "actor"
+        }
       },
       "system_class": {
         "name": "system_class",
@@ -1450,6 +4219,7 @@
         "required": true,
         "in": "path",
         "schema": {
+          "type": "string",
           "enum": [
             "all",
             "acquisition",
@@ -1466,8 +4236,8 @@
             "file",
             "group",
             "human_remains",
+            "modification",
             "move",
-            "object_location",
             "person",
             "place",
             "production",
@@ -1476,14 +4246,38 @@
             "source_translation",
             "stratigraphic_unit",
             "type",
-            "tools"
-          ]
-        },
-        "example": "acquisition"
+            "type_tools"
+          ],
+          "example": "acquisition"
+        }
       },
       "download": {
         "name": "download",
         "description": "Download results",
+        "in": "query",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "place_hierarchy": {
+        "name": "place_hierarchy",
+        "description": "Will include the whole place hierarchy. This means that instead of only getting entities linked to the requested entity, all entities, which are connected with the property *P46* are included in the result set. This can significantly increase the load time.",
+        "in": "query",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "map_overlay": {
+        "name": "map_overlay",
+        "description": "Will add the map overlay information for images if available.",
+        "in": "query",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "remove_empty_values": {
+        "name": "remove_empty_values",
+        "description": "This will remove any keys which are empty or have no values assigned, e.g. []. This can reduce the load time.",
         "in": "query",
         "schema": {
           "type": "boolean"
@@ -1499,7 +4293,7 @@
       },
       "centroid": {
         "name": "centroid",
-        "description": "Will calculate the centerpoint for all polygons and linestrings and *add* them to geometries",
+        "description": "Will calculate the centerpoint for all polygons and linestring and *add* them to geometries",
         "in": "query",
         "schema": {
           "type": "boolean"
@@ -1554,9 +4348,9 @@
           "enum": [
             "asc",
             "desc"
-          ]
-        },
-        "example": "asc"
+          ],
+          "example": "desc"
+        }
       },
       "column": {
         "name": "column",
@@ -1569,93 +4363,148 @@
             "name",
             "cidoc_class",
             "system_class",
+            "type",
+            "class",
+            "created",
+            "creator",
+            "content",
+            "count",
+            "description",
+            "extension",
+            "icon",
+            "group",
+            "license_holder",
+            "license",
+            "public",
+            "size",
             "begin_from",
             "begin_to",
             "end_from",
-            "end_to"
+            "end_to",
+            "end",
+            "begin",
+            "checkbox"
           ]
         },
-        "example": "name"
+        "example": "type"
+      },
+      "table_columns": {
+        "name": "table_columns",
+        "description": "Choose the columns you want to show. If nothing is entered, the most suitable template will be chosen. The order matters, so the first parameter will also be the first result in the return array.",
+        "in": "query",
+        "schema": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "begin",
+              "checkbox",
+              "class",
+              "created",
+              "creator",
+              "content",
+              "description",
+              "end",
+              "extension",
+              "icon",
+              "license_holder",
+              "name",
+              "public",
+              "size",
+              "type",
+              "license"
+            ]
+          }
+        },
+        "example": "name",
+        "explode": true
       },
       "search": {
         "name": "search",
-        "description": "Search query for specific results.\n\n **Filterable categories**\n\n entityName, entityDescription, entityAliases, entityCidocClass, entitySystemClass, entityID, typeID, valueTypeID, typeIDWithSubs, typeName, beginFrom, beginTo, endFrom, endTo, relationToID\n\n **Values** \n\n Values has to be a list of items. The items can be either a string, an integer or a tuple (see Notes). Strings need to be marked with \u201c\u201d or \u2018\u2019, while integers does not allow this. \n \n *Notes*: \n The category valueTypeID can search for values of a type ID. But it takes one or more two valued Tuple as list entry: (x,y). x is the type id and y is the searched value. This can be an int or a float, e.g: `{\"operator\":\"lesserThan\",\"values\":[(3142,543.3)],\"logicalOperator\":\"and\"}`\n The date categories (beginFrom, beginTo, endFrom, endTo) only allow *one* value in the **values** field and it has to be formated the following way: YYYY-MM-DD. Month and day values need to filled up with 0, e.g. 800-01-01 \n\n **Compare operators** \n\n equal, notEqual, like (1), greaterThan (2), greaterThanEqual (2), lesserThan (2)\n\nThe compare operators work like the mathematical operators. equal x=y, notEqual x!=y, greaterThan x>y , greaterThanEqual x>=y, lesserThan x<y, lesserThanEqual x<=y. The like operator searches for occurrence of the string, so a match can also occur in the middle of a word.\n\n(1)Only for string based categories\n\n(2)Only for beginFrom, beginTo, endFrom, endTo, valueTypeID\n\n**Logical operators**\n\nNot mandatory, OR is the default value. Logical operators handles, if the values are treated as OR or AND. \n \n The following table outlines the supported operations for each field:\n\n|                  | equal     | notEqual  | like      | greaterThan | greaterThanEqual | lesserThan | lesserThanEqual |\n|------------------|-----------|-----------|-----------|-------------|------------------|------------|-----------------|\n| entityName       |     x      |     x      |    x       |             |                  |            |                 |\n| entityDescription|      x     |      x     |      x     |             |                  |            |                 |\n| entityAliases    |      x     |      x     |     x      |             |                  |            |                 |\n| entityCidocClass |      x     |      x     |      x     |             |                  |            |                 |\n| entitySystemClass|      x     |      x     |     x      |             |                  |            |                 |\n| typeName         |       x    |      x     |     x      |             |                  |            |                 |\n| entityID         |       x    |      x     |           |             |                  |            |                 |\n| typeID           |      x     |       x    |           |             |                  |            |                 |\n| valueTypeID      |      x     |      x     |           |      x       |    x              |    x        |      x           |\n| typeIDWithSubs   |      x     |       x    |           |             |                  |            |                 |\n| relationToID     |      x     |      x     |           |             |                  |            |                 |\n| beginFrom        |      x     |      x     |           |      x       |        x          |     x       |      x           |\n| beginTo          |      x     |      x     |           |      x       |          x        |      x      |       x          |\n| endFrom          |      x     |      x     |           |       x      |         x         |       x     |       x          |\n| endTo            |      x     |      x     |           |       x      |       x           |       x     |      x           |\n\n",
+        "description": "Search query for specific results.\n\n **Filterable categories**\n\n entityName, entityDescription, entityAliases, entityCidocClass, entitySystemClass, entityID, typeID, valueTypeID, typeIDWithSubs, typeName, beginFrom, beginTo, endFrom, endTo, relationToID\n\n **Values** \n\n Values has to be a list of items. The items can be either a string, an integer or a tuple (see Notes). Strings need to be marked with “” or ‘’, while integers does not allow this. \n \n *Notes*: \n The category valueTypeID can search for values of a type ID. But it takes one or more two valued Tuple as list entry: (x,y). x is the type id and y is the searched value. This can be an int or a float, e.g: `{\"operator\":\"lesserThan\",\"values\":[(3142,543.3)],\"logicalOperator\":\"and\"}`\n The date categories (beginFrom, beginTo, endFrom, endTo) only allow *one* value in the **values** field and it has to be formated the following way: YYYY-MM-DD. Month and day values need to filled up with 0, e.g. 800-01-01 \n\n **Compare operators** \n\n equal, notEqual, like (1), greaterThan (2), greaterThanEqual (2), lesserThan (2)\n\nThe compare operators work like the mathematical operators. equal x=y, notEqual x!=y, greaterThan x>y , greaterThanEqual x>=y, lesserThan x<y, lesserThanEqual x<=y. The like operator searches for occurrence of the string, so a match can also occur in the middle of a word.\n\n(1)Only for string based categories\n\n(2)Only for beginFrom, beginTo, endFrom, endTo, valueTypeID\n\n**Logical operators**\n\nNot mandatory, OR is the default value. Logical operators handles, if the values are treated as OR or AND. \n \n The following table outlines the supported operations for each field:\n\n::\n\n    |                  | equal\n         | notEqual  | like      | greaterThan | greaterThanEqual | lesserThan | lesserThanEqual |\n    |------------------|-----------|-----------|-----------|-------------|------------------|------------|-----------------|\n    | entityName       |     x      |     x      |    x       |             |                  |            |                 |\n    | entityDescription|      x     |      x     |      x     |             |                  |            |                 |\n    | entityAliases    |      x     |      x     |     x      |             |                  |            |                 |\n    | entityCidocClass |      x     |      x     |      x     |             |                  |            |                 |\n    | entitySystemClass|      x     |      x     |     x      |             |                  |            |                 |\n    | typeName         |       x    |      x     |     x      |             |                  |            |                 |\n    | entityID         |       x    |      x     |           |             |                  |            |                 |\n    | typeID           |      x     |       x    |           |             |                  |            |                 |\n    | valueTypeID      |      x     |      x     |           |      x       |    x              |    x        |      x           |\n    | typeIDWithSubs   |      x     |       x    |           |             |                  |            |                 |\n    | relationToID     |      x     |      x     |           |             |                  |            |                 |\n    | beginFrom        |      x     |      x     |           |      x       |        x          |     x       |      x           |\n    | beginTo          |      x     |      x     |           |      x       |          x        |      x      |       x          |\n    | endFrom          |      x     |      x     |           |       x      |         x         |       x     |       x          |\n    | endTo            |      x     |      x     |           |       x      |       x           |       x     |      x           |\n    \n\n",
         "in": "query",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "entityName": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "entityDescription": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "entityAliases": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "entityCidocClass": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "entitySystemClass": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "entityID": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "typeID": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "valueTypeID": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "typeIDWithSubs": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "typeName": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "beginFrom": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "beginTo": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "endFrom": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "endTo": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                },
-                "relationToID": {
-                  "$ref": "#/components/schemas/searchCriteria"
-                }
-              }
+        "schema": {
+          "type": "object",
+          "properties": {
+            "entityName": {
+              "$ref": "#/components/schemas/searchCriteria"
             },
-            "example": {
-              "entityName": [
-                {
-                  "operator": "like",
-                  "values": "A",
-                  "logicalOperator": "and"
-                }
-              ]
+            "entityDescription": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "entityAliases": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "entityCidocClass": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "entitySystemClass": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "entityID": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "typeID": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "valueTypeID": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "typeIDWithSubs": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "typeName": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "beginFrom": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "beginTo": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "endFrom": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "endTo": {
+              "$ref": "#/components/schemas/searchCriteria"
+            },
+            "relationToID": {
+              "$ref": "#/components/schemas/searchCriteria"
             }
+          },
+          "example": {
+            "entityName": [
+              {
+                "operator": "like",
+                "values": [
+                  "A"
+                ],
+                "logicalOperator": "and"
+              }
+            ]
           }
         }
       },
       "url": {
         "name": "url",
-        "description": "Provide a valid URL, e.g. https://openatlas.eu/. At an IIIF endpoint this will replace the base URL of all annotations.",
+        "description": "A valid URL to use as input (e.g., https://openatlas.eu/). When used with an IIIF endpoint, this value replaces the base URL in all annotations.",
         "in": "query",
         "schema": {
-          "type": "string"
+          "type": "string",
+          "format": "uri",
+          "example": "https://frontend-demo-dev.openatlas.eu/"
         }
       },
       "limit": {
         "name": "limit",
-        "description": "Limits the entities displayed. Influences the performance of the request. Default value is 20. 0 means all available entities will be displayed.",
+        "description": "Limits the number of entities returned in the response. A lower value may improve performance. The default is 20. Set to 0 to return all available entities.",
+        "in": "query",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "depth": {
+        "name": "depth",
+        "description": "Specifies the number of connection hops to include in the query. Higher values may significantly increase processing time. Default is 1.",
         "in": "query",
         "schema": {
           "type": "integer"
@@ -1663,7 +4512,7 @@
       },
       "first": {
         "name": "first",
-        "description": "Begin results at the given entity id.",
+        "description": "Starts the result set at the specified entity ID.",
         "in": "query",
         "schema": {
           "type": "integer"
@@ -1671,7 +4520,7 @@
       },
       "last": {
         "name": "last",
-        "description": "Begin results after the given entity id.",
+        "description": "Starts the result set after the specified entity ID.",
         "in": "query",
         "schema": {
           "type": "integer"
@@ -1679,47 +4528,64 @@
       },
       "page": {
         "name": "page",
-        "description": "Jump to page number.",
+        "description": "Specifies the page number to retrieve in a paginated result set.",
         "in": "query",
         "schema": {
-          "type": "integer"
+          "type": "integer",
+          "example": 3
         }
       },
       "export": {
         "name": "export",
-        "description": "Export the entities into either a simple CSV representation or a zip file of CSV's especially designed for network analyses.",
+        "description": "Export the entities in either a simple CSV format or a ZIP file containing CSV files optimized for network analysis.",
         "in": "query",
         "schema": {
           "type": "string",
           "enum": [
             "csv",
             "csvNetwork"
-          ]
+          ],
+          "example": "csv"
         }
       },
       "format": {
         "name": "format",
-        "description": "Choose the format for the results.",
+        "description": "Specify the format for the returned results.",
         "in": "query",
         "schema": {
           "type": "string",
           "enum": [
             "lp",
             "lpx",
+            "loud",
             "geojson",
             "geojson-v2",
+            "gpkg",
+            "table_row",
             "pretty-xml",
             "n3",
             "turtle",
             "nt",
             "xml"
-          ]
-        },
-        "example": "lp"
+          ],
+          "example": "lpx"
+        }
       },
       "type_id": {
         "name": "type_id",
-        "description": "Show only entities with the given type id or linked to it.",
+        "description": "Filter results to include only entities with the specified type ID or those linked to it.",
+        "in": "query",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "explode": true
+      },
+      "checked": {
+        "name": "checked",
+        "description": "A list of IDs of selected entities for the table.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -1731,7 +4597,7 @@
       },
       "relation_type": {
         "name": "relation_type",
-        "description": "Displays only connections connected by the selected CIDOC CRM property code. If geometry, types, depictions and/or links is in the show parameter, these properties are also displayed.",
+        "description": "Filters results to show only connections linked by the selected CIDOC CRM property code. If 'geometry', 'types', 'depictions', or 'links' are specified in the 'show' parameter, these properties will also be displayed.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -1895,7 +4761,7 @@
       },
       "properties": {
         "name": "properties",
-        "description": "Retrieves entities which are connected to the requested entity with the `property`",
+        "description": "Retrieves entities that are connected to the specified entity through the given `property`.",
         "in": "query",
         "required": true,
         "schema": {
@@ -2060,7 +4926,7 @@
       },
       "geometry": {
         "name": "geometry",
-        "description": "Filters which geometries will be received. Default is gisAll",
+        "description": "Filters the geometries to be included in the response. The default is 'gisAll'.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2073,14 +4939,15 @@
               "gisPointSibling",
               "gisLineAll",
               "gisPolygonAll"
-            ]
+            ],
+            "example": "gisPointAll"
           }
         },
         "explode": true
       },
       "entities": {
         "name": "entities",
-        "description": "Entity ids which will be requested",
+        "description": "The entity IDs to be requested.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2092,7 +4959,7 @@
       },
       "linked_entities": {
         "name": "linked_entities",
-        "description": "Entity IDs, from which all linked entities are requested",
+        "description": "The entity IDs for which all linked entities will be retrieved.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2104,7 +4971,7 @@
       },
       "cidoc_classes": {
         "name": "cidoc_classes",
-        "description": "CIDOC classes to be requested",
+        "description": "Retrieve entities based on the specified CIDOC classes.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2131,12 +4998,11 @@
             ]
           }
         },
-        "explode": true,
-        "example": "E18"
+        "explode": true
       },
       "view_classes": {
         "name": "view_classes",
-        "description": "View classes to be requested",
+        "description": "Retrieve entities based on the specified view classes.",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2144,7 +5010,7 @@
             "enum": [
               "all",
               "actor",
-              "artifact",
+              "item",
               "event",
               "file",
               "place",
@@ -2156,12 +5022,11 @@
             ]
           }
         },
-        "explode": true,
-        "example": "actor"
+        "explode": true
       },
       "system_classes": {
         "name": "system_classes",
-        "description": "System classes to be requested",
+        "description": "Retrieve entities based on the specified system classes",
         "in": "query",
         "schema": {
           "type": "array",
@@ -2183,7 +5048,6 @@
               "group",
               "human_remains",
               "move",
-              "object_location",
               "person",
               "place",
               "production",
@@ -2199,8 +5063,9 @@
       },
       "exclude_system_classes": {
         "name": "exclude_system_classes",
-        "description": "System classes to be excluded from network",
+        "description": "Excludes entities with the selected system classes from the network.",
         "in": "query",
+        "explode": true,
         "schema": {
           "type": "array",
           "items": {
@@ -2219,6 +5084,7 @@
               "file",
               "group",
               "human_remains",
+              "modification",
               "move",
               "person",
               "place",
@@ -2235,19 +5101,19 @@
       },
       "linked_to_ids": {
         "name": "linked_to_ids",
-        "description": "Show only entities, which are linked to given IDs",
+        "description": "Displays only entities that are linked to the specified IDs.",
         "in": "query",
+        "explode": true,
         "schema": {
           "type": "array",
           "items": {
             "type": "integer"
           }
-        },
-        "explode": true
+        }
       },
       "image_size": {
         "name": "image_size",
-        "description": "Select which size of the image you want to display. Values are fixed but can be changed for each OpenAtlas instance. Thumbnail is 200px and table 100px.",
+        "description": "Select the desired image size to display. The available values are fixed but can be customized for each OpenAtlas instance. The 'thumbnail' size is 200px, and the 'table' size is 100px.",
         "in": "query",
         "schema": {
           "type": "string",
@@ -2255,8 +5121,7 @@
             "thumbnail",
             "table"
           ]
-        },
-        "example": "table"
+        }
       }
     },
     "schemas": {
@@ -2278,7 +5143,13 @@
                   "$ref": "#/components/schemas/LinkedPlacesModel"
                 },
                 {
+                  "$ref": "#/components/schemas/LinkedArtModel"
+                },
+                {
                   "$ref": "#/components/schemas/GeoJSONModel"
+                },
+                {
+                  "$ref": "#/components/schemas/TableRowModel"
                 }
               ]
             }
@@ -2320,6 +5191,14 @@
           "startId": {
             "type": "integer"
           }
+        }
+      },
+      "LinkedArtModel": {
+        "type": "object",
+        "description": "Linked.Art JSON-LD object",
+        "additionalProperties": true,
+        "externalDocs": {
+          "url": "https://linked.art/model/"
         }
       },
       "LinkedPlacesModel": {
@@ -2375,6 +5254,7 @@
                 },
                 "descriptions": {
                   "type": "array",
+                  "nullable": true,
                   "items": {
                     "type": "object",
                     "properties": {
@@ -2470,7 +5350,7 @@
                       },
                       "value": {
                         "type": "number",
-                        "format": "float"
+                        "format": "string"
                       },
                       "unit": {
                         "type": "string",
@@ -2599,6 +5479,9 @@
                       },
                       "IIIFManifest": {
                         "type": "string"
+                      },
+                      "mainImage": {
+                        "type": "boolean"
                       }
                     }
                   }
@@ -2626,6 +5509,7 @@
         }
       },
       "GeoJSONModel": {
+        "nullable": true,
         "type": "object",
         "required": [
           "features",
@@ -2764,20 +5648,15 @@
           "description": {
             "type": "string"
           },
+          "locationId": {
+            "type": "string"
+          },
           "shapeType": {
             "type": "string",
             "enum": [
               "centerpoint"
             ]
           }
-        }
-      },
-      "Position": {
-        "type": "array",
-        "minItems": 2,
-        "maxItems": 3,
-        "items": {
-          "type": "number"
         }
       },
       "LineString": {
@@ -2802,6 +5681,9 @@
           "description": {
             "type": "string"
           },
+          "locationId": {
+            "type": "string"
+          },
           "shapeType": {
             "type": "string",
             "enum": [
@@ -2816,13 +5698,6 @@
           "$ref": "#/components/schemas/Position"
         },
         "minItems": 2
-      },
-      "LinearRing": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Position"
-        },
-        "minItems": 4
       },
       "Polygon": {
         "type": "object",
@@ -2847,6 +5722,9 @@
             "type": "string"
           },
           "description": {
+            "type": "string"
+          },
+          "locationId": {
             "type": "string"
           },
           "shapeType": {
@@ -2967,10 +5845,10 @@
       "TypeTreeModel": {
         "type": "object",
         "required": [
-          "type_tree"
+          "typeTree"
         ],
         "properties": {
-          "type_tree": {
+          "typeTree": {
             "type": "object",
             "required": [
               "type_ids"
@@ -3112,7 +5990,7 @@
           "place",
           "production",
           "source",
-          "source_translation",
+          "text",
           "stratigraphic_unit"
         ],
         "properties": {
@@ -3140,7 +6018,7 @@
               "$ref": "#/components/schemas/TypesByViewClassEntry"
             }
           },
-          "artifact": {
+          "item": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TypesByViewClassEntry"
@@ -3236,7 +6114,7 @@
               "$ref": "#/components/schemas/TypesByViewClassEntry"
             }
           },
-          "source_translation": {
+          "text": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TypesByViewClassEntry"
@@ -3263,19 +6141,24 @@
           ],
           "properties": {
             "systemClass": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             },
             "crmClass": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             },
             "view": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             },
             "icon": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             },
             "en": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             }
           }
         }
@@ -3308,10 +6191,12 @@
                   "type": "string"
                 },
                 "view": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 },
                 "icon": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 }
               }
             }
@@ -3331,6 +6216,7 @@
               "required": [
                 "id",
                 "label",
+                "typeIds",
                 "relations",
                 "systemClass"
               ],
@@ -3343,6 +6229,12 @@
                 },
                 "systemClass": {
                   "type": "string"
+                },
+                "typeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
                 },
                 "relations": {
                   "type": "array",
@@ -4098,23 +6990,28 @@
       "SystemClassCountModel": {
         "type": "object",
         "required": [
-          "move",
-          "external_reference",
-          "bibliography",
-          "person",
           "acquisition",
-          "reference_system",
-          "feature",
-          "file",
           "activity",
-          "type",
           "administrative_unit",
           "artifact",
-          "source_translation",
-          "place",
-          "stratigraphic_unit",
+          "bibliography",
+          "creation",
           "edition",
+          "external_reference",
+          "event",
+          "feature",
+          "file",
           "group",
+          "human_remains",
+          "modification",
+          "move",
+          "person",
+          "place",
+          "production",
+          "reference_system",
+          "type",
+          "text",
+          "stratigraphic_unit",
           "source"
         ],
         "properties": {
@@ -4162,7 +7059,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "source_translation": {
+          "text": {
             "type": "integer",
             "format": "int32"
           },
@@ -4189,117 +7086,275 @@
         }
       },
       "SubunitsModel": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "id",
-            "parentId",
-            "rootId",
-            "openatlasClassName",
-            "crmClass",
-            "created",
-            "modified",
-            "latestModRec",
-            "geometry",
-            "children",
-            "properties"
-          ],
-          "properties": {
-            "id": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "parentId": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "rootId": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "openatlasClassName": {
-              "type": "string"
-            },
-            "crmClass": {
-              "type": "string"
-            },
-            "created": {
-              "type": "string"
-            },
-            "modified": {
-              "type": "string"
-            },
-            "latestModRec": {
-              "type": "string"
-            },
-            "geometry": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string"
-                },
-                "coordinates": {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                },
-                "shapeType": {
-                  "type": "string"
-                }
-              }
-            },
-            "children": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "format": "int32"
-              }
-            },
+        "type": "object",
+        "description": "A map of entity IDs (e.g., '50505') to an array of their subunit objects.",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/SubunitItemModel"
+          }
+        }
+      },
+      "SubunitItemModel": {
+        "type": "object",
+        "required": [
+          "id",
+          "parentId",
+          "rootId",
+          "openatlasClassName",
+          "crmClass",
+          "created",
+          "modified",
+          "latestModRec",
+          "geometry",
+          "children",
+          "properties"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rootId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openatlasClassName": {
+            "type": "string"
+          },
+          "crmClass": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string"
+          },
+          "modified": {
+            "type": "string"
+          },
+          "latestModRec": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "object",
             "properties": {
-              "type": "object",
-              "required": [
-                "name",
-                "aliases",
-                "description",
-                "standardType",
-                "timespan",
-                "externalReferences",
-                "references",
-                "files",
-                "types"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "aliases": {
-                  "type": "string",
-                  "nullable": true
-                },
-                "description": {
-                  "type": "string"
-                },
-                "standardType": {
+              "type": {
+                "type": "string"
+              },
+              "coordinates": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "shapeType": {
+                "type": "string"
+              }
+            }
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "properties": {
+            "type": "object",
+            "required": [
+              "name",
+              "aliases",
+              "description",
+              "standardType",
+              "timespan",
+              "externalReferences",
+              "references",
+              "files",
+              "types"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "aliases": {
+                "type": "string",
+                "nullable": true
+              },
+              "description": {
+                "type": "string"
+              },
+              "standardType": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "id",
+                  "rootId",
+                  "path",
+                  "externalReferences"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "rootId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "externalReferences": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "identifier",
+                        "referenceSystem",
+                        "resolverURL",
+                        "referenceURL",
+                        "id"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "identifier": {
+                          "type": "string"
+                        },
+                        "referenceSystem": {
+                          "type": "string"
+                        },
+                        "resolverURL": {
+                          "type": "string"
+                        },
+                        "referenceURL": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "timespan": {
+                "type": "object",
+                "required": [
+                  "earliestBegin",
+                  "latestBegin",
+                  "earliestEnd",
+                  "latestEnd"
+                ],
+                "properties": {
+                  "earliestBegin": {
+                    "type": "string"
+                  },
+                  "latestBegin": {
+                    "type": "string"
+                  },
+                  "earliestEnd": {
+                    "type": "string"
+                  },
+                  "latestEnd": {
+                    "type": "string"
+                  }
+                }
+              },
+              "externalReferences": {
+                "type": "array",
+                "items": {
                   "type": "object",
                   "required": [
-                    "name",
+                    "type",
+                    "identifier",
+                    "referenceSystem",
+                    "resolverURL",
+                    "referenceURL",
+                    "id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "identifier": {
+                      "type": "string"
+                    },
+                    "referenceSystem": {
+                      "type": "string"
+                    },
+                    "resolverURL": {
+                      "type": "string"
+                    },
+                    "referenceURL": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "references": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "abbreviation",
+                    "title",
+                    "pages"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "abbreviation": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "pages": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              },
+              "files": {
+                "type": "string",
+                "nullable": true
+              },
+              "types": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
                     "id",
                     "rootId",
+                    "name",
                     "path",
+                    "value",
+                    "unit",
                     "externalReferences"
                   ],
                   "properties": {
-                    "name": {
-                      "type": "string"
-                    },
                     "id": {
                       "type": "integer",
                       "format": "int32"
@@ -4308,21 +7363,24 @@
                       "type": "integer",
                       "format": "int32"
                     },
+                    "name": {
+                      "type": "string"
+                    },
                     "path": {
                       "type": "string"
+                    },
+                    "value": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string",
+                      "nullable": true
                     },
                     "externalReferences": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": [
-                          "type",
-                          "identifier",
-                          "referenceSystem",
-                          "resolverURL",
-                          "referenceURL",
-                          "id"
-                        ],
                         "properties": {
                           "type": {
                             "type": "string"
@@ -4346,160 +7404,6 @@
                       }
                     }
                   }
-                },
-                "timespan": {
-                  "type": "object",
-                  "required": [
-                    "earliestBegin",
-                    "latestBegin",
-                    "earliestEnd",
-                    "latestEnd"
-                  ],
-                  "properties": {
-                    "earliestBegin": {
-                      "type": "string"
-                    },
-                    "latestBegin": {
-                      "type": "string"
-                    },
-                    "earliestEnd": {
-                      "type": "string"
-                    },
-                    "latestEnd": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "externalReferences": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "identifier",
-                      "referenceSystem",
-                      "resolverURL",
-                      "referenceURL",
-                      "id"
-                    ],
-                    "properties": {
-                      "type": {
-                        "type": "string"
-                      },
-                      "identifier": {
-                        "type": "string"
-                      },
-                      "referenceSystem": {
-                        "type": "string"
-                      },
-                      "resolverURL": {
-                        "type": "string"
-                      },
-                      "referenceURL": {
-                        "type": "string"
-                      },
-                      "id": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "references": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "abbreviation",
-                      "title",
-                      "pages"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "format": "int32"
-                      },
-                      "abbreviation": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "pages": {
-                        "type": "string",
-                        "nullable": true
-                      }
-                    }
-                  }
-                },
-                "files": {
-                  "type": "string",
-                  "nullable": true
-                },
-                "types": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "rootId",
-                      "name",
-                      "path",
-                      "value",
-                      "unit",
-                      "externalReferences"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "format": "int32"
-                      },
-                      "rootId": {
-                        "type": "integer",
-                        "format": "int32"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "path": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "unit": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "externalReferences": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "identifier": {
-                              "type": "string"
-                            },
-                            "referenceSystem": {
-                              "type": "string"
-                            },
-                            "resolverURL": {
-                              "type": "string"
-                            },
-                            "referenceURL": {
-                              "type": "string"
-                            },
-                            "id": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
                 }
               }
             }
@@ -4507,12 +7411,14 @@
         }
       },
       "GeometricEntitiesModel": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "type": {
             "type": "string"
           },
           "features": {
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "object",
@@ -4521,6 +7427,7 @@
                   "type": "string"
                 },
                 "geometry": {
+                  "nullable": true,
                   "type": "object",
                   "properties": {
                     "coordinates": {
@@ -4542,10 +7449,12 @@
                       "format": "int32"
                     },
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "description": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "locationId": {
                       "type": "integer",
@@ -4556,13 +7465,16 @@
                       "format": "int32"
                     },
                     "objectDescription": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "objectName": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "objectType": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "shapeType": {
                       "type": "string"
@@ -4617,47 +7529,53 @@
       },
       "LicensedFileOverviewModel": {
         "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "object",
-            "required": [
-              "display",
-              "thumbnail",
-              "extension",
-              "license",
-              "licenseHolder",
-              "creator",
-              "publicShareable",
-              "IIIFManifest"
-            ],
-            "properties": {
-              "display": {
-                "type": "string"
-              },
-              "thumbnail": {
-                "type": "string"
-              },
-              "extension": {
-                "type": "string"
-              },
-              "license": {
-                "type": "string"
-              },
-              "licenseHolder": {
-                "type": "string"
-              },
-              "creator": {
-                "type": "string"
-              },
-              "publicShareable": {
-                "type": "boolean"
-              },
-              "IIIFManifest": {
-                "type": "string"
-              }
+        "description": "Dictionary keyed by numerical file IDs",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "display",
+            "thumbnail",
+            "extension",
+            "license",
+            "publicShareable",
+            "IIIFManifest"
+          ],
+          "properties": {
+            "display": {
+              "type": "string",
+              "nullable": true
+            },
+            "thumbnail": {
+              "type": "string",
+              "nullable": true
+            },
+            "extension": {
+              "type": "string",
+              "nullable": true
+            },
+            "mimetype": {
+              "type": "string",
+              "nullable": true
+            },
+            "license": {
+              "type": "string",
+              "nullable": true
+            },
+            "creator": {
+              "type": "string",
+              "nullable": true
+            },
+            "licenseHolder": {
+              "type": "string",
+              "nullable": true
+            },
+            "publicShareable": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "IIIFManifest": {
+              "type": "string",
+              "nullable": true
             }
           }
         }
@@ -4667,6 +7585,7 @@
         "required": [
           "id",
           "systemClass",
+          "viewClass",
           "title",
           "description",
           "aliases"
@@ -4676,6 +7595,9 @@
             "type": "integer"
           },
           "systemClass": {
+            "type": "string"
+          },
+          "viewClass": {
             "type": "string"
           },
           "title": {
@@ -4691,38 +7613,9 @@
             }
           },
           "geometries": {
-            "nullable": true,
-            "type": "object",
-            "required": [
-              "type",
-              "coordinates",
-              "title",
-              "description",
-              "shapeType"
-            ],
-            "properties": {
-              "type": {
-                "type": "string"
-              },
-              "coordinates": {
-                "type": "array",
-                "items": {
-                  "type": "number"
-                }
-              },
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "shapeType": {
-                "type": "string"
-              }
-            }
+            "$ref": "#/components/schemas/Geometries"
           },
           "when": {
-            "nullable": true,
             "$ref": "#/components/schemas/TimeRangeModel"
           },
           "types": {
@@ -4737,6 +7630,45 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ExternalReferenceModel"
+            }
+          },
+          "references": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "systemClass",
+                "title",
+                "citation"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "systemClass": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "typeId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "citation": {
+                  "type": "string"
+                },
+                "pages": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              }
             }
           },
           "files": {
@@ -4774,10 +7706,20 @@
                   "nullable": true,
                   "type": "boolean"
                 },
+                "fromSuperEntity": {
+                  "nullable": true,
+                  "type": "boolean"
+                },
                 "mimetype": {
                   "type": "string"
                 },
                 "url": {
+                  "type": "string"
+                },
+                "IIIFManifest": {
+                  "type": "string"
+                },
+                "IIIFBasePath": {
                   "type": "string"
                 }
               }
@@ -4805,12 +7747,6 @@
                 }
               },
               "actor_relation": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/RelatedEntityModel"
-                }
-              },
-              "appellation": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RelatedEntityModel"
@@ -4918,7 +7854,7 @@
                   "$ref": "#/components/schemas/RelatedEntityModel"
                 }
               },
-              "source_translation": {
+              "text": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RelatedEntityModel"
@@ -4936,6 +7872,7 @@
       },
       "TimeRangeModel": {
         "type": "object",
+        "nullable": true,
         "required": [
           "start",
           "end"
@@ -5009,6 +7946,12 @@
           "isStandard": {
             "type": "boolean"
           },
+          "value": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
           "typeHierarchy": {
             "nullable": true,
             "type": "array",
@@ -5075,6 +8018,7 @@
         "required": [
           "id",
           "systemClass",
+          "viewClass",
           "title",
           "description",
           "geometries",
@@ -5085,6 +8029,9 @@
             "type": "integer"
           },
           "systemClass": {
+            "type": "string"
+          },
+          "viewClass": {
             "type": "string"
           },
           "title": {
@@ -5100,8 +8047,7 @@
             }
           },
           "geometries": {
-            "type": "object",
-            "nullable": true
+            "$ref": "#/components/schemas/Geometries"
           },
           "when": {
             "$ref": "#/components/schemas/TimeRangeModel"
@@ -5117,7 +8063,7 @@
               }
             }
           },
-          "relationTypesModel": {
+          "relationTypes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RelationTypeModel"
@@ -5151,8 +8097,472 @@
             "$ref": "#/components/schemas/TimeRangeModel"
           }
         }
+      },
+      "ChainEventModel": {
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "system_class",
+          "geometries",
+          "children"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "system_class": {
+            "type": "string"
+          },
+          "geometries": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Polygon"
+              },
+              {
+                "$ref": "#/components/schemas/Point"
+              },
+              {
+                "$ref": "#/components/schemas/LineString"
+              },
+              {
+                "$ref": "#/components/schemas/GeometryCollection"
+              }
+            ]
+          },
+          "children": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChainEventModel"
+            }
+          }
+        }
+      },
+      "SearchModel": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the entity"
+          },
+          "id": {
+            "type": "string",
+            "format": "uri",
+            "description": "The unique identifier URL of the entity"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "A description of the entity"
+          },
+          "system_class": {
+            "type": "string",
+            "description": "The system class of the entity"
+          },
+          "begin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "The start date of the entity"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "The end date of the entity"
+          }
+        },
+        "required": [
+          "name",
+          "id",
+          "system_class"
+        ]
+      },
+      "Position": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 2,
+        "description": "A single position represented as an array of numbers.\nThe first two elements MUST be longitude and latitude (in that order).\nAn optional third element represents altitude. More elements are discouraged.\nExample: [10.9787, 49.7606] or [10.9787, 49.7606, 150.5]"
+      },
+      "PositionArray": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Position"
+        },
+        "minItems": 2,
+        "description": "An array of two or more positions. Used for LineStrings."
+      },
+      "LinearRing": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Position"
+        },
+        "minItems": 4,
+        "description": "An array of four or more positions where the first and last positions are equivalent (they represent closed loops).\nUsed for defining polygon boundaries."
+      },
+      "PolygonCoordinates": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LinearRing"
+        },
+        "minItems": 1,
+        "description": "An array of LinearRing coordinate arrays. The first element MUST be the exterior ring.\nSubsequent elements represent interior rings (holes)."
+      },
+      "GeoJSONPoint": {
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Point"
+            ],
+            "description": "The GeoJSON geometry type."
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Position"
+          }
+        },
+        "description": "A GeoJSON Point geometry."
+      },
+      "GeoJSONLineString": {
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "LineString"
+            ],
+            "description": "The GeoJSON geometry type."
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/PositionArray"
+          }
+        },
+        "description": "A GeoJSON LineString geometry."
+      },
+      "GeoJSONPolygon": {
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Polygon"
+            ],
+            "description": "The GeoJSON geometry type."
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/PolygonCoordinates"
+          }
+        },
+        "description": "A GeoJSON Polygon geometry."
+      },
+      "FeatureProperties": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "A title for the feature."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the feature."
+          },
+          "shapeType": {
+            "type": "string",
+            "description": "A custom identifier for the shape's role or type."
+          },
+          "locationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "A specific identifier for the location."
+          }
+        }
+      },
+      "Feature": {
+        "type": "object",
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "Feature"
+            ],
+            "description": "The GeoJSON object type."
+          },
+          "geometry": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONPoint"
+              },
+              {
+                "$ref": "#/components/schemas/GeoJSONPolygon"
+              },
+              {
+                "$ref": "#/components/schemas/GeoJSONLineString"
+              }
+            ]
+          },
+          "properties": {
+            "$ref": "#/components/schemas/FeatureProperties"
+          }
+        },
+        "description": "A GeoJSON Feature object, linking a geometry to properties."
+      },
+      "FeatureCollection": {
+        "type": "object",
+        "required": [
+          "type",
+          "features"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "FeatureCollection"
+            ],
+            "description": "The GeoJSON object type."
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feature"
+            }
+          }
+        },
+        "description": "A collection of GeoJSON Feature objects."
+      },
+      "Geometries": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FeatureCollection"
+          },
+          {
+            "$ref": "#/components/schemas/Feature"
+          }
+        ],
+        "description": "Represents geographic data associated with an entity.\nCan be explicitly null, a single GeoJSON geometry (Point, Polygon, or LineString),\nor a GeoJSON FeatureCollection containing Features with specific properties."
+      },
+      "TableRowModel": {
+        "type": "object",
+        "required": [
+          "pagination",
+          "results"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationModel"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "title",
+          "message",
+          "status",
+          "timestamp",
+          "url"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "message": {
+            "type": "string",
+            "example": "The request contains invalid parameters."
+          },
+          "status": {
+            "type": "integer",
+            "example": 400
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "RFC1123 timestamp",
+            "example": "Tue, 02 Dec 2025 12:45:26 GMT"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://demo-dev.openatlas.eu/api/entity/50505"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterError": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "The request contains invalid parameters."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BadRequestError": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "$ref": "#/components/schemas/ParameterError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 400
+              },
+              "title": {
+                "example": "Bad Request"
+              }
+            }
+          }
+        ]
+      },
+      "UnauthorizedError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 401
+              },
+              "title": {
+                "example": "Unauthorized"
+              },
+              "message": {
+                "example": "Authentication required."
+              }
+            }
+          }
+        ]
+      },
+      "ForbiddenError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 403
+              },
+              "title": {
+                "example": "Access denied"
+              },
+              "message": {
+                "example": "You do not have access to the API. Please ask the data provider for permission."
+              }
+            }
+          }
+        ]
+      },
+      "NotFoundError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 404
+              },
+              "title": {
+                "example": "Not found"
+              },
+              "message": {
+                "example": "The requested resource does not exist."
+              }
+            }
+          }
+        ]
+      },
+      "ConflictError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 409
+              },
+              "title": {
+                "example": "Conflict"
+              },
+              "message": {
+                "example": "The requested resource is not available due to a conflict."
+              }
+            }
+          }
+        ]
+      },
+      "InternalServerError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "example": 500
+              },
+              "title": {
+                "example": "Internal Server Error"
+              },
+              "message": {
+                "example": "An unexpected server error occurred."
+              }
+            }
+          }
+        ]
       }
     }
   }
 }
-

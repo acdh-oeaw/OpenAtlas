@@ -13,6 +13,14 @@ class EntityDoesNotExistError(Exception):
     pass
 
 
+class EntityNotAnEventError(Exception):
+    pass
+
+
+class EntityNotAFileError(Exception):
+    pass
+
+
 class InvalidCidocClassCodeError(Exception):
     pass
 
@@ -84,7 +92,7 @@ class InvalidSearchCategoryError(Exception):
 
 
 class InvalidSearchValueError(Exception):
-    def __init__(self, category: str, values: dict[str, Any]) -> None:
+    def __init__(self, category: str, values: Any) -> None:
         super().__init__()
         self.category = category
         self.values = values
@@ -98,7 +106,17 @@ class ValueNotIntegerError(Exception):
     pass
 
 
+class FileIdNotInteger(Exception):
+    pass
+
+
 class UrlNotValid(Exception):
     def __init__(self, url: str) -> None:
+        super().__init__()
+        self.url = url
+
+
+class IIIFMetadataNotFound(Exception):
+    def __init__(self, url: str) -> None:  # pragma: no cover
         super().__init__()
         self.url = url

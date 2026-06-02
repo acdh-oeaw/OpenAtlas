@@ -33,7 +33,7 @@
 <div id="{{ field.id }}-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document" style="max-width: 100%!important;">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header justify-content-between">
         <h5 class="modal-title">{{ _(field.id.replace('_', ' '))|uc_first }}</h5>
         <button
             type="button"
@@ -60,5 +60,6 @@
 <script>
   $("#{{ field.id }}-modal").on("hidden.bs.modal", function (e) {
     selectFromTableMulti('{{ field.id }}');
+    document.getElementById("save")?.focus({preventScroll:true})
   })
 </script>

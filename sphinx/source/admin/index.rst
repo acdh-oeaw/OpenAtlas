@@ -4,6 +4,7 @@ Admin
 .. toctree::
 
    user
+   rights_holder
    general
    mail
    modules
@@ -14,7 +15,5 @@ Admin
    data_integrity_checks
    import
    export
-   execute_sql
    api
-   arche
    vocabs

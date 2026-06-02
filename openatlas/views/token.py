@@ -4,9 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from flask import (
-    flash, g, make_response, redirect, render_template, request, url_for)
-from flask_babel import lazy_gettext as _
-from flask_login import login_required
+    flash, make_response, redirect, render_template, request, url_for)
+from flask_babel import gettext as _
 from flask_wtf import FlaskForm
 from werkzeug.wrappers import Response
 from wtforms import SelectField, StringField
@@ -14,54 +13,39 @@ from wtforms.fields.numeric import IntegerField
 from wtforms.fields.simple import HiddenField
 
 from openatlas import app
-from openatlas.database.connect import Transaction
 from openatlas.display.tab import Tab
 from openatlas.display.table import Table
 from openatlas.display.util import button, link, required_group
-from openatlas.display.util2 import manual, sanitize
+from openatlas.display.util2 import manual
 from openatlas.forms.display import display_form
 from openatlas.forms.field import SubmitField
 from openatlas.models.token import Token
 from openatlas.models.user import User
 
 
-class GenerateTokenForm(FlaskForm):
-    expiration = IntegerField(
-        _('expiration'),
-        default=30,
-        description=_('expiration in days')
-        + ', 0 = ' + _("no expiration date"))
-    token_name = StringField(
-        _('name'),
-        default=f"Token_{datetime.today().strftime('%Y-%m-%d')}")
-    user = SelectField(_('user'), choices=(), default=0, coerce=int)
-    token_text = HiddenField()
-    save = SubmitField(_('generate'))
-
-
-class ListTokenForm(FlaskForm):
-    user = SelectField(_('user'), choices=(), default=0, coerce=int)
-    revoked = SelectField(
-        _('revoked'),
-        choices=(
-            ('all', _('all')),
-            ('true', _('revoked')),
-            ('false', _('not revoked'))))
-    valid = SelectField(
-        _('valid'),
-        choices=(
-            ('all', _('all')),
-            ('>', _('valid')),
-            ('<', _('not valid'))))
-    save = SubmitField(_('apply'))
-
-
 @app.route('/admin/api_token', methods=['GET', 'POST'])
 @app.route('/admin/api_token/<int:user_id>', methods=['GET', 'POST'])
 @required_group('admin')
 def api_token(user_id: int = 0) -> str | Response:
-    form = ListTokenForm()
-    form.user.choices = [(0, _('all'))] + User.get_users_for_form()
+    class ListTokenForm(FlaskForm):
+        user = SelectField(_('user'), choices=(), default=0, coerce=int)
+        revoked = SelectField(
+            _('revoked'),
+            choices=(
+                ('all', _('all')),
+                ('true', _('revoked')),
+                ('false', _('not revoked'))))
+        valid = SelectField(
+            _('valid'),
+            choices=(
+                ('all', _('all')),
+                ('>', _('valid')),
+                ('<', _('not valid'))))
+        save = SubmitField(_('apply'))
+
+    form: Any = ListTokenForm()
+    form.user.choices = \
+        [(0, _('all'))] + [(u.id, u.username) for u in User.get_all()]
     user_id = user_id or 0
     revoked = 'all'
     valid = 'all'
@@ -110,7 +94,7 @@ def api_token(user_id: int = 0) -> str | Response:
         delete_link = link(
             _('delete'),
             url_for('delete_token', id_=token['id']),
-            js="return confirm('" + _('delete') + "?')")
+            js=f"return confirm('{_('delete')}?')")
         revoke_link = link(
             _('revoke'),
             url_for('revoke_token', id_=token['id']))
@@ -135,9 +119,7 @@ def api_token(user_id: int = 0) -> str | Response:
         'tabs.html',
         tabs=tabs,
         title=_('admin'),
-        crumbs=[
-            [_('admin'), f"{url_for('admin_index')}"],
-            _('token')])
+        crumbs=[[_('admin'), f'{url_for('admin_index')}'], _('token')])
 
 
 def get_token_valid_column(token: dict[str, Any], user: User) -> str:
@@ -150,22 +132,29 @@ def get_token_valid_column(token: dict[str, Any], user: User) -> str:
 @app.route('/admin/api_token/generate_token', methods=['GET', 'POST'])
 @required_group('admin')
 def generate_token() -> str | Response:
-    form = GenerateTokenForm()
-    form.user.choices = User.get_users_for_form()
+
+    class GenerateTokenForm(FlaskForm):
+        expiration = IntegerField(
+            _('expiration'),
+            default=30,
+            description=_('expiration in days')
+            + f', 0 = {_("no expiration date")}')
+        token_name = StringField(
+            _('name'),
+            default=f"Token_{datetime.today().strftime('%Y-%m-%d')}")
+        user = SelectField(_('user'), choices=(), default=0, coerce=int)
+        token_text = HiddenField()
+        save = SubmitField(_('generate'))
+
+    form: Any = GenerateTokenForm()
+    form.user.choices = [(u.id, u.username) for u in User.get_all()]
     if form.validate_on_submit():
-        expiration = form.expiration.data
-        token_name = sanitize(form.token_name.data)
         user_ = User.get_by_id_without_bookmarks(int(form.user.data))
-        token = ''
-        Transaction.begin()
-        try:
-            token = Token.generate_token(expiration, token_name, user_)
-            Transaction.commit()
-            flash(f"{_('token stored for')}: {user_.username}", 'info')
-        except Exception as e:  # pragma: no cover
-            Transaction.rollback()
-            g.logger.log('error', 'database', 'transaction failed', e)
-            flash(_('error transaction'), 'error')
+        token = Token.generate_token(
+            form.expiration.data,
+            form.token_name.data,
+            user_)
+        flash(f"{_('token stored for')}: {user_.username}")
         response = make_response(redirect(url_for('generate_token')))
         response.set_cookie(
             'jwt_token',
@@ -180,62 +169,62 @@ def generate_token() -> str | Response:
         content=display_form(form, manual_page='admin/api'),
         title=_('admin'),
         crumbs=[
-            [_('admin'), f"{url_for('admin_index')}"],
-            [_('token'), f"{url_for('api_token')}"],
+            [_('admin'), f'{url_for('admin_index')}'],
+            [_('token'), f'{url_for('api_token')}'],
             _('generate')])
 
 
 @app.route('/admin/api_token/revoke_token/<int:id_>')
-@login_required
+@required_group('admin')
 def revoke_token(id_: int) -> str | Response:
     Token.revoke_jwt_token(id_)
-    flash(_('token revoked'), 'info')
+    flash(_('token revoked'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/authorize_token/<int:id_>')
-@login_required
+@required_group('admin')
 def authorize_token(id_: int) -> str | Response:
     Token.authorize_jwt_token(id_)
-    flash(_('token authorized'), 'info')
+    flash(_('token authorized'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/delete_token/<int:id_>')
-@login_required
+@required_group('admin')
 def delete_token(id_: int) -> str | Response:
     Token.delete_token(id_)
-    flash(_('token deleted'), 'info')
+    flash(_('token deleted'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/delete_revoked_tokens/')
-@login_required
+@required_group('admin')
 def delete_revoked_tokens() -> str | Response:
     Token.delete_all_revoked_tokens()
-    flash(_('tokens deleted'), 'info')
+    flash(_('tokens deleted'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/delete_invalid_tokens/')
-@login_required
+@required_group('admin')
 def delete_invalid_tokens() -> str | Response:
     Token.delete_invalid_tokens()
-    flash(_('tokens deleted'), 'info')
+    flash(_('tokens deleted'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/revoke_all_tokens/')
-@login_required
+@required_group('admin')
 def revoke_all_tokens() -> str | Response:
     Token.revoke_all_tokens()
-    flash(_('all tokens revoked'), 'info')
+    flash(_('all tokens revoked'))
     return redirect(f"{url_for('api_token')}")
 
 
 @app.route('/admin/api_token/authorize_all_tokens/')
-@login_required
+@required_group('admin')
 def authorize_all_tokens() -> str | Response:
     Token.authorize_all_tokens()
-    flash(_('all tokens authorized'), 'info')
+    flash(_('all tokens authorized'))
     return redirect(f"{url_for('api_token')}")

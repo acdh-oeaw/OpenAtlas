@@ -19,29 +19,31 @@ on:
         default: false
 jobs:
   setup_workflow_env:
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.get_environment_from_git_ref.outputs.environment }}
-      environment_short: ${{ steps.get_environment_from_git_ref.outputs.environment_short }}
-      image_name: container-preview
-      registry_root: ghcr.io/${{ github.repository }}/
-      default_port: "5000"
-      APP_NAME: OpenAtlas
-      APP_ROOT: "/"
-    steps:
-      - name: Get environment from git ref
-        id: get_environment_from_git_ref
-        run: |
-          echo "Running on branch ${{ github.ref_name }}"
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "environment=production"
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "environment_short=prod" >> $GITHUB_OUTPUT
-          else
-            echo "environment=review/${{ github.ref_name }}"
-            echo "environment=review/${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63 )" >> $GITHUB_OUTPUT
-          fi
+      runs-on: ubuntu-latest
+      outputs:
+        environment: ${{ steps.get_environment_from_git_ref.outputs.environment }}
+        environment_short: ${{ steps.get_environment_from_git_ref.outputs.environment_short }}
+        image_name: container-preview
+        registry_root: ghcr.io/${{ github.repository }}/
+        default_port: "5000"
+        APP_NAME: OpenAtlas
+        APP_ROOT: "/"
+      steps:
+        - name: Get environment from git ref
+          id: get_environment_from_git_ref
+          run: |
+            echo "Running on branch ${{ github.ref_name }}"
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "environment=production"
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "environment_short=prod" >> $GITHUB_OUTPUT
+            else
+              CLEAN_ENV=$(echo -n "review/${{ github.ref_name }}" | tr '/' '-')
+              echo "environment=$CLEAN_ENV" >> $GITHUB_OUTPUT
+              
+              CLEAN_REF=$(echo -n "${{ github.ref_name }}" | sed -E 's/^(feat(ure)?|fix)[_/]//' | tr '_' '-' | tr '/' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63)
+              echo "environment_short=$CLEAN_REF" >> $GITHUB_OUTPUT
+            fi
   build_openatlas:
     needs: [setup_workflow_env]
     environment: ${{ needs.setup_workflow_env.outputs.environment }}
@@ -156,6 +158,28 @@ jobs:
               'version': 2,
               'conversion': True,
               'compression': 'jpeg'}
+          ARCHE_METADATA = {
+              'topCollection': 'OpenAtlas Test Collection',
+              'language': 'en',
+              'depositor': ['Alice', 'https://orcid.org/0000-0001-7608-7446'],
+              'acceptedDate': "2024-01-01",
+              'hasMetadataCreator': [
+                  'https://orcid.org/0000-0003-2576-2266',
+                  'https://orcid.org/0000-0001-7608-7446',
+                  'Alice'],
+              'curator': [
+                  'https://orcid.org/0000-0003-2576-2266',
+                  'https://orcid.org/0000-0002-4911-8451',
+                  'Alice'],
+              'principalInvestigator': [
+                  'Stefan',
+                  'https://orcid.org/0000-0003-2576-2266',
+                  'https://orcid.org/0000-0002-4911-8451'],
+              'relatedDiscipline':
+                  ['https://vocabs.acdh.oeaw.ac.at/oefosdisciplines/601003',
+                   'https://vocabs.acdh.oeaw.ac.at/oefosdisciplines/602001'],
+              'typeIds': [],
+              'excludeReferenceSystems': []}
           EOF
           sudo chown 33:33 testing.py
           docker cp -a testing.py openatlas-openatlas-1:/var/www/openatlas/instance/
@@ -168,8 +192,8 @@ jobs:
           detached: true
       - name: Run tests
         run: |
-          (docker exec -i openatlas-openatlas-1 /bin/bash -c "(cd /var/www/openatlas/tests && nosetests3 --verbosity=2 --nologcapture --nocapture) || (echo Tests exited with $?; exit 1)") ||\
-          (echo Retry; docker exec -i openatlas-openatlas-1 /bin/bash -c "(cd /var/www/openatlas/tests && nosetests3 --verbosity=2 --nologcapture --nocapture)")
+          (docker exec -i openatlas-openatlas-1 /bin/bash -c "(cd /var/www/openatlas/tests && pytest) || (echo Tests exited with $?; exit 1)") ||\
+          (echo Retry; docker exec -i openatlas-openatlas-1 /bin/bash -c "(cd /var/www/openatlas/tests && pytest)")
   _3:
     needs: [setup_workflow_env, test_openatlas]
     uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy.yml@main

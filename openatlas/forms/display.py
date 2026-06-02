@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from flask import g, render_template
-from flask_babel import lazy_gettext as _
-from wtforms import Field, FileField, IntegerField, SelectField, StringField
+from flask_babel import gettext as _
+from wtforms import FileField, IntegerField, SelectField, StringField
 from wtforms.validators import Email
 
 from openatlas import app
-from openatlas.display.util2 import manual
+from openatlas.display.util2 import manual, uc_first
 from openatlas.forms.field import ValueTypeField
 
 
@@ -26,7 +26,8 @@ def html_form(
         if field.id.startswith('insert_'):
             continue  # These will be added in combination with other fields
         if isinstance(field, ValueTypeField):
-            html += add_row(field, '', field(), row_css=field.selectors)
+            field.label.text = ''
+            html += add_row(field, value=field(), row_css=field.selectors)
             continue
         if field.type in ['CSRFTokenField', 'HiddenField']:
             html += f' {field}'
@@ -34,17 +35,18 @@ def html_form(
         if field.type in ['CustomField']:
             html += add_row(field, value=field.content)
             continue
-        if field.id.startswith("reference_system") \
+        if field.id.startswith('reference_system') \
                 and len(reference_systems_fields) > 3 \
                 and not reference_systems_fields_errors:
             if not reference_systems_added:
                 reference_systems_added = True
                 html += add_row(
-                    None,
-                    _('reference system'),
-                    '<span id="reference-system-switcher" class="uc-first '
-                    f'{app.config["CSS"]["button"]["secondary"]}">'
-                    + _('show') + '</span>')
+                    label=_('reference system'),
+                    value=f"""
+                        <span id="reference-system-switcher" '
+                            class="{app.config["CSS"]["button"]["secondary"]}">
+                            {uc_first(_('show'))}
+                        </span>""")
             html += add_row(field, row_css="d-none")
             continue
         if field.id.split('_', 1)[0] in ('begin', 'end'):
@@ -52,23 +54,20 @@ def html_form(
                 html += add_dates(form)
             continue
         if field.type in ['TreeField', 'TreeMultiField', 'ValueTypeRootField']:
-            type_ = g.types[int(field.type_id)]
-            if not type_.subs:
-                continue
+            type_ = g.types[field.type_id]
             label = type_.name
             if type_.category == 'standard' and type_.name != 'License':
                 label = _('type')
             if field.label.text == 'super':
                 label = _('super')
-            if field.flags.required and field.label.text:
-                label += ' *'
             if not hasattr(field, 'is_type_form') or not field.is_type_form:
                 field.description = type_.description
-            html += add_row(field, label)
+            field.label.text = label
+            html += add_row(field)
             continue
         if field.id == 'save':
             class_ = \
-                f"{app.config['CSS']['button']['primary']} text-wrap uc-first"
+                f'{app.config['CSS']['button']['primary']} text-wrap'
             buttons = [manual(manual_page)] if manual_page else []
             buttons.append(field(class_=class_))
             if 'insert_and_continue' in form:
@@ -80,22 +79,22 @@ def html_form(
                     form.insert_continue_human_remains(class_=class_))
             buttons = list(
                 map(lambda x: f'<div class="col-auto">{x}</div>', buttons))
+            field.label.text = ''
             html += add_row(
                 field,
-                '',  # Setting label to '' to keep button row label empty
                 '<div class="row g-1 align-items-center ">'
-                f'{"".join(buttons)}</div>')
+                f'{''.join(buttons)}</div>')
             continue
         if field.type in ['TableField', 'TableMultiField']:
-            field.label.text = _(field.label.text.lower())
+            field.label.text = _(field.label.text)
         html += add_row(field, form_id=form_id)
     return html
 
 
 def add_row(
-        field: Optional[Field],
-        label: Optional[str] = None,
+        field: Optional[Any] = None,
         value: Optional[str] = None,
+        label: Optional[str] = None,
         form_id: Optional[str] = None,
         row_css: Optional[str] = None) -> str:
     row_css = row_css or ''
@@ -109,11 +108,12 @@ def add_row(
             field.label.text += ' *'
         field_css += ' required' if field.flags.required else ''
         field_css += ' integer' if isinstance(field, IntegerField) else ''
-        field_css += f' {app.config["CSS"]["string_field"]}' \
-            if isinstance(
+        if isinstance(
                 field,
-                (StringField, SelectField, FileField, IntegerField)) else ''
-        row_css += f' {field.row_css if hasattr(field, "row_css") else ""}'
+                (StringField, SelectField, FileField, IntegerField)):
+            field_css += f' {app.config["CSS"]["string_field"]}'
+        if hasattr(field, "row_css"):
+            row_css += f' {field.row_css}'
         for validator in field.validators:
             field_css += ' email' if isinstance(validator, Email) else ''
     return render_template(
@@ -147,7 +147,7 @@ def add_dates(form: Any) -> str:
             for error in getattr(form, field_name).errors:
                 errors[field_name] += error
             errors[field_name] = \
-                f'<label class="error uc-first">{errors[field_name]}</label>'
+                f'<label class="error">{errors[field_name]}</label>'
     return render_template(
         'util/dates.html',
         form=form,
@@ -164,8 +164,9 @@ def display_form(
         manual_page: Optional[str] = None) -> str:
     form_id = f'id="{form_id}"' if form_id else ''
     multipart = 'enctype="multipart/form-data"' if 'file' in form else ''
-    return \
-        f'<form method="post" {form_id} {multipart}>' \
-        '<table class="table table-no-style">' \
-        f'{html_form(form, form_id, manual_page)}' \
-        f'</table></form>'
+    return f"""
+        <form method="post" {form_id} {multipart}>
+          <table class="table table-no-style">
+            {html_form(form, form_id, manual_page)}
+          </table>
+        </form>"""

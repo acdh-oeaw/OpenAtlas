@@ -1,12 +1,12 @@
-from flask import g, url_for
+from flask import url_for
 from flask_login import current_user
 
 from openatlas import app
+from openatlas.models.entity import get_reference_system_by_name_safe
 from tests.base import TestBaseCase, insert
 
 
 class UserTests(TestBaseCase):
-
     def test_user(self) -> None:
         c = self.client
         data = {
@@ -70,7 +70,7 @@ class UserTests(TestBaseCase):
         rv = c.post(
             url_for('user_activity', user_id=user_id),
             data={'limit': 100, 'user': 0, 'action': 'all'})
-        assert b'activity' in rv.data
+        assert b'Activity' in rv.data
 
         rv = c.get(url_for('user_delete', id_=self.alice_id))
         assert b'403 - Forbidden' in rv.data
@@ -93,19 +93,24 @@ class UserTests(TestBaseCase):
         assert b'Bookmark' in rv.data
 
         c.get(url_for('logout'))
+
+        rv = c.get(url_for('user_activity'), follow_redirects=True)
+        assert b'Login' in rv.data
+
         rv = c.get(url_for('user_insert'), follow_redirects=True)
         assert b'Forgot your password?' not in rv.data
 
         c.post(
             url_for('login'),
             data={'username': 'Editor', 'password': 'test'})
-        rv = c.get(url_for('user_insert'))
+        rv = c.get(url_for('user_delete', id_=person.id))
         assert b'403 - Forbidden' in rv.data
 
         rv = c.post(url_for('insert', class_='reference_system'))
         assert b'403 - Forbidden' in rv.data
 
-        rv = c.get(url_for('delete', id_=g.wikidata.id))
+        wikidata = get_reference_system_by_name_safe('wikidata')
+        rv = c.get(url_for('delete', id_=wikidata.id))
         assert b'403 - Forbidden' in rv.data
 
         c.get(url_for('logout'))
