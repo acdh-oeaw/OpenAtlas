@@ -23,10 +23,10 @@ csrf = CSRFProtect(app)  # Make sure all forms are CSRF protected
 app.config.from_object('config.default')
 app.config.from_object('config.api')
 
-instance_config_path = ''
+CONFIG_PATH = ''
 if 'INSTANCE_PATH' in os.environ:  # Used for multi instance
-    instance_config_path = os.environ['INSTANCE_PATH'] + 'instance/'
-app.config.from_pyfile(f'{instance_config_path}production.py')
+    CONFIG_PATH = os.environ['INSTANCE_PATH'] + 'instance/'  # pragma: no cover
+app.config.from_pyfile(f'{CONFIG_PATH}production.py')
 
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Set CSRF token valid for session
 locale.setlocale(locale.LC_ALL, 'en_US.utf-8')

@@ -150,6 +150,25 @@ If using Debian, prevent systemd to try to start the service itself:
 Further configuration can be done at the IIIF tab in the admin area of the web
 application.
 
+## Multi instance installation
+
+It is possible to install one OpenAtlas application used by multiple instances.
+
+Basically you can install the application at e.g. /usr/local/openatlas and than
+create (or copy) following instance specific files and directories for
+every instance:
+
+* **openatlas.wsgi** (copy and adapt from install/example_multi_instance.wsgi)
+* **instance** folder (with at least the production.py)
+* **files** folder (with the export, processed_images, upload sub folder)
+
+The webserver (e.g. Apache) configuration should than point to the .wsgi
+instance file.
+
+When using multiple instances be aware about slightly changes at the upgrade
+process. E.g. you only need to update the application once but have to do
+the database upgrade for every instance individually.
+
 ## Tests
 Install required packages:
 
