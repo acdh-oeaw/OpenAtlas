@@ -29,7 +29,6 @@ app.config.from_object('config.api')
 app.config.from_pyfile(f'{instance_config_path}production.py')
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Set CSRF token valid for session
 locale.setlocale(locale.LC_ALL, 'en_US.utf-8')
-babel = Babel(app)
 jwt = JWTManager(app)
 
 # pylint: disable=cyclic-import, import-outside-toplevel, wrong-import-position
