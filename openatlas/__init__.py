@@ -18,15 +18,16 @@ from openatlas.database.token import check_token_revoked
 from openatlas.database.user import admins_available
 from openatlas.models.openatlas_class import get_classes
 
-instance_config_path = ''
-if 'INSTANCE_PATH' in os.environ:
-    instance_config_path = os.environ['INSTANCE_PATH'] + 'instance/'
-
 app: Flask = Flask(__name__, instance_relative_config=True)
 csrf = CSRFProtect(app)  # Make sure all forms are CSRF protected
 app.config.from_object('config.default')
 app.config.from_object('config.api')
+
+instance_config_path = ''
+if 'INSTANCE_PATH' in os.environ:  # Used for multi instance
+    instance_config_path = os.environ['INSTANCE_PATH'] + 'instance/'
 app.config.from_pyfile(f'{instance_config_path}production.py')
+
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Set CSRF token valid for session
 locale.setlocale(locale.LC_ALL, 'en_US.utf-8')
 jwt = JWTManager(app)
