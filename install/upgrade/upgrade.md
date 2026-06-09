@@ -17,6 +17,9 @@ then run the database upgrade script, then restart Apache:
     sudo python3 install/upgrade/database_upgrade.py
     sudo service apache2 restart
 
+### 9.3.0 to 9.4.0
+9.4.0.sql is needed but will be taken care of by the database upgrade script.
+
 ### 9.2.0 to 9.3.0
 9.3.0.sql is needed but will be taken care of by the database upgrade script.
 
