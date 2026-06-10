@@ -29,7 +29,7 @@ LANGUAGES = {
 EXTERNAL_API = [
     'APIS',
     'Cadaster',
-    'Crossref',
+    'DOI',
     'GeoNames',
     'GND',
     'OpenAtlas',

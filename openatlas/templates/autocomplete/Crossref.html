@@ -6,9 +6,11 @@
   */
   (function() {
     const $input = $('input[data-reference-system={{ system.id }}]');
+    console.log($input);
+    console.log('asdsadasd');
     $input.autoComplete({
       bootstrapVersion: '4',
-      minLength: 2,
+      minLength: 3,
       resolver: 'custom',
       formatResult: function (item) {
         const title = item.title ? item.title[0] : 'No title';
@@ -22,19 +24,29 @@
         };
       },
       events: {
-        search: function (qry, callback) {
-          $.ajax({
-            url: "https://api.crossref.org/works",
-            data: {
-              query: qry,
-              rows: 20
-            }
-          }).done(function(data) {
-            if (data && data.message && data.message.items) {
-              callback(data.message.items);
-            }
-          });
-        }
+        search: (function() {
+          let timeout;
+          return function (qry, callback) {
+            clearTimeout(timeout);
+            timeout = setTimeout(function() {
+              $.ajax({
+                url: "/proxy/crossref",
+                data: {
+                  query: qry,
+                  rows: 10
+                }
+              }).done(function(data) {
+                if (data && data.message && data.message.items) {
+                  callback(data.message.items);
+                } else {
+                  callback([]);
+                }
+              }).fail(function() {
+                callback([]);
+              });
+            }, 400);
+          };
+        })()
       }
     }).on('autocomplete.select', function(evt, item) {
       $input.val(item.DOI);
