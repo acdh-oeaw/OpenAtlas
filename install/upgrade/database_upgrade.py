@@ -19,14 +19,13 @@ from pathlib import Path
 
 from psycopg2 import extras
 
-from openatlas import app
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # pylint: disable=wrong-import-position
 from config.database_versions import DATABASE_VERSIONS
-from openatlas.database.connect import open_connection
+from openatlas import app
 from openatlas.database import settings as db_settings
+from openatlas.database.connect import open_connection
 from openatlas.models.export import sql_export
 
 start = time.time()
@@ -88,7 +87,9 @@ def check_upgrade_needed() -> None:
 
 def check_database_version_supported() -> None:
     if app.config['DATABASE_VERSION'] not in DATABASE_VERSIONS:
-        finish(f"Version {app.config['VERSION']} isn't supported for automatic upgrades.")
+        finish(
+            f"Version {app.config['VERSION']} isn't supported for "
+            f"automatic upgrades.")
 
 
 def backup_database() -> None:
