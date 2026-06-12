@@ -1,7 +1,9 @@
 import os
 import sys
 
-sys.path.insert(0, '/usr/local/openatlas')
+from application_path import OPENATLAS_INSTALLATION
+
+sys.path.insert(0, OPENATLAS_INSTALLATION)
 os.environ['INSTANCE_PATH'] = f'{os.path.dirname(os.path.abspath(__file__))}/'
 
 from install.upgrade import database_upgrade
