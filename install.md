@@ -155,19 +155,26 @@ application.
 It is possible to install one OpenAtlas application used by multiple instances.
 
 Basically you can install the application at e.g. /usr/local/openatlas and than
-create (or copy) following instance specific files and directories for
-every instance:
+copy the files from **/install/multi_instance** to a directory of your choice.
 
-* **openatlas.wsgi** (copy and adapt from install/example_multi_instance.wsgi)
-* **instance** folder (with at least the production.py)
-* **files** folder (with the export, processed_images, upload sub folder)
+The file folders of each installation than have to be made accessible for
+ Apache:
 
-The webserver (e.g. Apache) configuration should than point to the .wsgi
-instance file.
+    sudo chown -R www-data files
+
+In case you want a different application location you can change the
+**OPENATLAS_INSTALLATION** value in the **application_path.py** file.
+
+The webserver configuration should than point to the **openatlas.wsgi**
+instance file and other paths should be adapted to the application installation
+directory.
 
 When using multiple instances be aware about slightly changes at the upgrade
 process. E.g. you only need to update the application once but have to do
-the database upgrade for every instance individually.
+the database upgrade for every instance individually by going in their specific
+directories and execute:
+
+    sudo python3 database_upgrade.py
 
 ## Tests
 Install required packages:
