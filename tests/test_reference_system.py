@@ -33,24 +33,21 @@ class ReferenceSystemTest(TestBaseCase):
         rv = c.post(
             url_for(
                 'ajax_external_api',
-                system_id=get_reference_system_by_name_safe(
-                    'Crossref (DOI)').id),
+                system_id=get_reference_system_by_name_safe('DOI').id),
             data={'id_': '10.1163/9789004712126_015'})
         assert b'OpenAtlas: An Open-Source Application' in rv.data
 
         rv = c.post(
             url_for(
                 'ajax_external_api',
-                system_id=get_reference_system_by_name_safe(
-                    'Crossref (DOI)').id),
+                system_id=get_reference_system_by_name_safe('DOI').id),
             data={'id_': '10.5194/ica-proc-4-14-2021'})
         assert b'Beyond East and West' in rv.data
 
         rv = c.post(
             url_for(
                 'ajax_external_api',
-                system_id=get_reference_system_by_name_safe(
-                    'Crossref (DOI)').id),
+                system_id=get_reference_system_by_name_safe('DOI').id),
             data={'id_': '10.11141/ia.64.11'})
         assert b'Integrating Data on Early Medieval Graves' in rv.data
 

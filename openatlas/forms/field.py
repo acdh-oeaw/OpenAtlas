@@ -148,12 +148,6 @@ class ReferenceField(Field):
                 render_template(
                     f'autocomplete/{system.api}.html',
                     system=system))
-        # todo: Look into this with Alex
-        elif system.api == 'DOI' and system.name == 'Crossref (DOI)':
-            self.reference_system_js = Markup(
-                render_template(
-                    'autocomplete/Crossref.html',
-                    system=system))
 
     def process_formdata(self, valuelist: list[str]) -> None:
         self.data = {

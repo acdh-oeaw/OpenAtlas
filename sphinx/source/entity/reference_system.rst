@@ -115,8 +115,8 @@ increasingly also by archives and museums.
 
 By default it is usable for **persons** in OpenAtlas.
 
-Crossref
-********
+DOI - Crossref
+**************
 `Crossref <https://www.crossref.org/>`_ is an official Digital Object
 Identifier (DOI) registration agency. It is a not-for-profit association of
 scholarly publishers that facilitates persistent linking and sharing of
