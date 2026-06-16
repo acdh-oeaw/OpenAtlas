@@ -115,19 +115,18 @@ increasingly also by archives and museums.
 
 By default it is usable for **persons** in OpenAtlas.
 
-DOI - Crossref
-**************
-`Crossref <https://www.crossref.org/>`_ is an official Digital Object
-Identifier (DOI) registration agency. It is a not-for-profit association of
-scholarly publishers that facilitates persistent linking and sharing of
-academic publications, datasets, and rich metadata.
+DOI
+***
+The `DOI <https://www.doi.org/>`_ (Digital Object Identifier) is a persistent
+identifier for digital resources such as publications, datasets, and editions.
+In OpenAtlas, enter only the DOI identifier itself (e.g.
+``10.1163/9789004712126_015``), not the full URL or domain.
 
-The autocomplete search queries the Crossref database. However, all DOIs can
-be resolved, even if they were not found via the search. Note that only the
-DOI itself (e.g. ``10.1163/9789004712126_015``) is saved as the identifier,
-not the entire URL.
+The autocomplete search uses `Crossref <https://www.crossref.org/>`_. However,
+all DOI identifiers can be stored and resolved, even if they are not found via
+autocomplete.
 
-Crossref is included by default and is usable for **edition, bibliography and
+DOI is included by default and is usable for **edition, bibliography and
 external reference** in OpenAtlas.
 
 Cadaster

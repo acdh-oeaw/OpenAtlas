@@ -381,7 +381,7 @@ INSERT INTO model.entity (name, cidoc_class_code, description, openatlas_class_n
   ('GeoNames', 'E32', 'Geographical database covering all countries and many places.', 'reference_system'),
   ('Wikidata', 'E32', 'A free and open knowledge base and common source of open data providing persistent identifier and links to other sources.', 'reference_system'),
   ('GND',      'E32', 'GND stands for Gemeinsame Normdatei (Integrated Authority File) and offers a broad range of elements to describe authorities.', 'reference_system'),
-  ('DOI',      'E32', 'Crossref is an official DOI registration agency that allows you to search for academic works, datasets, and metadata using a unified registry. OpenAtlas retrieves and stores its unique DOI, which acts as a permanent link ensuring the resource can always be resolved and accessed.', 'reference_system'),
+  ('DOI',      'E32', 'A DOI (Digital Object Identifier) is a persistent identifier for digital resources. OpenAtlas uses Crossref for autocomplete, but any DOI can be stored and resolved, even if it is not found there. Please enter only the DOI identifier itself, not the full URL or domain.', 'reference_system'),
   ('Cadaster', 'E32', 'Austrian cadastre from the Federal Office of Metrology and Surveying Austria', 'reference_system');
 
 INSERT INTO web.reference_system (system, name, api, entity_id, resolver_url, website_url, identifier_example)

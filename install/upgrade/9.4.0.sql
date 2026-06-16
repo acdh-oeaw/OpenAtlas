@@ -8,7 +8,7 @@ INSERT INTO model.entity (name, cidoc_class_code, description, openatlas_class_n
 SELECT
     'DOI',
     'E32',
-    'Crossref is an official DOI registration agency that allows you to search for academic works, datasets, and metadata using a unified registry. OpenAtlas retrieves and stores its unique DOI, which acts as a permanent link ensuring the resource can always be resolved and accessed.',
+    'A DOI (Digital Object Identifier) is a persistent identifier for digital resources. OpenAtlas uses Crossref for autocomplete, but any DOI can be stored and resolved, even if it is not found there. Please enter only the DOI identifier itself, not the full URL or domain.',
     'reference_system'
 WHERE NOT EXISTS (
     SELECT 1 FROM model.entity WHERE name='DOI' AND openatlas_class_name = 'reference_system'
