@@ -277,23 +277,32 @@ class LoudFormatter:
                     'api.display', filename=file_.stem, _external=True),
                 "type": "DigitalObject",
                 "_label": file_.stem}]
+        digital_object['right_held_by'] = []
         for license_holder in entity.license_holder or []:
-            digital_object['right_held_by'] = [{
-                'id': self.generate_skolem_id(
-                    license_holder.id, 'rights_holder'),
+            license_holder.uuid = self.generate_skolem_id(
+                license_holder.id,
+                'rights_holder')
+            digital_object['right_held_by'].append({
+                'id': license_holder.uuid,
                 '_label': license_holder.name,
-                'type': (license_holder.class_ or 'Actor').capitalize()}]
+                'type': (license_holder.class_ or 'Actor').capitalize(),
+                'identified_by': self._inline_identifiers(license_holder)})
+        carried_out_by = []
         for creator in entity.creator or []:
-            digital_object['created_by'] = {
-                'id': self.generate_skolem_id(
-                    creator.id, f'{entity.id}_creation_{creator.id}'),
-                '_label': f'Creation of {entity.name}',
-                'type': 'Creation',
-                'carried_out_by': [{
-                    'id': self.generate_skolem_id(
-                        creator.id, 'rights_holder'),
-                    '_label': creator.name,
-                    'type': (creator.class_ or 'Actor').capitalize()}]}
+            creator.uuid = self.generate_skolem_id(
+                creator.id,
+                'rights_holder')
+            carried_out_by.append({
+                'id': creator.uuid,
+                '_label': creator.name,
+                'type': (creator.class_ or 'Actor').capitalize(),
+                'identified_by': self._inline_identifiers(creator)})
+        digital_object['created_by'] = {
+            'id': self.generate_skolem_id(
+                entity.id, f'{entity.id}_creation'),
+            '_label': f'Creation of {entity.name}',
+            'type': 'Creation',
+            'carried_out_by': carried_out_by}
         if license_ := get_license_type(entity):
             digital_object['referred_to_by'] = [
                 self._build_license(license_, entity.name)]
