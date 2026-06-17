@@ -394,8 +394,8 @@ class LoudFormatter:
         property_['content'] = target.name
         return property_
 
-    @staticmethod
     def _handle_p2(
+            self,
             property_: dict[str, Any],
             link_: Link,
             is_domain: bool) -> dict[str, Any]:
@@ -414,7 +414,34 @@ class LoudFormatter:
                 "id": "https://vocab.getty.edu/aat/300379096",
                 'type': "Type",
                 '_label': target.description}]
+            return property_
+        self._append_type_references(property_, target)
         return property_
+
+    def _append_type_references(
+            self,
+            property_: dict[str, Any],
+            type_entity: Entity) -> None:
+        equivalents: list[dict[str, Any]] = []
+        attributed_by: list[dict[str, Any]] = []
+        for type_link in self.type_refs.get(type_entity.id, []):
+            url = reference_url(type_link)
+            if not validators.url(url):  # pragma: no cover
+                continue
+            ref = {
+                'id': url,
+                'type': 'Type',
+                '_label': type_entity.name}
+            if is_close_match(type_link):  # pragma: no cover
+                attributed_by.append(close_match_attribution(
+                    self.generate_skolem_id(type_link.id, 'close_match'),
+                    ref))
+            else:
+                equivalents.append(ref)
+        if equivalents:
+            property_['equivalent'] = equivalents
+        if attributed_by:  # pragma: no cover
+            property_['attributed_by'] = attributed_by
 
     def _handle_p73(
             self,
