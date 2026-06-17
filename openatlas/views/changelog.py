@@ -15,6 +15,9 @@ def index_changelog() -> str:
 
 
 versions = {
+    '9.3.2': ['2026-06-17', {
+        'fix': {
+            '2826': 'API: Outdated information for network'}}],
     '9.3.1': ['2026-06-12', {
         'fix': {
             '2822': 'GeoNames import does not work',
