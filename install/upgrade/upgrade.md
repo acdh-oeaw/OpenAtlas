@@ -17,7 +17,9 @@ then run the database upgrade script, then restart Apache:
     sudo python3 install/upgrade/database_upgrade.py
     sudo service apache2 restart
 
-### 9.3.x to 9.3.2
+### 9.3.x to 9.4.0
+9.4.0.sql is needed but will be taken care of by the database upgrade script.
+
 New NPM packages with security updates are available:
 
     cd openatlas/static
