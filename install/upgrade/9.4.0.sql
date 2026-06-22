@@ -52,7 +52,10 @@ WHERE NOT EXISTS (
         AND openatlas_class_name = 'external_reference'
 );
 
-INSERT INTO model.link (property_code, range_id, domain_id) VALUES
-  ('P2', (SELECT id FROM model.entity WHERE name='exact match'), (SELECT id FROM model.entity WHERE name='DOI'));
+INSERT INTO model.link (property_code, range_id, domain_id) VALUES (
+    'P2',
+    (SELECT id FROM model.entity WHERE name='exact match'),
+    (SELECT id FROM model.entity WHERE name='DOI' AND openatlas_class_name = 'reference_system')
+);
 
 END;
