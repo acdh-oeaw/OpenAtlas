@@ -111,13 +111,14 @@ def setup_files() -> None:
         g.display_file_ext += app.config['PROCESSABLE_EXT']
     if g.settings['iiif'] and g.settings['iiif_path']:
         g.writable_paths.append(g.settings['iiif_path'])
-    file_info = Entity.get_file_info()
     g.rights_holder = RightsHolder.get_rights_holder()
     rights_holder_info = RightsHolder.get_rights_holder_information()
-    for file_id, info in file_info.items():
+    file_info = {}
+    for file_id in g.files:
         rights = rights_holder_info.get(file_id, {})
-        info['creator'] = rights.get('creator', [])
-        info['license_holder'] = rights.get('license_holder', [])
+        file_info[file_id] = {
+            'creator': rights.get('creator', []),
+            'license_holder': rights.get('license_holder', [])}
     g.file_info = file_info
 
 

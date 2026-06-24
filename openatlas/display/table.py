@@ -229,9 +229,7 @@ def get_table_cell_content(
         case 'property' if isinstance(item, Link):
             html = item.property.code
         case 'public':
-            html = ''
-            if g.file_info.get(e.id):
-                html = display_bool(g.file_info[e.id]['public'], False)
+            html = display_bool(e.public, False)
         case 'range' | 'sub' | 'succeeding':
             html = link(range_)
         case 'remove' if origin and isinstance(item, Link):

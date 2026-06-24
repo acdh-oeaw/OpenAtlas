@@ -441,18 +441,11 @@ class Display:
             if name in [
                     'api',
                     'example_id',
-                    'public',
                     'resolver_url',
                     'website_url']:
                 if value := getattr(self.entity, name):
                     if isinstance(value, bool):
                         value = display_bool(value)
-                        if name == 'public' \
-                                and value \
-                                and not self.entity.standard_type:
-                            value += (
-                                ' <span class="error">'
-                                f'{_('but license is missing ')}</span>')
                     elif attribute.get('format') == 'url':
                         value = link(value, value, external=True)
                     self.data[attribute['label']] = str(value)
