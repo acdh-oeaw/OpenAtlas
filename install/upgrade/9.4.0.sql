@@ -59,6 +59,7 @@ INSERT INTO model.link (property_code, range_id, domain_id) VALUES (
 );
 
 -- Public flag for files as type (#2780)
+-- add new type
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description)
 VALUES
     ('E55', 'type', 'Public sharing allowed', 'Mark files for public sharing, e.g. on presentation sites'),
@@ -75,5 +76,19 @@ INSERT INTO web.hierarchy (id, name, category, multiple, directional, required) 
 INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) VALUES
   ((SELECT id FROM web.hierarchy WHERE name='Public sharing allowed'), 'file');
 
+-- map former data
+INSERT INTO model.link (property_code, domain_id, range_id)
+SELECT 'P2', entity_id, (SELECT id FROM model.entity WHERE name = 'yes_temp')
+FROM model.file_info WHERE public = true;
+
+INSERT INTO model.link (property_code, domain_id, range_id)
+SELECT 'P2', entity_id, (SELECT id FROM model.entity WHERE name = 'no_temp')
+FROM model.file_info WHERE public = false;
+
+DROP TABLE model.file_info;
+
+-- rename temp names
+UPDATE model.entity SET name = 'Yes' WHERE name = 'yes_temp';
+UPDATE model.entity SET name = 'No' WHERE name = 'no_temp';
 
 END;
