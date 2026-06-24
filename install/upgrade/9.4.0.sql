@@ -58,4 +58,22 @@ INSERT INTO model.link (property_code, range_id, domain_id) VALUES (
     (SELECT id FROM model.entity WHERE name='DOI' AND openatlas_class_name = 'reference_system')
 );
 
+-- Public flag for files as type (#2780)
+INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description)
+VALUES
+    ('E55', 'type', 'Public sharing allowed', 'Mark files for public sharing, e.g. on presentation sites'),
+    ('E55', 'type', 'yes_temp', ''),
+    ('E55', 'type', 'no_temp', '');
+
+INSERT INTO model.link (property_code, range_id, domain_id) VALUES
+  ('P127', (SELECT id FROM model.entity WHERE name='Public sharing allowed'), (SELECT id FROM model.entity WHERE name='yes_temp')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Public sharing allowed'), (SELECT id FROM model.entity WHERE name='no_temp'));
+
+INSERT INTO web.hierarchy (id, name, category, multiple, directional, required) VALUES
+  ((SELECT id FROM model.entity WHERE name='Public sharing allowed'), 'Public sharing allowed', 'system', False, False, True);
+
+INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) VALUES
+  ((SELECT id FROM web.hierarchy WHERE name='Public sharing allowed'), 'file');
+
+
 END;
