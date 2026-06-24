@@ -60,8 +60,7 @@ INSERT INTO model.link (property_code, range_id, domain_id) VALUES (
 
 -- Public flag for files as type (#2780)
 -- add new type
-INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description)
-VALUES
+INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
     ('E55', 'type', 'Public sharing allowed', 'Mark files for public sharing, e.g. on presentation sites'),
     ('E55', 'type', 'yes_temp', ''),
     ('E55', 'type', 'no_temp', '');

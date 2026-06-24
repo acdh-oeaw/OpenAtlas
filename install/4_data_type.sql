@@ -303,33 +303,41 @@ INSERT INTO model.link (property_code, domain_id, range_id) VALUES
 INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name) VALUES
   ('E55', 'type_tools', 'Humerus'),
   ('E55', 'type_tools', 'Femur');
-
 INSERT INTO model.link (property_code, domain_id, range_id) VALUES
   ('P127', (SELECT id FROM model.entity WHERE name='Humerus'), (SELECT id FROM model.entity WHERE name='Robusticity')),
   ('P127', (SELECT id FROM model.entity WHERE name='Femur'), (SELECT id FROM model.entity WHERE name='Robusticity'));
 
-INSERT INTO web.hierarchy (id, name, category, multiple, directional) VALUES
-  ((SELECT id FROM model.entity WHERE name='Actor function'), 'Actor function', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Actor relation'), 'Actor relation', 'standard', False, True),
-  ((SELECT id FROM model.entity WHERE name='Artifact'), 'Artifact', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Bibliography'), 'Bibliography', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Case study'), 'Case study', 'custom', True, False),
-  ((SELECT id FROM model.entity WHERE name='Dimensions'), 'Dimensions', 'value', True, False),
-  ((SELECT id FROM model.entity WHERE name='Edition'), 'Edition', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Event'), 'Event', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='External reference'), 'External reference', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='External reference match'), 'External reference match', 'system', False, False),
-  ((SELECT id FROM model.entity WHERE name='Feature'), 'Feature', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Features for sexing'), 'Features for sexing', 'tools', False, False),
-  ((SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), 'Human remains', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Involvement'), 'Involvement', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='License'), 'License', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Place'), 'Place', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Radiocarbon'), 'Radiocarbon', 'tools', False, False),
-  ((SELECT id FROM model.entity WHERE name='Sex'), 'Sex', 'custom', True, False),
-  ((SELECT id FROM model.entity WHERE name='Source'), 'Source', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False),
-  ((SELECT id FROM model.entity WHERE name='Text'), 'Text', 'standard', False, False);
+INSERT INTO model.entity (cidoc_class_code, openatlas_class_name, name, description) VALUES
+    ('E55', 'type', 'Public sharing allowed', 'Mark files for public sharing, e.g. on presentation sites'),
+    ('E55', 'type', 'Yes', ''),
+    ('E55', 'type', 'No', '');
+INSERT INTO model.link (property_code, range_id, domain_id) VALUES
+  ('P127', (SELECT id FROM model.entity WHERE name='Public sharing allowed'), (SELECT id FROM model.entity WHERE name='Yes')),
+  ('P127', (SELECT id FROM model.entity WHERE name='Public sharing allowed'), (SELECT id FROM model.entity WHERE name='No'));
+
+INSERT INTO web.hierarchy (id, name, category, multiple, directional, required) VALUES
+  ((SELECT id FROM model.entity WHERE name='Actor function'), 'Actor function', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Actor relation'), 'Actor relation', 'standard', False, True, False),
+  ((SELECT id FROM model.entity WHERE name='Artifact'), 'Artifact', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Bibliography'), 'Bibliography', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Case study'), 'Case study', 'custom', True, False, False),
+  ((SELECT id FROM model.entity WHERE name='Dimensions'), 'Dimensions', 'value', True, False, False),
+  ((SELECT id FROM model.entity WHERE name='Edition'), 'Edition', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Event'), 'Event', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='External reference'), 'External reference', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='External reference match'), 'External reference match', 'system', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Feature'), 'Feature', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Features for sexing'), 'Features for sexing', 'tools', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Human remains' AND cidoc_class_code = 'E55'), 'Human remains', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Involvement'), 'Involvement', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='License'), 'License', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Place'), 'Place', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Public sharing allowed'), 'Public sharing allowed', 'system', False, False, True),
+  ((SELECT id FROM model.entity WHERE name='Radiocarbon'), 'Radiocarbon', 'tools', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Sex'), 'Sex', 'custom', True, False, False),
+  ((SELECT id FROM model.entity WHERE name='Source'), 'Source', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Stratigraphic unit'), 'Stratigraphic unit', 'standard', False, False, False),
+  ((SELECT id FROM model.entity WHERE name='Text'), 'Text', 'standard', False, False, False);
 
 
 INSERT INTO model.openatlas_class (name, cidoc_class_code, new_types_allowed, write_access_group_name, standard_type_id) VALUES
@@ -370,6 +378,7 @@ INSERT INTO web.hierarchy_openatlas_class (hierarchy_id, openatlas_class_name) V
   ((SELECT id FROM web.hierarchy WHERE name='Human remains'), 'human_remains'),
   ((SELECT id FROM web.hierarchy WHERE name='License'), 'file'),
   ((SELECT id FROM web.hierarchy WHERE name='Place'), 'place'),
+  ((SELECT id FROM web.hierarchy WHERE name='Public sharing allowed'), 'file'),
   ((SELECT id FROM web.hierarchy WHERE name='External reference match'), 'reference_system'),
   ((SELECT id FROM web.hierarchy WHERE name='Sex'), 'person'),
   ((SELECT id FROM web.hierarchy WHERE name='Source'), 'source'),
