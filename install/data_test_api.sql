@@ -206,12 +206,12 @@ ON CONFLICT (entity_id) DO UPDATE SET image_id=(SELECT id FROM model.entity WHER
 INSERT INTO web.map_overlay (image_id, bounding_box)
         VALUES ((SELECT id FROM model.entity WHERE name='Picture with a License'), '[[48.58653,15.64356],[48.58709,15.64294]]');
 
-INSERT INTO model.file_info (entity_id, public)
-VALUES
-    ((SELECT id FROM model.entity WHERE name='File without license'), TRUE),
-    ((SELECT id FROM model.entity WHERE name='File without file'), TRUE),
-    ((SELECT id FROM model.entity WHERE name='Picture with a License'), TRUE),
-    ((SELECT id FROM model.entity WHERE name='File not public'), FALSE);
+-- INSERT INTO model.file_info (entity_id, public)
+-- VALUES
+--    ((SELECT id FROM model.entity WHERE name='File without license'), TRUE),
+--    ((SELECT id FROM model.entity WHERE name='File without file'), TRUE),
+--    ((SELECT id FROM model.entity WHERE name='Picture with a License'), TRUE),
+--    ((SELECT id FROM model.entity WHERE name='File not public'), FALSE);
 
 ALTER TABLE model.rights_holder
     DROP CONSTRAINT IF EXISTS uq_rights_holder_name;

@@ -444,9 +444,7 @@ class Display:
                     'resolver_url',
                     'website_url']:
                 if value := getattr(self.entity, name):
-                    if isinstance(value, bool):
-                        value = display_bool(value)
-                    elif attribute.get('format') == 'url':
+                    if attribute.get('format') == 'url':
                         value = link(value, value, external=True)
                     self.data[attribute['label']] = str(value)
         for name, relation in self.entity.class_.relations.items():
