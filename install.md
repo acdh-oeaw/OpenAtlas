@@ -169,13 +169,6 @@ The webserver configuration should than point to the **openatlas.wsgi**
 instance file and other paths should be adapted to the application installation
 directory.
 
-When using multiple instances be aware about slightly changes at the upgrade
-process. E.g. you only need to update the application once but have to do
-the database upgrade for every instance individually by going in their specific
-directories and execute:
-
-    sudo python3 database_upgrade.py
-
 ## Tests
 Install required packages:
 
