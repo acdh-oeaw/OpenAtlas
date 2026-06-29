@@ -84,13 +84,6 @@ def get_entity_form(
             case 'location':
                 for shape in ['points', 'polygons', 'lines']:
                     setattr(Form, f'gis_{shape}', HiddenField(default='[]'))
-            case 'public':
-                setattr(
-                    Form,
-                    'public',
-                    BooleanField(
-                        value['label'],
-                        validators=get_validators(value)))
             case 'reference_system_classes':
                 if choices := reference_system_class_choices(entity):
                     # noinspection PyTypeChecker

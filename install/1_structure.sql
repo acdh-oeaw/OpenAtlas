@@ -2,8 +2,9 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.9 (Debian 17.9-0+deb13u1)
--- Dumped by pg_dump version 17.9 (Debian 17.9-0+deb13u1)
+
+-- Dumped from database version 17.10 (Debian 17.10-0+deb13u1)
+-- Dumped by pg_dump version 17.10 (Debian 17.10-0+deb13u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,8 +17,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_creator_id_fkey;
@@ -52,7 +51,6 @@ ALTER TABLE IF EXISTS ONLY model.link DROP CONSTRAINT IF EXISTS link_domain_id_f
 ALTER TABLE IF EXISTS ONLY model.gis DROP CONSTRAINT IF EXISTS gis_entity_id_fkey;
 ALTER TABLE IF EXISTS ONLY model.rights_holder_file DROP CONSTRAINT IF EXISTS fk_rights_holder;
 ALTER TABLE IF EXISTS ONLY model.rights_holder_file DROP CONSTRAINT IF EXISTS fk_entity;
-ALTER TABLE IF EXISTS ONLY model.file_info DROP CONSTRAINT IF EXISTS file_info_entity_id_fkey;
 ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_openatlas_class_name_fkey;
 ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_class_code_fkey;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class_inheritance DROP CONSTRAINT IF EXISTS class_inheritance_super_code_fkey;
@@ -80,7 +78,6 @@ DROP TRIGGER IF EXISTS update_modified ON model.rights_holder_file;
 DROP TRIGGER IF EXISTS update_modified ON model.rights_holder;
 DROP TRIGGER IF EXISTS update_modified ON model.link;
 DROP TRIGGER IF EXISTS update_modified ON model.gis;
-DROP TRIGGER IF EXISTS update_modified ON model.file_info;
 DROP TRIGGER IF EXISTS update_modified ON model.entity;
 DROP TRIGGER IF EXISTS update_modified ON model.annotation_text;
 DROP TRIGGER IF EXISTS update_modified ON model.annotation_image;
@@ -129,9 +126,8 @@ ALTER TABLE IF EXISTS ONLY model.openatlas_class DROP CONSTRAINT IF EXISTS opena
 ALTER TABLE IF EXISTS ONLY model.openatlas_class DROP CONSTRAINT IF EXISTS openatlas_class_name_key;
 ALTER TABLE IF EXISTS ONLY model.link DROP CONSTRAINT IF EXISTS link_pkey;
 ALTER TABLE IF EXISTS ONLY model.gis DROP CONSTRAINT IF EXISTS gis_pkey;
-ALTER TABLE IF EXISTS ONLY model.file_info DROP CONSTRAINT IF EXISTS file_info_pkey;
+ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_uuid_unique;
 ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_pkey;
-ALTER TABLE IF EXISTS ONLY model.file_info DROP CONSTRAINT IF EXISTS entity_id_key;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class DROP CONSTRAINT IF EXISTS class_pkey;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class DROP CONSTRAINT IF EXISTS class_name_key;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class_inheritance DROP CONSTRAINT IF EXISTS class_inheritance_super_id_sub_id_key;
@@ -221,7 +217,6 @@ DROP SEQUENCE IF EXISTS model.link_id_seq;
 DROP TABLE IF EXISTS model.link;
 DROP SEQUENCE IF EXISTS model.gis_id_seq;
 DROP TABLE IF EXISTS model.gis;
-DROP TABLE IF EXISTS model.file_info;
 DROP SEQUENCE IF EXISTS model.file_info_id_seq;
 DROP SEQUENCE IF EXISTS model.entity_id_seq;
 DROP TABLE IF EXISTS model.entity;
@@ -626,7 +621,7 @@ CREATE TABLE model.entity (
     end_to timestamp without time zone,
     end_comment text,
     openatlas_class_name text NOT NULL,
-    uuid uuid DEFAULT public.gen_random_uuid() NOT NULL,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     CONSTRAINT no_empty_name CHECK ((name <> ''::text))
 );
 
@@ -667,28 +662,6 @@ CREATE SEQUENCE model.file_info_id_seq
 
 
 ALTER SEQUENCE model.file_info_id_seq OWNER TO openatlas;
-
---
--- Name: file_info; Type: TABLE; Schema: model; Owner: openatlas
---
-
-CREATE TABLE model.file_info (
-    id integer DEFAULT nextval('model.file_info_id_seq'::regclass) NOT NULL,
-    entity_id integer,
-    public boolean DEFAULT false,
-    created timestamp without time zone DEFAULT now() NOT NULL,
-    modified timestamp without time zone
-);
-
-
-ALTER TABLE model.file_info OWNER TO openatlas;
-
---
--- Name: TABLE file_info; Type: COMMENT; Schema: model; Owner: openatlas
---
-
-COMMENT ON TABLE model.file_info IS 'Indicates if public sharing of corresponding file is allowed.';
-
 
 --
 -- Name: gis; Type: TABLE; Schema: model; Owner: openatlas
@@ -1942,14 +1915,6 @@ ALTER TABLE ONLY model.cidoc_class
 
 
 --
--- Name: file_info entity_id_key; Type: CONSTRAINT; Schema: model; Owner: openatlas
---
-
-ALTER TABLE ONLY model.file_info
-    ADD CONSTRAINT entity_id_key UNIQUE (entity_id);
-
-
---
 -- Name: entity entity_pkey; Type: CONSTRAINT; Schema: model; Owner: openatlas
 --
 
@@ -1963,14 +1928,6 @@ ALTER TABLE ONLY model.entity
 
 ALTER TABLE ONLY model.entity
     ADD CONSTRAINT entity_uuid_unique UNIQUE (uuid);
-
-
---
--- Name: file_info file_info_pkey; Type: CONSTRAINT; Schema: model; Owner: openatlas
---
-
-ALTER TABLE ONLY model.file_info
-    ADD CONSTRAINT file_info_pkey PRIMARY KEY (id);
 
 
 --
@@ -2353,13 +2310,6 @@ CREATE TRIGGER update_modified BEFORE UPDATE ON model.entity FOR EACH ROW EXECUT
 
 
 --
--- Name: file_info update_modified; Type: TRIGGER; Schema: model; Owner: openatlas
---
-
-CREATE TRIGGER update_modified BEFORE UPDATE ON model.file_info FOR EACH ROW EXECUTE FUNCTION model.update_modified();
-
-
---
 -- Name: gis update_modified; Type: TRIGGER; Schema: model; Owner: openatlas
 --
 
@@ -2558,14 +2508,6 @@ ALTER TABLE ONLY model.entity
 
 ALTER TABLE ONLY model.entity
     ADD CONSTRAINT entity_openatlas_class_name_fkey FOREIGN KEY (openatlas_class_name) REFERENCES model.openatlas_class(name) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: file_info file_info_entity_id_fkey; Type: FK CONSTRAINT; Schema: model; Owner: openatlas
---
-
-ALTER TABLE ONLY model.file_info
-    ADD CONSTRAINT file_info_entity_id_fkey FOREIGN KEY (entity_id) REFERENCES model.entity(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2835,3 +2777,4 @@ ALTER TABLE ONLY web.user_tokens
 --
 -- PostgreSQL database dump complete
 --
+
