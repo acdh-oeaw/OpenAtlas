@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.9 (Debian 17.9-0+deb13u1)
--- Dumped by pg_dump version 17.9 (Debian 17.9-0+deb13u1)
+-- Dumped from database version 17.10 (Debian 17.10-0+deb13u1)
+-- Dumped by pg_dump version 17.10 (Debian 17.10-0+deb13u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,8 +16,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY web.user_tokens DROP CONSTRAINT IF EXISTS user_tokens_creator_id_fkey;
@@ -130,6 +128,7 @@ ALTER TABLE IF EXISTS ONLY model.openatlas_class DROP CONSTRAINT IF EXISTS opena
 ALTER TABLE IF EXISTS ONLY model.link DROP CONSTRAINT IF EXISTS link_pkey;
 ALTER TABLE IF EXISTS ONLY model.gis DROP CONSTRAINT IF EXISTS gis_pkey;
 ALTER TABLE IF EXISTS ONLY model.file_info DROP CONSTRAINT IF EXISTS file_info_pkey;
+ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_uuid_unique;
 ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_pkey;
 ALTER TABLE IF EXISTS ONLY model.file_info DROP CONSTRAINT IF EXISTS entity_id_key;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class DROP CONSTRAINT IF EXISTS class_pkey;
