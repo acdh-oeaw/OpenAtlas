@@ -125,7 +125,6 @@ ALTER TABLE IF EXISTS ONLY model.openatlas_class DROP CONSTRAINT IF EXISTS opena
 ALTER TABLE IF EXISTS ONLY model.openatlas_class DROP CONSTRAINT IF EXISTS openatlas_class_name_key;
 ALTER TABLE IF EXISTS ONLY model.link DROP CONSTRAINT IF EXISTS link_pkey;
 ALTER TABLE IF EXISTS ONLY model.gis DROP CONSTRAINT IF EXISTS gis_pkey;
-ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_uuid_unique;
 ALTER TABLE IF EXISTS ONLY model.entity DROP CONSTRAINT IF EXISTS entity_pkey;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class DROP CONSTRAINT IF EXISTS class_pkey;
 ALTER TABLE IF EXISTS ONLY model.cidoc_class DROP CONSTRAINT IF EXISTS class_name_key;
@@ -620,7 +619,7 @@ CREATE TABLE model.entity (
     end_to timestamp without time zone,
     end_comment text,
     openatlas_class_name text NOT NULL,
-    uuid uuid DEFAULT public.gen_random_uuid() NOT NULL,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     CONSTRAINT no_empty_name CHECK ((name <> ''::text))
 );
 
